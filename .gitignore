@@ -1,3 +1,9 @@
+
+resources/
+build/
+libs/
+TODO.txt
+
 # Prerequisites
 *.d
 
