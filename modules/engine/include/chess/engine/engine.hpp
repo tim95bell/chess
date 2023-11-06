@@ -141,7 +141,6 @@ namespace chess { namespace engine {
         U64 possible_moves_calculated;
     };
 
-    // TODO(TB): rename to Board, Game should require a list of Board's?
     struct Game {
         Game() noexcept;
 
@@ -168,7 +167,6 @@ namespace chess { namespace engine {
     };
 
     extern inline constexpr U64 nth_bit(U8 n);
-    // TODO(TB): maybe use the other kind of variable arg functions (non template)
     template <typename... Args>
     inline constexpr U64 nth_bit(U8 n, Args... args) {
         return nth_bit(n) | nth_bit(args...);
@@ -192,10 +190,23 @@ namespace chess { namespace engine {
     extern U64 get_moves(const Game* game, U8 index);
     extern inline constexpr bool is_rank(U8 index, U8 rank);
     extern inline constexpr bool is_file(U8 index, U8 rank);
-    // TODO(TB): how to make this constexpr and inline?
     extern U8 coordinate(U8 file, U8 rank);
+    extern U8 coordinate_with_flipped_rank(U8 file, U8 rank);
+    extern U8 flip_index_rank(U8 index);
+    extern U8 flip_rank(U8 rank);
+    extern U8 get_rank(U8 index);
+    extern U8 get_file(U8 index);
     extern bool move(Game* game, U8 from, U8 to);
     extern bool move_and_promote(Game* game, U8 from, U8 to, Piece::Type promotion_piece);
     extern U64 get_cells_moved_from(const Game* game);
     extern U64 get_cells_moved_to(const Game* game);
+    extern U8 move_index_up(U8 index);
+    extern U8 move_index_up_right(U8 index);
+    extern U8 move_index_right(U8 index);
+    extern U8 move_index_down_right(U8 index);
+    extern U8 move_index_down(U8 index);
+    extern U8 move_index_down_left(U8 index);
+    extern U8 move_index_left(U8 index);
+    extern U8 move_index_up_left(U8 index);
+    extern bool is_light_cell(U8 file, U8 rank);
 }}

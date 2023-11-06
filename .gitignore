@@ -4,6 +4,8 @@ build/
 libs/
 TODO.txt
 
+.DS_Store
+
 # Prerequisites
 *.d
 

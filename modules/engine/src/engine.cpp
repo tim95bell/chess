@@ -250,25 +250,25 @@ namespace chess { namespace engine {
         if (game->next_turn) {
             if (has_black_pawn(game, index)) {
                 CHESS_ASSERT(!is_rank(index, RANK_1));
-                U64 result = nth_bit(index - 8);
+                U64 result = nth_bit(move_index_down(index));
                 const U64 all_black_pieces = game->black_pawns | game->black_knights | game->black_bishops | game->black_rooks | game->black_queens | game->black_kings;
                 const U64 all_white_pieces = game->white_pawns | game->white_knights | game->white_bishops | game->white_rooks | game->white_queens | game->white_kings;
                 result ^= result & all_black_pieces;
                 if (result && is_rank(index, RANK_7)) {
-                    result |= nth_bit(index - 16);
+                    result |= nth_bit(move_index_down(move_index_down(index)));
                     result ^= result & all_black_pieces;
                 }
 
-                result |= (is_file(index, FILE_A) ? nth_bit(index - 7) : (is_file(index, FILE_H) ? nth_bit(index - 9) : nth_bit(index - 7, index - 9))) & all_white_pieces;
+                result |= (is_file(index, FILE_A) ? nth_bit(move_index_down_right(index)) : (is_file(index, FILE_H) ? nth_bit(move_index_down_left(index)) : nth_bit(move_index_down_right(index), move_index_down_left(index)))) & all_white_pieces;
 
                 if (game->can_en_passant) {
                     CHESS_ASSERT(get_piece(game, game->en_passant_square + 8).type == Piece::Type::Empty);
                     CHESS_ASSERT(get_piece(game, game->en_passant_square).type == Piece::Type::Pawn);
                     CHESS_ASSERT(get_piece(game, game->en_passant_square).colour == Colour::White);
-                    if (!is_file(index, FILE_H) && game->en_passant_square == index + 1) {
-                        result |= nth_bit(index - 7);
-                    } else if (!is_file(index, FILE_A) && game->en_passant_square == index - 1) {
-                        result |= nth_bit(index - 9);
+                    if (!is_file(index, FILE_H) && game->en_passant_square == move_index_right(index)) {
+                        result |= nth_bit(move_index_down_right(index));
+                    } else if (!is_file(index, FILE_A) && game->en_passant_square == move_index_left(index)) {
+                        result |= nth_bit(move_index_down_left(index));
                     }
                 }
 
@@ -280,25 +280,25 @@ namespace chess { namespace engine {
         } else {
             if (has_white_pawn(game, index)) {
                 CHESS_ASSERT(!is_rank(index, RANK_8));
-                U64 result = nth_bit(index + 8);
+                U64 result = nth_bit(move_index_up(index));
                 const U64 all_white_pieces = game->white_pawns | game->white_knights | game->white_bishops | game->white_rooks | game->white_queens | game->white_kings;
                 const U64 all_black_pieces = game->black_pawns | game->black_knights | game->black_bishops | game->black_rooks | game->black_queens | game->black_kings;
                 result ^= result & all_white_pieces;
                 if (result && is_rank(index, RANK_2)) {
-                    result |= nth_bit(index + 16);
+                    result |= nth_bit(move_index_up(move_index_up(index)));
                     result ^= result & all_white_pieces;
                 }
                 
-                result |= (is_file(index, FILE_A) ? nth_bit(index + 9) : (is_file(index, FILE_H) ? nth_bit(index + 7) : nth_bit(index + 7, index + 9))) & all_black_pieces;
+                result |= (is_file(index, FILE_A) ? nth_bit(move_index_up_right(index)) : (is_file(index, FILE_H) ? nth_bit(move_index_up_left(index)) : nth_bit(move_index_up_left(index), move_index_up_right(index)))) & all_black_pieces;
 
                 if (game->can_en_passant) {
-                    CHESS_ASSERT(get_piece(game, game->en_passant_square + 8).type == Piece::Type::Empty);
+                    CHESS_ASSERT(get_piece(game, move_index_up(game->en_passant_square)).type == Piece::Type::Empty);
                     CHESS_ASSERT(get_piece(game, game->en_passant_square).type == Piece::Type::Pawn);
                     CHESS_ASSERT(get_piece(game, game->en_passant_square).colour == Colour::Black);
-                    if (!is_file(index, FILE_H) && game->en_passant_square == index + 1) {
-                        result |= nth_bit(index + 9);
-                    } else if (!is_file(index, FILE_A) && game->en_passant_square == index - 1) {
-                        result |= nth_bit(index + 7);
+                    if (!is_file(index, FILE_H) && game->en_passant_square == move_index_right(index)) {
+                        result |= nth_bit(move_index_up_right(index));
+                    } else if (!is_file(index, FILE_A) && game->en_passant_square == move_index_left(index)) {
+                        result |= nth_bit(move_index_up_left(index));
                     }
                 }
 
@@ -313,17 +313,38 @@ namespace chess { namespace engine {
     }
 
     constexpr bool is_rank(U8 index, U8 rank) {
-        CHESS_ASSERT(rank < CHESS_BOARD_HEIGHT);
-        return (index / 8) == rank;
+        return get_rank(index) == rank;
     }
 
     constexpr bool is_file(U8 index, U8 file) {
-        CHESS_ASSERT(file < CHESS_BOARD_WIDTH);
-        return (index % 8) == file;
+        return get_file(index) == file;
     }
 
     U8 coordinate(U8 file, U8 rank) {
         return rank * CHESS_BOARD_WIDTH + file;
+    }
+
+    U8 coordinate_with_flipped_rank(U8 file, U8 rank) {
+        return coordinate(file, flip_rank(rank));
+    }
+
+    U8 flip_index_rank(U8 index) {
+        return coordinate_with_flipped_rank(get_file(index), get_rank(index));
+    }
+
+    U8 flip_rank(U8 rank) {
+        CHESS_ASSERT(rank < CHESS_BOARD_HEIGHT);
+        return (CHESS_BOARD_HEIGHT - 1) - rank;
+    }
+
+    U8 get_rank(U8 index) {
+        CHESS_ASSERT(index / CHESS_BOARD_WIDTH < CHESS_BOARD_HEIGHT);
+        return index / CHESS_BOARD_WIDTH;
+    }
+
+    U8 get_file(U8 index) {
+        CHESS_ASSERT(index % CHESS_BOARD_WIDTH < CHESS_BOARD_WIDTH);
+        return index % CHESS_BOARD_WIDTH;
     }
 
     bool move(Game* game, U8 from, U8 to) {
@@ -347,7 +368,7 @@ namespace chess { namespace engine {
                     return false;
                 }
 
-                if (game->can_en_passant && game->en_passant_square == to + CHESS_BOARD_WIDTH) {
+                if (game->can_en_passant && game->en_passant_square == move_index_up(to)) {
                     en_passant = true;
                 }
 
@@ -359,7 +380,7 @@ namespace chess { namespace engine {
                     *to_bitboard &= ~nth_bit(to);
                 }
 
-                if (to == from - CHESS_BOARD_WIDTH * 2) {
+                if (to == move_index_down(move_index_down(from))) {
                     game->en_passant_square = to;
                     game->can_en_passant = true;
                 } else {
@@ -387,7 +408,7 @@ namespace chess { namespace engine {
                     return false;
                 }
 
-                if (game->can_en_passant && game->en_passant_square == to - CHESS_BOARD_WIDTH) {
+                if (game->can_en_passant && game->en_passant_square == move_index_down(to)) {
                     en_passant = true;
                 }
 
@@ -400,7 +421,7 @@ namespace chess { namespace engine {
                     *to_bitboard &= ~nth_bit(to);
                 }
 
-                if (to == from + CHESS_BOARD_WIDTH * 2) {
+                if (to == move_index_up(move_index_up(from))) {
                     game->en_passant_square = to;
                     game->can_en_passant = true;
                 } else {
@@ -514,5 +535,41 @@ namespace chess { namespace engine {
         // TODO(TB): get position last moved from. could be 2 from castling. need to find pieces of last moves colour that arent where they were.
         // last_move_colour_all_pieces_last_move & ~last_move_colour_all_pieces_this_move
         return 0;
+    }
+
+    U8 move_index_up(U8 index) {
+        return index + CHESS_BOARD_WIDTH;
+    }
+
+    U8 move_index_up_right(U8 index) {
+        return index + (CHESS_BOARD_WIDTH + 1);
+    }
+
+    U8 move_index_right(U8 index) {
+        return index + 1;
+    }
+
+    U8 move_index_down_right(U8 index) {
+        return index - (CHESS_BOARD_WIDTH - 1);
+    }
+
+    U8 move_index_down(U8 index) {
+        return index - CHESS_BOARD_WIDTH;
+    }
+
+    U8 move_index_down_left(U8 index) {
+        return index - (CHESS_BOARD_WIDTH + 1);
+    }
+
+    U8 move_index_left(U8 index) {
+        return index - 1;
+    }
+
+    U8 move_index_up_left(U8 index) {
+        return index + (CHESS_BOARD_WIDTH - 1);
+    }
+
+    bool is_light_cell(U8 file, U8 rank) {
+        return file % 2 == 0 ? rank % 2 == 0 : rank % 2 != 0;
     }
 }}

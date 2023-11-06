@@ -647,9 +647,11 @@ namespace chess { namespace engine {
         for (U8 i = 0; i < pieces.size(); ++i) {
             const Piece piece = get_piece(game, i);
             // flip rank as pieces array is written top to bottom to be viewed as text, but board starts at bottom left
-            const Piece expected = pieces[coordinate(i % CHESS_BOARD_WIDTH, 7 - (i / CHESS_BOARD_WIDTH))];
-            CHECK(piece.colour == expected.colour);
+            const Piece expected = pieces[flip_index_rank(i)];
             CHECK(piece.type == expected.type);
+            if (piece.type != Piece::Type::Empty) {
+                CHECK(piece.colour == expected.colour);
+            }
         }
     }
 

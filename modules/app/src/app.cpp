@@ -56,6 +56,7 @@ namespace chess { namespace app {
         InitWindow(CHESS_UI_WIDTH, CHESS_UI_HEIGHT, "Chess");
         SetTargetFPS(60);
         app->pieces_texture = LoadTexture("resources/pieces.png");
+        return true;
     }
 
     DEINIT_FUNCTION(deinit) {
@@ -95,7 +96,7 @@ namespace chess { namespace app {
                 }
             } else if (pos.x > board_x && pos.x < board_x + CHESS_UI_BOARD_SIZE
                 && pos.y > board_y && pos.y < board_y + CHESS_UI_BOARD_SIZE) {
-                const U8 cell = engine::coordinate((pos.x - board_x) / cell_size, CHESS_BOARD_HEIGHT - 1 - static_cast<U64>((pos.y - board_y) / cell_size));
+                const U8 cell = engine::coordinate_with_flipped_rank((pos.x - board_x) / cell_size, static_cast<U64>((pos.y - board_y) / cell_size));
                 if (app->cell_is_selected) {
                     if (app->possible_moves & engine::nth_bit(cell)) {
                         if (app->game.next_turn ? (engine::is_rank(app->selected_cell, RANK_2) && engine::has_black_pawn(&app->game, app->selected_cell)) : (engine::is_rank(app->selected_cell, RANK_7) && engine::has_white_pawn(&app->game, app->selected_cell))) {
@@ -127,8 +128,8 @@ namespace chess { namespace app {
             ClearBackground(WHITE);
             for (U8 y = 0; y < CHESS_BOARD_WIDTH; ++y) {
                 for (U8 x = 0; x < CHESS_BOARD_WIDTH; ++x) {
-                    const U8 i = engine::coordinate(x, CHESS_BOARD_HEIGHT - 1 - y);
-                    const bool light_square = x % 2 == 0 ? y % 2 == 0 : y % 2 != 0;
+                    const U8 i = engine::coordinate_with_flipped_rank(x, y);
+                    const bool light_square = engine::is_light_cell(x, y);
                     const Rectangle cell{static_cast<float>(board_x + x * cell_size), static_cast<float>(board_y + y * cell_size), static_cast<float>(cell_size), static_cast<float>(cell_size)};
                     Color cell_colour;
                     if (app->cell_is_selected) {
