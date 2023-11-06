@@ -37,29 +37,29 @@ namespace chess { namespace engine {
         for (U8 rank = CHESS_BOARD_HEIGHT - 1; rank < CHESS_BOARD_HEIGHT; --rank) {
             for (U8 file = 0; file < CHESS_BOARD_WIDTH; ++file) {
                 const U8 i = coordinate(file, rank);
-                if (has_white_pawn(game, i)) {
+                if (has_white_pawn_for_index(game, i)) {
                     std::cout << "P";
-                } else if (has_white_knight(game, i)) {
+                } else if (has_white_knight_for_index(game, i)) {
                     std::cout << "N";
-                } else if (has_white_bishop(game, i)) {
+                } else if (has_white_bishop_for_index(game, i)) {
                     std::cout << "B";
-                } else if (has_white_rook(game, i)) {
+                } else if (has_white_rook_for_index(game, i)) {
                     std::cout << "R";
-                } else if (has_white_queen(game, i)) {
+                } else if (has_white_queen_for_index(game, i)) {
                     std::cout << "Q";
-                } else if (has_white_king(game, i)) {
+                } else if (has_white_king_for_index(game, i)) {
                     std::cout << "K";
-                } else if (has_black_pawn(game, i)) {
+                } else if (has_black_pawn_for_index(game, i)) {
                     std::cout << "p";
-                } else if (has_black_knight(game, i)) {
+                } else if (has_black_knight_for_index(game, i)) {
                     std::cout << "n";
-                } else if (has_black_bishop(game, i)) {
+                } else if (has_black_bishop_for_index(game, i)) {
                     std::cout << "b";
-                } else if (has_black_rook(game, i)) {
+                } else if (has_black_rook_for_index(game, i)) {
                     std::cout << "r";
-                } else if (has_black_queen(game, i)) {
+                } else if (has_black_queen_for_index(game, i)) {
                     std::cout << "q";
-                } else if (has_black_king(game, i)) {
+                } else if (has_black_king_for_index(game, i)) {
                     std::cout << "k";
                 } else {
                     std::cout << ".";
@@ -83,259 +83,259 @@ namespace chess { namespace engine {
         // empty squares
         SECTION("empty squares are empty") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_A3, CHESS_H6 + 1));
-            CHECK(get_piece(&game, i).type == Piece::Type::Empty);
-            CHECK(!has_white_pawn(&game, i));
-            CHECK(!has_white_knight(&game, i));
-            CHECK(!has_white_bishop(&game, i));
-            CHECK(!has_white_rook(&game, i));
-            CHECK(!has_white_queen(&game, i));
-            CHECK(!has_white_king(&game, i));
-            CHECK(!has_black_pawn(&game, i));
-            CHECK(!has_black_knight(&game, i));
-            CHECK(!has_black_bishop(&game, i));
-            CHECK(!has_black_rook(&game, i));
-            CHECK(!has_black_queen(&game, i));
-            CHECK(!has_black_king(&game, i));
+            CHECK(get_piece_for_index(&game, i).type == Piece::Type::Empty);
+            CHECK(!has_white_pawn_for_index(&game, i));
+            CHECK(!has_white_knight_for_index(&game, i));
+            CHECK(!has_white_bishop_for_index(&game, i));
+            CHECK(!has_white_rook_for_index(&game, i));
+            CHECK(!has_white_queen_for_index(&game, i));
+            CHECK(!has_white_king_for_index(&game, i));
+            CHECK(!has_black_pawn_for_index(&game, i));
+            CHECK(!has_black_knight_for_index(&game, i));
+            CHECK(!has_black_bishop_for_index(&game, i));
+            CHECK(!has_black_rook_for_index(&game, i));
+            CHECK(!has_black_queen_for_index(&game, i));
+            CHECK(!has_black_king_for_index(&game, i));
         }
 
         // white pawns
         SECTION("white pawns are in correct cells") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_A2, CHESS_H2 + 1));
-            CHECK(has_white_pawn(&game, i));
-            Piece piece = get_piece(&game, i);
+            CHECK(has_white_pawn_for_index(&game, i));
+            Piece piece = get_piece_for_index(&game, i);
             CHECK(piece.colour == Colour::White);
             CHECK(piece.type == Piece::Type::Pawn);
-            CHECK(!has_white_knight(&game, i));
-            CHECK(!has_white_bishop(&game, i));
-            CHECK(!has_white_rook(&game, i));
-            CHECK(!has_white_queen(&game, i));
-            CHECK(!has_white_king(&game, i));
-            CHECK(!has_black_pawn(&game, i));
-            CHECK(!has_black_knight(&game, i));
-            CHECK(!has_black_bishop(&game, i));
-            CHECK(!has_black_rook(&game, i));
-            CHECK(!has_black_queen(&game, i));
-            CHECK(!has_black_king(&game, i));
+            CHECK(!has_white_knight_for_index(&game, i));
+            CHECK(!has_white_bishop_for_index(&game, i));
+            CHECK(!has_white_rook_for_index(&game, i));
+            CHECK(!has_white_queen_for_index(&game, i));
+            CHECK(!has_white_king_for_index(&game, i));
+            CHECK(!has_black_pawn_for_index(&game, i));
+            CHECK(!has_black_knight_for_index(&game, i));
+            CHECK(!has_black_bishop_for_index(&game, i));
+            CHECK(!has_black_rook_for_index(&game, i));
+            CHECK(!has_black_queen_for_index(&game, i));
+            CHECK(!has_black_king_for_index(&game, i));
         }
 
         // white knights
         SECTION("white knights are in correct cells") {
             const U8 i = GENERATE(CHESS_B1, CHESS_G1);
-            CHECK(has_white_knight(&game, i));
-            Piece piece = get_piece(&game, i);
+            CHECK(has_white_knight_for_index(&game, i));
+            Piece piece = get_piece_for_index(&game, i);
             CHECK(piece.colour == Colour::White);
             CHECK(piece.type == Piece::Type::Knight);
-            CHECK(!has_white_pawn(&game, i));
-            CHECK(!has_white_bishop(&game, i));
-            CHECK(!has_white_rook(&game, i));
-            CHECK(!has_white_queen(&game, i));
-            CHECK(!has_white_king(&game, i));
-            CHECK(!has_black_pawn(&game, i));
-            CHECK(!has_black_knight(&game, i));
-            CHECK(!has_black_bishop(&game, i));
-            CHECK(!has_black_rook(&game, i));
-            CHECK(!has_black_queen(&game, i));
-            CHECK(!has_black_king(&game, i));
+            CHECK(!has_white_pawn_for_index(&game, i));
+            CHECK(!has_white_bishop_for_index(&game, i));
+            CHECK(!has_white_rook_for_index(&game, i));
+            CHECK(!has_white_queen_for_index(&game, i));
+            CHECK(!has_white_king_for_index(&game, i));
+            CHECK(!has_black_pawn_for_index(&game, i));
+            CHECK(!has_black_knight_for_index(&game, i));
+            CHECK(!has_black_bishop_for_index(&game, i));
+            CHECK(!has_black_rook_for_index(&game, i));
+            CHECK(!has_black_queen_for_index(&game, i));
+            CHECK(!has_black_king_for_index(&game, i));
         }
 
         // white bishops
         SECTION("white bishops are in correct cells") {
             const U8 i = GENERATE(CHESS_C1, CHESS_F1);
-            CHECK(has_white_bishop(&game, i));
-            Piece piece = get_piece(&game, i);
+            CHECK(has_white_bishop_for_index(&game, i));
+            Piece piece = get_piece_for_index(&game, i);
             CHECK(piece.colour == Colour::White);
             CHECK(piece.type == Piece::Type::Bishop);
-            CHECK(!has_white_pawn(&game, i));
-            CHECK(!has_white_knight(&game, i));
-            CHECK(!has_white_rook(&game, i));
-            CHECK(!has_white_queen(&game, i));
-            CHECK(!has_white_king(&game, i));
-            CHECK(!has_black_pawn(&game, i));
-            CHECK(!has_black_knight(&game, i));
-            CHECK(!has_black_bishop(&game, i));
-            CHECK(!has_black_rook(&game, i));
-            CHECK(!has_black_queen(&game, i));
-            CHECK(!has_black_king(&game, i));
+            CHECK(!has_white_pawn_for_index(&game, i));
+            CHECK(!has_white_knight_for_index(&game, i));
+            CHECK(!has_white_rook_for_index(&game, i));
+            CHECK(!has_white_queen_for_index(&game, i));
+            CHECK(!has_white_king_for_index(&game, i));
+            CHECK(!has_black_pawn_for_index(&game, i));
+            CHECK(!has_black_knight_for_index(&game, i));
+            CHECK(!has_black_bishop_for_index(&game, i));
+            CHECK(!has_black_rook_for_index(&game, i));
+            CHECK(!has_black_queen_for_index(&game, i));
+            CHECK(!has_black_king_for_index(&game, i));
         }
 
         // white rooks
         SECTION("white rooks are in correct cells") {
             const U8 i = GENERATE(CHESS_A1, CHESS_H1);
-            CHECK(has_white_rook(&game, i));
-            Piece piece = get_piece(&game, i);
+            CHECK(has_white_rook_for_index(&game, i));
+            Piece piece = get_piece_for_index(&game, i);
             CHECK(piece.colour == Colour::White);
             CHECK(piece.type == Piece::Type::Rook);
-            CHECK(!has_white_pawn(&game, i));
-            CHECK(!has_white_knight(&game, i));
-            CHECK(!has_white_bishop(&game, i));
-            CHECK(!has_white_queen(&game, i));
-            CHECK(!has_white_king(&game, i));
-            CHECK(!has_black_pawn(&game, i));
-            CHECK(!has_black_knight(&game, i));
-            CHECK(!has_black_bishop(&game, i));
-            CHECK(!has_black_rook(&game, i));
-            CHECK(!has_black_queen(&game, i));
-            CHECK(!has_black_king(&game, i));
+            CHECK(!has_white_pawn_for_index(&game, i));
+            CHECK(!has_white_knight_for_index(&game, i));
+            CHECK(!has_white_bishop_for_index(&game, i));
+            CHECK(!has_white_queen_for_index(&game, i));
+            CHECK(!has_white_king_for_index(&game, i));
+            CHECK(!has_black_pawn_for_index(&game, i));
+            CHECK(!has_black_knight_for_index(&game, i));
+            CHECK(!has_black_bishop_for_index(&game, i));
+            CHECK(!has_black_rook_for_index(&game, i));
+            CHECK(!has_black_queen_for_index(&game, i));
+            CHECK(!has_black_king_for_index(&game, i));
         }
 
         // white queens
         SECTION("white queens are in correct cells") {
             const U8 i = CHESS_D1;
-            CHECK(has_white_queen(&game, i));
-            Piece piece = get_piece(&game, i);
+            CHECK(has_white_queen_for_index(&game, i));
+            Piece piece = get_piece_for_index(&game, i);
             CHECK(piece.colour == Colour::White);
             CHECK(piece.type == Piece::Type::Queen);
-            CHECK(!has_white_pawn(&game, i));
-            CHECK(!has_white_knight(&game, i));
-            CHECK(!has_white_bishop(&game, i));
-            CHECK(!has_white_rook(&game, i));
-            CHECK(!has_white_king(&game, i));
-            CHECK(!has_black_pawn(&game, i));
-            CHECK(!has_black_knight(&game, i));
-            CHECK(!has_black_bishop(&game, i));
-            CHECK(!has_black_rook(&game, i));
-            CHECK(!has_black_queen(&game, i));
-            CHECK(!has_black_king(&game, i));
+            CHECK(!has_white_pawn_for_index(&game, i));
+            CHECK(!has_white_knight_for_index(&game, i));
+            CHECK(!has_white_bishop_for_index(&game, i));
+            CHECK(!has_white_rook_for_index(&game, i));
+            CHECK(!has_white_king_for_index(&game, i));
+            CHECK(!has_black_pawn_for_index(&game, i));
+            CHECK(!has_black_knight_for_index(&game, i));
+            CHECK(!has_black_bishop_for_index(&game, i));
+            CHECK(!has_black_rook_for_index(&game, i));
+            CHECK(!has_black_queen_for_index(&game, i));
+            CHECK(!has_black_king_for_index(&game, i));
         }
 
         // white kings
         SECTION("white kings are in correct cells") {
             const U8 i = CHESS_E1;
-            CHECK(has_white_king(&game, i));
-            Piece piece = get_piece(&game, i);
+            CHECK(has_white_king_for_index(&game, i));
+            Piece piece = get_piece_for_index(&game, i);
             CHECK(piece.colour == Colour::White);
             CHECK(piece.type == Piece::Type::King);
-            CHECK(!has_white_pawn(&game, i));
-            CHECK(!has_white_knight(&game, i));
-            CHECK(!has_white_bishop(&game, i));
-            CHECK(!has_white_rook(&game, i));
-            CHECK(!has_white_queen(&game, i));
-            CHECK(!has_black_pawn(&game, i));
-            CHECK(!has_black_knight(&game, i));
-            CHECK(!has_black_bishop(&game, i));
-            CHECK(!has_black_rook(&game, i));
-            CHECK(!has_black_queen(&game, i));
-            CHECK(!has_black_king(&game, i));
+            CHECK(!has_white_pawn_for_index(&game, i));
+            CHECK(!has_white_knight_for_index(&game, i));
+            CHECK(!has_white_bishop_for_index(&game, i));
+            CHECK(!has_white_rook_for_index(&game, i));
+            CHECK(!has_white_queen_for_index(&game, i));
+            CHECK(!has_black_pawn_for_index(&game, i));
+            CHECK(!has_black_knight_for_index(&game, i));
+            CHECK(!has_black_bishop_for_index(&game, i));
+            CHECK(!has_black_rook_for_index(&game, i));
+            CHECK(!has_black_queen_for_index(&game, i));
+            CHECK(!has_black_king_for_index(&game, i));
         }
 
         // black pawns
         SECTION("black pawns are in correct cells") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_A7, CHESS_H7 + 1));
-            CHECK(has_black_pawn(&game, i));
-            Piece piece = get_piece(&game, i);
+            CHECK(has_black_pawn_for_index(&game, i));
+            Piece piece = get_piece_for_index(&game, i);
             CHECK(piece.colour == Colour::Black);
             CHECK(piece.type == Piece::Type::Pawn);
-            CHECK(!has_white_pawn(&game, i));
-            CHECK(!has_white_knight(&game, i));
-            CHECK(!has_white_bishop(&game, i));
-            CHECK(!has_white_rook(&game, i));
-            CHECK(!has_white_queen(&game, i));
-            CHECK(!has_white_king(&game, i));
-            CHECK(!has_black_knight(&game, i));
-            CHECK(!has_black_bishop(&game, i));
-            CHECK(!has_black_rook(&game, i));
-            CHECK(!has_black_queen(&game, i));
-            CHECK(!has_black_king(&game, i));
+            CHECK(!has_white_pawn_for_index(&game, i));
+            CHECK(!has_white_knight_for_index(&game, i));
+            CHECK(!has_white_bishop_for_index(&game, i));
+            CHECK(!has_white_rook_for_index(&game, i));
+            CHECK(!has_white_queen_for_index(&game, i));
+            CHECK(!has_white_king_for_index(&game, i));
+            CHECK(!has_black_knight_for_index(&game, i));
+            CHECK(!has_black_bishop_for_index(&game, i));
+            CHECK(!has_black_rook_for_index(&game, i));
+            CHECK(!has_black_queen_for_index(&game, i));
+            CHECK(!has_black_king_for_index(&game, i));
         }
 
         // black knights
         SECTION("black knights are in correct cells") {
             const U8 i = GENERATE(CHESS_B8, CHESS_G8);
-            CHECK(has_black_knight(&game, i));
-            Piece piece = get_piece(&game, i);
+            CHECK(has_black_knight_for_index(&game, i));
+            Piece piece = get_piece_for_index(&game, i);
             CHECK(piece.colour == Colour::Black);
             CHECK(piece.type == Piece::Type::Knight);
-            CHECK(!has_white_pawn(&game, i));
-            CHECK(!has_white_knight(&game, i));
-            CHECK(!has_white_bishop(&game, i));
-            CHECK(!has_white_rook(&game, i));
-            CHECK(!has_white_queen(&game, i));
-            CHECK(!has_white_king(&game, i));
-            CHECK(!has_black_pawn(&game, i));
-            CHECK(!has_black_bishop(&game, i));
-            CHECK(!has_black_rook(&game, i));
-            CHECK(!has_black_queen(&game, i));
-            CHECK(!has_black_king(&game, i));
+            CHECK(!has_white_pawn_for_index(&game, i));
+            CHECK(!has_white_knight_for_index(&game, i));
+            CHECK(!has_white_bishop_for_index(&game, i));
+            CHECK(!has_white_rook_for_index(&game, i));
+            CHECK(!has_white_queen_for_index(&game, i));
+            CHECK(!has_white_king_for_index(&game, i));
+            CHECK(!has_black_pawn_for_index(&game, i));
+            CHECK(!has_black_bishop_for_index(&game, i));
+            CHECK(!has_black_rook_for_index(&game, i));
+            CHECK(!has_black_queen_for_index(&game, i));
+            CHECK(!has_black_king_for_index(&game, i));
         }
 
         // black bishops
         SECTION("black bishops are in correct cells") {
             const U8 i = GENERATE(CHESS_C8, CHESS_F8);
-            CHECK(has_black_bishop(&game, i));
-            Piece piece = get_piece(&game, i);
+            CHECK(has_black_bishop_for_index(&game, i));
+            Piece piece = get_piece_for_index(&game, i);
             CHECK(piece.colour == Colour::Black);
             CHECK(piece.type == Piece::Type::Bishop);
-            CHECK(!has_white_pawn(&game, i));
-            CHECK(!has_white_knight(&game, i));
-            CHECK(!has_white_bishop(&game, i));
-            CHECK(!has_white_rook(&game, i));
-            CHECK(!has_white_queen(&game, i));
-            CHECK(!has_white_king(&game, i));
-            CHECK(!has_black_pawn(&game, i));
-            CHECK(!has_black_knight(&game, i));
-            CHECK(!has_black_rook(&game, i));
-            CHECK(!has_black_queen(&game, i));
-            CHECK(!has_black_king(&game, i));
+            CHECK(!has_white_pawn_for_index(&game, i));
+            CHECK(!has_white_knight_for_index(&game, i));
+            CHECK(!has_white_bishop_for_index(&game, i));
+            CHECK(!has_white_rook_for_index(&game, i));
+            CHECK(!has_white_queen_for_index(&game, i));
+            CHECK(!has_white_king_for_index(&game, i));
+            CHECK(!has_black_pawn_for_index(&game, i));
+            CHECK(!has_black_knight_for_index(&game, i));
+            CHECK(!has_black_rook_for_index(&game, i));
+            CHECK(!has_black_queen_for_index(&game, i));
+            CHECK(!has_black_king_for_index(&game, i));
         }
 
         // black rooks
         SECTION("black rooks are in correct cells") {
             const U8 i = GENERATE(CHESS_A8, CHESS_H8);
-            CHECK(has_black_rook(&game, i));
-            Piece piece = get_piece(&game, i);
+            CHECK(has_black_rook_for_index(&game, i));
+            Piece piece = get_piece_for_index(&game, i);
             CHECK(piece.colour == Colour::Black);
             CHECK(piece.type == Piece::Type::Rook);
-            CHECK(!has_white_pawn(&game, i));
-            CHECK(!has_white_knight(&game, i));
-            CHECK(!has_white_bishop(&game, i));
-            CHECK(!has_white_rook(&game, i));
-            CHECK(!has_white_queen(&game, i));
-            CHECK(!has_white_king(&game, i));
-            CHECK(!has_black_pawn(&game, i));
-            CHECK(!has_black_knight(&game, i));
-            CHECK(!has_black_bishop(&game, i));
-            CHECK(!has_black_queen(&game, i));
-            CHECK(!has_black_king(&game, i));
+            CHECK(!has_white_pawn_for_index(&game, i));
+            CHECK(!has_white_knight_for_index(&game, i));
+            CHECK(!has_white_bishop_for_index(&game, i));
+            CHECK(!has_white_rook_for_index(&game, i));
+            CHECK(!has_white_queen_for_index(&game, i));
+            CHECK(!has_white_king_for_index(&game, i));
+            CHECK(!has_black_pawn_for_index(&game, i));
+            CHECK(!has_black_knight_for_index(&game, i));
+            CHECK(!has_black_bishop_for_index(&game, i));
+            CHECK(!has_black_queen_for_index(&game, i));
+            CHECK(!has_black_king_for_index(&game, i));
         }
 
         // black queens
         SECTION("black queens are in correct cells") {
             const U8 i = CHESS_D8;
-            CHECK(has_black_queen(&game, i));
-            Piece piece = get_piece(&game, i);
+            CHECK(has_black_queen_for_index(&game, i));
+            Piece piece = get_piece_for_index(&game, i);
             CHECK(piece.colour == Colour::Black);
             CHECK(piece.type == Piece::Type::Queen);
-            CHECK(!has_white_pawn(&game, i));
-            CHECK(!has_white_knight(&game, i));
-            CHECK(!has_white_bishop(&game, i));
-            CHECK(!has_white_rook(&game, i));
-            CHECK(!has_white_queen(&game, i));
-            CHECK(!has_white_king(&game, i));
-            CHECK(!has_black_pawn(&game, i));
-            CHECK(!has_black_knight(&game, i));
-            CHECK(!has_black_bishop(&game, i));
-            CHECK(!has_black_rook(&game, i));
-            CHECK(!has_black_king(&game, i));
+            CHECK(!has_white_pawn_for_index(&game, i));
+            CHECK(!has_white_knight_for_index(&game, i));
+            CHECK(!has_white_bishop_for_index(&game, i));
+            CHECK(!has_white_rook_for_index(&game, i));
+            CHECK(!has_white_queen_for_index(&game, i));
+            CHECK(!has_white_king_for_index(&game, i));
+            CHECK(!has_black_pawn_for_index(&game, i));
+            CHECK(!has_black_knight_for_index(&game, i));
+            CHECK(!has_black_bishop_for_index(&game, i));
+            CHECK(!has_black_rook_for_index(&game, i));
+            CHECK(!has_black_king_for_index(&game, i));
         }
 
         // black kings
         SECTION("black kings are in correct cells") {
             const U8 i = CHESS_E8;
-            CHECK(has_black_king(&game, i));
-            Piece piece = get_piece(&game, i);
+            CHECK(has_black_king_for_index(&game, i));
+            Piece piece = get_piece_for_index(&game, i);
             CHECK(piece.colour == Colour::Black);
             CHECK(piece.type == Piece::Type::King);
-            CHECK(!has_white_pawn(&game, i));
-            CHECK(!has_white_knight(&game, i));
-            CHECK(!has_white_bishop(&game, i));
-            CHECK(!has_white_rook(&game, i));
-            CHECK(!has_white_queen(&game, i));
-            CHECK(!has_white_king(&game, i));
-            CHECK(!has_black_pawn(&game, i));
-            CHECK(!has_black_knight(&game, i));
-            CHECK(!has_black_bishop(&game, i));
-            CHECK(!has_black_rook(&game, i));
-            CHECK(!has_black_queen(&game, i));
+            CHECK(!has_white_pawn_for_index(&game, i));
+            CHECK(!has_white_knight_for_index(&game, i));
+            CHECK(!has_white_bishop_for_index(&game, i));
+            CHECK(!has_white_rook_for_index(&game, i));
+            CHECK(!has_white_queen_for_index(&game, i));
+            CHECK(!has_white_king_for_index(&game, i));
+            CHECK(!has_black_pawn_for_index(&game, i));
+            CHECK(!has_black_knight_for_index(&game, i));
+            CHECK(!has_black_bishop_for_index(&game, i));
+            CHECK(!has_black_rook_for_index(&game, i));
+            CHECK(!has_black_queen_for_index(&game, i));
         }
 
         // moves
@@ -351,221 +351,221 @@ namespace chess { namespace engine {
         }
 
         // has white piece in expected squares
-        SECTION("has_white_piece is true for correct cells") {
+        SECTION("has_white_piece_for_index is true for correct cells") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_A1, CHESS_H2 + 1));
-            CHECK(has_white_piece(&game, i));
+            CHECK(has_white_piece_for_index(&game, i));
         }
 
-        SECTION("has_white_piece is false for correct cells") {
+        SECTION("has_white_piece_for_index is false for correct cells") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_A3, CHESS_H8 + 1));
-            CHECK(!has_white_piece(&game, i));
+            CHECK(!has_white_piece_for_index(&game, i));
         }
 
         // has black piece in expected squares
-        SECTION("has_black_piece is true for correct cells") {
+        SECTION("has_black_piece_for_index is true for correct cells") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_A7, CHESS_H8 + 1));
-            CHECK(has_black_piece(&game, i));
+            CHECK(has_black_piece_for_index(&game, i));
         }
 
-        SECTION("has_white_piece is false for correct cells") {
+        SECTION("has_black_piece_for_index is false for correct cells") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_A1, CHESS_H6 + 1));
-            CHECK(!has_black_piece(&game, i));
+            CHECK(!has_black_piece_for_index(&game, i));
         }
     }
 
-    TEST_CASE("is_rank", "[engine]") {
+    TEST_CASE("is_rank_for_index", "[engine]") {
         SECTION("rank 1") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_A1, CHESS_H1 + 1));
-            CHECK(is_rank(i, RANK_1));
-            CHECK(!is_rank(i, RANK_2));
-            CHECK(!is_rank(i, RANK_3));
-            CHECK(!is_rank(i, RANK_4));
-            CHECK(!is_rank(i, RANK_5));
-            CHECK(!is_rank(i, RANK_6));
-            CHECK(!is_rank(i, RANK_7));
-            CHECK(!is_rank(i, RANK_8));
+            CHECK(is_rank_for_index(i, RANK_1));
+            CHECK(!is_rank_for_index(i, RANK_2));
+            CHECK(!is_rank_for_index(i, RANK_3));
+            CHECK(!is_rank_for_index(i, RANK_4));
+            CHECK(!is_rank_for_index(i, RANK_5));
+            CHECK(!is_rank_for_index(i, RANK_6));
+            CHECK(!is_rank_for_index(i, RANK_7));
+            CHECK(!is_rank_for_index(i, RANK_8));
         }
 
         SECTION("rank 2") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_A2, CHESS_H2 + 1));
-            CHECK(!is_rank(i, RANK_1));
-            CHECK(is_rank(i, RANK_2));
-            CHECK(!is_rank(i, RANK_3));
-            CHECK(!is_rank(i, RANK_4));
-            CHECK(!is_rank(i, RANK_5));
-            CHECK(!is_rank(i, RANK_6));
-            CHECK(!is_rank(i, RANK_7));
-            CHECK(!is_rank(i, RANK_8));
+            CHECK(!is_rank_for_index(i, RANK_1));
+            CHECK(is_rank_for_index(i, RANK_2));
+            CHECK(!is_rank_for_index(i, RANK_3));
+            CHECK(!is_rank_for_index(i, RANK_4));
+            CHECK(!is_rank_for_index(i, RANK_5));
+            CHECK(!is_rank_for_index(i, RANK_6));
+            CHECK(!is_rank_for_index(i, RANK_7));
+            CHECK(!is_rank_for_index(i, RANK_8));
         }
 
         SECTION("rank 3") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_A3, CHESS_H3 + 1));
-            CHECK(!is_rank(i, RANK_1));
-            CHECK(!is_rank(i, RANK_2));
-            CHECK(is_rank(i, RANK_3));
-            CHECK(!is_rank(i, RANK_4));
-            CHECK(!is_rank(i, RANK_5));
-            CHECK(!is_rank(i, RANK_6));
-            CHECK(!is_rank(i, RANK_7));
-            CHECK(!is_rank(i, RANK_8));
+            CHECK(!is_rank_for_index(i, RANK_1));
+            CHECK(!is_rank_for_index(i, RANK_2));
+            CHECK(is_rank_for_index(i, RANK_3));
+            CHECK(!is_rank_for_index(i, RANK_4));
+            CHECK(!is_rank_for_index(i, RANK_5));
+            CHECK(!is_rank_for_index(i, RANK_6));
+            CHECK(!is_rank_for_index(i, RANK_7));
+            CHECK(!is_rank_for_index(i, RANK_8));
         }
 
         SECTION("rank 4") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_A4, CHESS_H4 + 1));
-            CHECK(!is_rank(i, RANK_1));
-            CHECK(!is_rank(i, RANK_2));
-            CHECK(!is_rank(i, RANK_3));
-            CHECK(is_rank(i, RANK_4));
-            CHECK(!is_rank(i, RANK_5));
-            CHECK(!is_rank(i, RANK_6));
-            CHECK(!is_rank(i, RANK_7));
-            CHECK(!is_rank(i, RANK_8));
+            CHECK(!is_rank_for_index(i, RANK_1));
+            CHECK(!is_rank_for_index(i, RANK_2));
+            CHECK(!is_rank_for_index(i, RANK_3));
+            CHECK(is_rank_for_index(i, RANK_4));
+            CHECK(!is_rank_for_index(i, RANK_5));
+            CHECK(!is_rank_for_index(i, RANK_6));
+            CHECK(!is_rank_for_index(i, RANK_7));
+            CHECK(!is_rank_for_index(i, RANK_8));
         }
 
         SECTION("rank 5") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_A5, CHESS_H5 + 1));
-            CHECK(!is_rank(i, RANK_1));
-            CHECK(!is_rank(i, RANK_2));
-            CHECK(!is_rank(i, RANK_3));
-            CHECK(!is_rank(i, RANK_4));
-            CHECK(is_rank(i, RANK_5));
-            CHECK(!is_rank(i, RANK_6));
-            CHECK(!is_rank(i, RANK_7));
-            CHECK(!is_rank(i, RANK_8));
+            CHECK(!is_rank_for_index(i, RANK_1));
+            CHECK(!is_rank_for_index(i, RANK_2));
+            CHECK(!is_rank_for_index(i, RANK_3));
+            CHECK(!is_rank_for_index(i, RANK_4));
+            CHECK(is_rank_for_index(i, RANK_5));
+            CHECK(!is_rank_for_index(i, RANK_6));
+            CHECK(!is_rank_for_index(i, RANK_7));
+            CHECK(!is_rank_for_index(i, RANK_8));
         }
 
         SECTION("rank 6") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_A6, CHESS_H6 + 1));
-            CHECK(!is_rank(i, RANK_1));
-            CHECK(!is_rank(i, RANK_2));
-            CHECK(!is_rank(i, RANK_3));
-            CHECK(!is_rank(i, RANK_4));
-            CHECK(!is_rank(i, RANK_5));
-            CHECK(is_rank(i, RANK_6));
-            CHECK(!is_rank(i, RANK_7));
-            CHECK(!is_rank(i, RANK_8));
+            CHECK(!is_rank_for_index(i, RANK_1));
+            CHECK(!is_rank_for_index(i, RANK_2));
+            CHECK(!is_rank_for_index(i, RANK_3));
+            CHECK(!is_rank_for_index(i, RANK_4));
+            CHECK(!is_rank_for_index(i, RANK_5));
+            CHECK(is_rank_for_index(i, RANK_6));
+            CHECK(!is_rank_for_index(i, RANK_7));
+            CHECK(!is_rank_for_index(i, RANK_8));
         }
 
         SECTION("rank 7") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_A7, CHESS_H7 + 1));
-            CHECK(!is_rank(i, RANK_1));
-            CHECK(!is_rank(i, RANK_2));
-            CHECK(!is_rank(i, RANK_3));
-            CHECK(!is_rank(i, RANK_4));
-            CHECK(!is_rank(i, RANK_5));
-            CHECK(!is_rank(i, RANK_6));
-            CHECK(is_rank(i, RANK_7));
-            CHECK(!is_rank(i, RANK_8));
+            CHECK(!is_rank_for_index(i, RANK_1));
+            CHECK(!is_rank_for_index(i, RANK_2));
+            CHECK(!is_rank_for_index(i, RANK_3));
+            CHECK(!is_rank_for_index(i, RANK_4));
+            CHECK(!is_rank_for_index(i, RANK_5));
+            CHECK(!is_rank_for_index(i, RANK_6));
+            CHECK(is_rank_for_index(i, RANK_7));
+            CHECK(!is_rank_for_index(i, RANK_8));
         }
 
         SECTION("rank 8") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_A8, CHESS_H8 + 1));
-            CHECK(!is_rank(i, RANK_1));
-            CHECK(!is_rank(i, RANK_2));
-            CHECK(!is_rank(i, RANK_3));
-            CHECK(!is_rank(i, RANK_4));
-            CHECK(!is_rank(i, RANK_5));
-            CHECK(!is_rank(i, RANK_6));
-            CHECK(!is_rank(i, RANK_7));
-            CHECK(is_rank(i, RANK_8));
+            CHECK(!is_rank_for_index(i, RANK_1));
+            CHECK(!is_rank_for_index(i, RANK_2));
+            CHECK(!is_rank_for_index(i, RANK_3));
+            CHECK(!is_rank_for_index(i, RANK_4));
+            CHECK(!is_rank_for_index(i, RANK_5));
+            CHECK(!is_rank_for_index(i, RANK_6));
+            CHECK(!is_rank_for_index(i, RANK_7));
+            CHECK(is_rank_for_index(i, RANK_8));
         }
     }
 
-    TEST_CASE("is_file", "[engine]") {
+    TEST_CASE("is_file_for_index", "[engine]") {
         SECTION("file A") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_A1, CHESS_A8 + 1, CHESS_BOARD_WIDTH));
-            CHECK(is_file(i, FILE_A));
-            CHECK(!is_file(i, FILE_B));
-            CHECK(!is_file(i, FILE_C));
-            CHECK(!is_file(i, FILE_D));
-            CHECK(!is_file(i, FILE_E));
-            CHECK(!is_file(i, FILE_F));
-            CHECK(!is_file(i, FILE_G));
-            CHECK(!is_file(i, FILE_H));
+            CHECK(is_file_for_index(i, FILE_A));
+            CHECK(!is_file_for_index(i, FILE_B));
+            CHECK(!is_file_for_index(i, FILE_C));
+            CHECK(!is_file_for_index(i, FILE_D));
+            CHECK(!is_file_for_index(i, FILE_E));
+            CHECK(!is_file_for_index(i, FILE_F));
+            CHECK(!is_file_for_index(i, FILE_G));
+            CHECK(!is_file_for_index(i, FILE_H));
         }
 
         SECTION("file B") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_B1, CHESS_B8 + 1, CHESS_BOARD_WIDTH));
-            CHECK(!is_file(i, FILE_A));
-            CHECK(is_file(i, FILE_B));
-            CHECK(!is_file(i, FILE_C));
-            CHECK(!is_file(i, FILE_D));
-            CHECK(!is_file(i, FILE_E));
-            CHECK(!is_file(i, FILE_F));
-            CHECK(!is_file(i, FILE_G));
-            CHECK(!is_file(i, FILE_H));
+            CHECK(!is_file_for_index(i, FILE_A));
+            CHECK(is_file_for_index(i, FILE_B));
+            CHECK(!is_file_for_index(i, FILE_C));
+            CHECK(!is_file_for_index(i, FILE_D));
+            CHECK(!is_file_for_index(i, FILE_E));
+            CHECK(!is_file_for_index(i, FILE_F));
+            CHECK(!is_file_for_index(i, FILE_G));
+            CHECK(!is_file_for_index(i, FILE_H));
         }
 
         SECTION("file C") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_C1, CHESS_C8 + 1, CHESS_BOARD_WIDTH));
-            CHECK(!is_file(i, FILE_A));
-            CHECK(!is_file(i, FILE_B));
-            CHECK(is_file(i, FILE_C));
-            CHECK(!is_file(i, FILE_D));
-            CHECK(!is_file(i, FILE_E));
-            CHECK(!is_file(i, FILE_F));
-            CHECK(!is_file(i, FILE_G));
-            CHECK(!is_file(i, FILE_H));
+            CHECK(!is_file_for_index(i, FILE_A));
+            CHECK(!is_file_for_index(i, FILE_B));
+            CHECK(is_file_for_index(i, FILE_C));
+            CHECK(!is_file_for_index(i, FILE_D));
+            CHECK(!is_file_for_index(i, FILE_E));
+            CHECK(!is_file_for_index(i, FILE_F));
+            CHECK(!is_file_for_index(i, FILE_G));
+            CHECK(!is_file_for_index(i, FILE_H));
         }
 
         SECTION("file D") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_D1, CHESS_D8 + 1, CHESS_BOARD_WIDTH));
-            CHECK(!is_file(i, FILE_A));
-            CHECK(!is_file(i, FILE_B));
-            CHECK(!is_file(i, FILE_C));
-            CHECK(is_file(i, FILE_D));
-            CHECK(!is_file(i, FILE_E));
-            CHECK(!is_file(i, FILE_F));
-            CHECK(!is_file(i, FILE_G));
-            CHECK(!is_file(i, FILE_H));
+            CHECK(!is_file_for_index(i, FILE_A));
+            CHECK(!is_file_for_index(i, FILE_B));
+            CHECK(!is_file_for_index(i, FILE_C));
+            CHECK(is_file_for_index(i, FILE_D));
+            CHECK(!is_file_for_index(i, FILE_E));
+            CHECK(!is_file_for_index(i, FILE_F));
+            CHECK(!is_file_for_index(i, FILE_G));
+            CHECK(!is_file_for_index(i, FILE_H));
         }
 
         SECTION("file E") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_E1, CHESS_E8 + 1, CHESS_BOARD_WIDTH));
-            CHECK(!is_file(i, FILE_A));
-            CHECK(!is_file(i, FILE_B));
-            CHECK(!is_file(i, FILE_C));
-            CHECK(!is_file(i, FILE_D));
-            CHECK(is_file(i, FILE_E));
-            CHECK(!is_file(i, FILE_F));
-            CHECK(!is_file(i, FILE_G));
-            CHECK(!is_file(i, FILE_H));
+            CHECK(!is_file_for_index(i, FILE_A));
+            CHECK(!is_file_for_index(i, FILE_B));
+            CHECK(!is_file_for_index(i, FILE_C));
+            CHECK(!is_file_for_index(i, FILE_D));
+            CHECK(is_file_for_index(i, FILE_E));
+            CHECK(!is_file_for_index(i, FILE_F));
+            CHECK(!is_file_for_index(i, FILE_G));
+            CHECK(!is_file_for_index(i, FILE_H));
         }
 
         SECTION("file F") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_F1, CHESS_F8 + 1, CHESS_BOARD_WIDTH));
-            CHECK(!is_file(i, FILE_A));
-            CHECK(!is_file(i, FILE_B));
-            CHECK(!is_file(i, FILE_C));
-            CHECK(!is_file(i, FILE_D));
-            CHECK(!is_file(i, FILE_E));
-            CHECK(is_file(i, FILE_F));
-            CHECK(!is_file(i, FILE_G));
-            CHECK(!is_file(i, FILE_H));
+            CHECK(!is_file_for_index(i, FILE_A));
+            CHECK(!is_file_for_index(i, FILE_B));
+            CHECK(!is_file_for_index(i, FILE_C));
+            CHECK(!is_file_for_index(i, FILE_D));
+            CHECK(!is_file_for_index(i, FILE_E));
+            CHECK(is_file_for_index(i, FILE_F));
+            CHECK(!is_file_for_index(i, FILE_G));
+            CHECK(!is_file_for_index(i, FILE_H));
         }
 
         SECTION("file G") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_G1, CHESS_G8 + 1, CHESS_BOARD_WIDTH));
-            CHECK(!is_file(i, FILE_A));
-            CHECK(!is_file(i, FILE_B));
-            CHECK(!is_file(i, FILE_C));
-            CHECK(!is_file(i, FILE_D));
-            CHECK(!is_file(i, FILE_E));
-            CHECK(!is_file(i, FILE_F));
-            CHECK(is_file(i, FILE_G));
-            CHECK(!is_file(i, FILE_H));
+            CHECK(!is_file_for_index(i, FILE_A));
+            CHECK(!is_file_for_index(i, FILE_B));
+            CHECK(!is_file_for_index(i, FILE_C));
+            CHECK(!is_file_for_index(i, FILE_D));
+            CHECK(!is_file_for_index(i, FILE_E));
+            CHECK(!is_file_for_index(i, FILE_F));
+            CHECK(is_file_for_index(i, FILE_G));
+            CHECK(!is_file_for_index(i, FILE_H));
         }
 
         SECTION("file H") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_H1, CHESS_H8 + 1, CHESS_BOARD_WIDTH));
-            CHECK(!is_file(i, FILE_A));
-            CHECK(!is_file(i, FILE_B));
-            CHECK(!is_file(i, FILE_C));
-            CHECK(!is_file(i, FILE_D));
-            CHECK(!is_file(i, FILE_E));
-            CHECK(!is_file(i, FILE_F));
-            CHECK(!is_file(i, FILE_G));
-            CHECK(is_file(i, FILE_H));
+            CHECK(!is_file_for_index(i, FILE_A));
+            CHECK(!is_file_for_index(i, FILE_B));
+            CHECK(!is_file_for_index(i, FILE_C));
+            CHECK(!is_file_for_index(i, FILE_D));
+            CHECK(!is_file_for_index(i, FILE_E));
+            CHECK(!is_file_for_index(i, FILE_F));
+            CHECK(!is_file_for_index(i, FILE_G));
+            CHECK(is_file_for_index(i, FILE_H));
         }
     }
 
@@ -645,9 +645,9 @@ namespace chess { namespace engine {
 
     void check_pieces(const Game* game, std::array<Piece, CHESS_BOARD_SIZE> pieces) {
         for (U8 i = 0; i < pieces.size(); ++i) {
-            const Piece piece = get_piece(game, i);
+            const Piece piece = get_piece_for_index(game, i);
             // flip rank as pieces array is written top to bottom to be viewed as text, but board starts at bottom left
-            const Piece expected = pieces[flip_index_rank(i)];
+            const Piece expected = pieces[flip_rank_for_index(i)];
             CHECK(piece.type == expected.type);
             if (piece.type != Piece::Type::Empty) {
                 CHECK(piece.colour == expected.colour);
