@@ -197,4 +197,5 @@ namespace chess { namespace engine {
     extern bool move(Game* game, U8 from, U8 to);
     extern bool move_and_promote(Game* game, U8 from, U8 to, Piece::Type promotion_piece);
     extern U64 get_cells_moved_from(const Game* game);
+    extern U64 get_cells_moved_to(const Game* game);
 }}

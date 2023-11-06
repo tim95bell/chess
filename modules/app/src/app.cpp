@@ -11,23 +11,26 @@
 #define CHESS_UI_BOARD_SIZE 400
 
 namespace chess { namespace app {
-    static const Color light_colour{234, 237, 207, 255};
-    static const Color dark_colour{126, 152, 92, 255};
-    static const Color light_selected_colour{251, 251, 126, 255};
-    static const Color dark_selected_colour{188, 200, 94, 255};
-    static const Color light_possible_move_colour{251, 126, 251, 255};
-    static const Color dark_possible_move_colour{188, 94, 200, 255};
-    static const Color light_moved_from_colour{126, 251, 251, 255};
-    static const Color dark_moved_from_colour{94, 188, 200, 255};
+    static constexpr Color light_colour{234, 237, 207, 255};
+    static constexpr Color dark_colour{126, 152, 92, 255};
+    static constexpr Color light_selected_colour{251, 251, 126, 255};
+    static constexpr Color dark_selected_colour{188, 200, 94, 255};
+    static constexpr Color light_possible_move_colour{251, 126, 251, 255};
+    static constexpr Color dark_possible_move_colour{188, 94, 200, 255};
+    static constexpr Color light_moved_from_colour{126, 251, 251, 255};
+    static constexpr Color dark_moved_from_colour{94, 188, 200, 255};
+    static constexpr Color light_moved_to_colour{126, 125, 251, 255};
+    static constexpr Color dark_moved_to_colour{94, 94, 200, 255};
 
-    static const U64 board_x = (CHESS_UI_WIDTH - CHESS_UI_BOARD_SIZE) / 2;
-    static const U64 board_y = (CHESS_UI_HEIGHT - CHESS_UI_BOARD_SIZE) / 2;
-    static const U64 cell_size = CHESS_UI_BOARD_SIZE / 8;
-    static const U64 promotion_dialog_cell_size = std::min<U64>(cell_size, (CHESS_UI_HEIGHT - CHESS_UI_BOARD_SIZE) / 2);
-    static const U64 promotion_dialog_x = (CHESS_UI_WIDTH - promotion_dialog_cell_size * 4) / 2;
-    static const U64 promotion_dialog_y = 0;
-    static const U64 promotion_dialog_width = promotion_dialog_cell_size * 4;
-    static const U64 promotion_dialog_height = promotion_dialog_cell_size;
+    static constexpr U64 board_x = (CHESS_UI_WIDTH - CHESS_UI_BOARD_SIZE) / 2;
+    static constexpr U64 board_y = (CHESS_UI_HEIGHT - CHESS_UI_BOARD_SIZE) / 2;
+    static constexpr U64 cell_size = CHESS_UI_BOARD_SIZE / CHESS_BOARD_WIDTH;
+    static constexpr U64 promotion_dialog_cell_size = std::min<U64>(cell_size, (CHESS_UI_HEIGHT - CHESS_UI_BOARD_SIZE) / 2);
+    static constexpr U64 promotion_dialog_x = (CHESS_UI_WIDTH - promotion_dialog_cell_size * 4) / 2;
+    static constexpr U64 promotion_dialog_y = 0;
+    static constexpr U64 promotion_dialog_width = promotion_dialog_cell_size * 4;
+    static constexpr U64 promotion_dialog_height = promotion_dialog_cell_size;
+    static constexpr float pieces_texture_item_size = 60.0f;
 
     static void draw_piece(App* app, engine::Piece piece, Rectangle position) {
         if (piece.type == engine::Piece::Type::Empty) {
@@ -41,12 +44,12 @@ namespace chess { namespace app {
             : piece.type == engine::Piece::Type::Rook ? 2
             : piece.type == engine::Piece::Type::Knight ? 3
             : piece.type == engine::Piece::Type::Bishop ? 4
-            : 5) * 60.0f,
-            (piece.colour == engine::Colour::Black ? 0 : 1) * 60.0f,
-            60.0f,
-            60.0f};
+            : 5) * pieces_texture_item_size,
+            (piece.colour == engine::Colour::Black ? 0 : 1) * pieces_texture_item_size,
+            pieces_texture_item_size,
+            pieces_texture_item_size};
 
-        DrawTexturePro(app->pieces_texture, source, position, {0.0f, 0.0f}, 0.0f, {255, 255, 255, 255});
+        DrawTexturePro(app->pieces_texture, source, position, {0.0f, 0.0f}, 0.0f, WHITE);
     }
 
     INIT_FUNCTION(init) {
@@ -136,6 +139,8 @@ namespace chess { namespace app {
                             cell_colour = light_square ? light_possible_move_colour : dark_possible_move_colour;
                         } else if (engine::get_cells_moved_from(&app->game) & engine::nth_bit(i)) {
                             cell_colour = light_square ? light_moved_from_colour : dark_moved_from_colour;
+                        } else if (engine::get_cells_moved_to(&app->game) & engine::nth_bit(i)) {
+                            cell_colour = light_square ? light_moved_to_colour : dark_moved_to_colour;
                         } else {
                             cell_colour = light_square ? light_colour : dark_colour;
                         }

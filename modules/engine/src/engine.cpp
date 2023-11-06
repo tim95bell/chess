@@ -509,4 +509,10 @@ namespace chess { namespace engine {
         // last_move_colour_all_pieces_last_move & ~last_move_colour_all_pieces_this_move
         return 0;
     }
+
+    U64 get_cells_moved_to(const Game* game) {
+        // TODO(TB): get position last moved from. could be 2 from castling. need to find pieces of last moves colour that arent where they were.
+        // last_move_colour_all_pieces_last_move & ~last_move_colour_all_pieces_this_move
+        return 0;
+    }
 }}
