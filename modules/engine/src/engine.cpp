@@ -1,6 +1,8 @@
 
 #include <chess/engine/engine.hpp>
 #include <chess/common/assert.hpp>
+#include <stdlib.h>
+#include <utility>
 
 namespace chess { namespace engine {
     // #region internal
@@ -103,6 +105,34 @@ namespace chess { namespace engine {
             : get_black_bitboard(game, index);
     }
 #endif
+
+    static inline constexpr U8 create_promotion_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type promotion_piece) {
+        return static_cast<U8>(promotion_piece) << 4;
+    }
+
+    static inline constexpr U8 create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type promotion_piece) {
+        return static_cast<U8>(promotion_piece);
+    }
+
+    static inline constexpr Piece::Type get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(U8 compressed_taken_piece_type_and_promotion_piece_type) {
+        return static_cast<Piece::Type>(compressed_taken_piece_type_and_promotion_piece_type >> 4);
+    }
+
+    static inline constexpr Piece::Type get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(U8 compressed_taken_piece_type_and_promotion_piece_type) {
+        return static_cast<Piece::Type>(compressed_taken_piece_type_and_promotion_piece_type & 0b1111);
+    }
+
+    static void add_move(Game* game, Move move) {
+        if (game->moves_index >= game->moves_allocated) {
+            game->moves_allocated = game->moves_allocated * 2;
+            realloc(game->moves, sizeof(Move) * game->moves_allocated);
+        }
+
+        CHESS_ASSERT(game->moves_index < game->moves_allocated);
+        game->moves[game->moves_index] = std::move(move);
+        ++game->moves_index;
+        game->moves_count = game->moves_index;
+    }
     // #endregion
 
     // #region Piece
@@ -125,7 +155,7 @@ namespace chess { namespace engine {
     // #endregion
 
     // #region Game
-    Game::Game() noexcept
+    Game::Game()
         : white_pawns(nth_bit(CHESS_A2, CHESS_B2, CHESS_C2, CHESS_D2, CHESS_E2, CHESS_F2, CHESS_G2, CHESS_H2))
         , white_knights(nth_bit(CHESS_B1, CHESS_G1))
         , white_bishops(nth_bit(CHESS_C1, CHESS_F1))
@@ -145,7 +175,15 @@ namespace chess { namespace engine {
         , white_can_never_castle_long(0)
         , black_can_never_castle_short(0)
         , black_can_never_castle_long(0)
+        , moves_allocated(256)
+        , moves_count(0)
+        , moves_index(0)
+        , moves(static_cast<Move*>(malloc(sizeof(Move) * moves_allocated)))
     {}
+
+    Game::~Game() {
+        free(moves);
+    }
     // #endregion
 
     bool has_white_pawn(const Game* game, U64 bitboard) {
@@ -334,6 +372,64 @@ namespace chess { namespace engine {
         return get_piece(game, nth_bit(index));
     }
 
+    Piece::Type get_white_piece_type_for_index(const Game* game, U8 index) {
+        const U64 bitboard = nth_bit(index);
+        if (has_white_pawn(game, bitboard)) {
+            return Piece::Type::Pawn;
+        }
+
+        if (has_white_knight(game, bitboard)) {
+            return Piece::Type::Knight;
+        }
+
+        if (has_white_bishop(game, bitboard)) {
+            return Piece::Type::Bishop;
+        }
+
+        if (has_white_rook(game, bitboard)) {
+            return Piece::Type::Rook;
+        }
+
+        if (has_white_queen(game, bitboard)) {
+            return Piece::Type::Queen;
+        }
+
+        if (has_white_king(game, bitboard)) {
+            return Piece::Type::King;
+        }
+
+        return Piece::Type::Empty;
+    }
+
+    Piece::Type get_black_piece_type_for_index(const Game* game, U8 index) {
+        const U64 bitboard = nth_bit(index);
+        if (has_black_pawn(game, bitboard)) {
+            return Piece::Type::Pawn;
+        }
+
+        if (has_black_knight(game, bitboard)) {
+            return Piece::Type::Knight;
+        }
+
+        if (has_black_bishop(game, bitboard)) {
+            return Piece::Type::Bishop;
+        }
+
+        if (has_black_rook(game, bitboard)) {
+            return Piece::Type::Rook;
+        }
+
+        if (has_black_queen(game, bitboard)) {
+            return Piece::Type::Queen;
+        }
+
+        if (has_black_king(game, bitboard)) {
+            return Piece::Type::King;
+        }
+
+        return Piece::Type::Empty;
+    }
+
     U64 get_moves(const Game* game, U8 index) {
         const U64 bitboard = nth_bit(index);
         if (game->cache.possible_moves_calculated & bitboard) {
@@ -460,189 +556,365 @@ namespace chess { namespace engine {
         return index % CHESS_BOARD_WIDTH;
     }
 
+    static bool perform_move(Game* game, Move* move) {
+        const U64 possible_moves = get_moves(game, move->from);
+        const U64 to_index_bitboard = nth_bit(move->to);
+        if (!(possible_moves & to_index_bitboard)) {
+            // not a valid move
+            return false;
+        }
+
+        const U64 from_index_bitboard = nth_bit(move->from);
+
+        if (game->next_turn) {
+            if (has_black_pawn(game, from_index_bitboard)) {
+                // remove pawn that is being moved from 'from' cell
+                game->black_pawns &= ~from_index_bitboard;
+
+                if (is_rank(from_index_bitboard, RANK_2)) {
+                    // pawn promotion move
+
+                    // add piece at 'to' cell
+                    const Piece::Type promotion_piece = get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type);
+                    if (promotion_piece == Piece::Type::Knight) {
+                        game->black_knights |= to_index_bitboard;
+                    } else if (promotion_piece == Piece::Type::Bishop) {
+                        game->black_bishops |= to_index_bitboard;
+                    } else if (promotion_piece == Piece::Type::Rook) {
+                        game->black_rooks |= to_index_bitboard;
+                    } else {
+                        CHESS_ASSERT(promotion_piece == Piece::Type::Queen);
+                        game->black_queens |= to_index_bitboard;
+                    }
+
+                    // remove taken piece
+                    if (U64* const to_bitboard = get_white_bitboard(game, to_index_bitboard)) {
+                        *to_bitboard &= ~to_index_bitboard;
+                        if (to_bitboard == &game->white_pawns) {
+                            CHESS_ASSERT(
+                                get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
+                                || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
+                                    move->compressed_taken_piece_type_and_promotion_piece_type
+                                ) == Piece::Type::Pawn);
+                            move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Pawn);
+                        } else if (to_bitboard == &game->white_knights) {
+                            CHESS_ASSERT(
+                                get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
+                                || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
+                                    move->compressed_taken_piece_type_and_promotion_piece_type
+                                ) == Piece::Type::Knight);
+                            move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Knight);
+                        } else if (to_bitboard == &game->white_bishops) {
+                            CHESS_ASSERT(
+                                get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
+                                || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
+                                    move->compressed_taken_piece_type_and_promotion_piece_type
+                                ) == Piece::Type::Bishop);
+                            move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Bishop);
+                        } else if (to_bitboard == &game->white_rooks) {
+                            CHESS_ASSERT(
+                                get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
+                                || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
+                                    move->compressed_taken_piece_type_and_promotion_piece_type
+                                ) == Piece::Type::Rook);
+                            move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Rook);
+                        } else {
+                            CHESS_ASSERT(to_bitboard == &game->white_queens);
+                            CHESS_ASSERT(
+                                get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
+                                || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
+                                    move->compressed_taken_piece_type_and_promotion_piece_type
+                                ) == Piece::Type::Queen);
+                            move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Queen);
+                        }
+                    }
+
+                    // en passant not possible
+                    game->can_en_passant = false;
+                    game->cache.possible_moves_calculated = 0;
+                } else {
+                    // non promotion pawn move
+                    CHESS_ASSERT(get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty);
+
+                    // add piece at 'to' cell
+                    game->black_pawns |= to_index_bitboard;
+
+                    // remove taken piece, considering en passant
+                    if (game->can_en_passant && game->en_passant_square == move_index_north(move->to)) {
+                        CHESS_ASSERT(
+                            get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
+                            || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
+                                move->compressed_taken_piece_type_and_promotion_piece_type
+                            ) == Piece::Type::Pawn);
+                        game->white_pawns &= ~nth_bit(game->en_passant_square);
+                        move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Pawn);
+                    } else if (U64* const to_bitboard = get_white_bitboard(game, to_index_bitboard)) {
+                        CHESS_ASSERT(
+                            get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
+                            || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
+                                move->compressed_taken_piece_type_and_promotion_piece_type
+                            ) == Piece::Type::Pawn);
+                        *to_bitboard &= ~to_index_bitboard;
+                        move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Pawn);
+                    }
+
+                    // update information about en passant
+                    if (to_index_bitboard == move_bitboard_south(move_bitboard_south(from_index_bitboard))) {
+                        game->en_passant_square = move->to;
+                        game->can_en_passant = true;
+                    } else {
+                        game->can_en_passant = false;
+                    }
+                }
+            } else if (has_black_knight(game, from_index_bitboard)) {
+                CHESS_ASSERT(get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty);
+                return false;
+            } else if (has_black_bishop(game, from_index_bitboard)) {
+                CHESS_ASSERT(get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty);
+                return false;
+            } else if (has_black_rook(game, from_index_bitboard)) {
+                CHESS_ASSERT(get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty);
+                return false;
+            } else if (has_black_queen(game, from_index_bitboard)) {
+                CHESS_ASSERT(get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty);
+                return false;
+            } else if (has_black_king(game, from_index_bitboard)) {
+                CHESS_ASSERT(get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty);
+                return false;
+            } else {
+                CHESS_ASSERT(get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty);
+                return false;
+            }
+        } else {
+            if (has_white_pawn(game, from_index_bitboard)) {
+                // remove pawn that is being moved from 'from' cell
+                game->white_pawns &= ~from_index_bitboard;
+
+                if (is_rank(from_index_bitboard, RANK_7)) {
+                    // pawn promotion move
+
+                    // add piece at 'to' cell
+                    const Piece::Type promotion_piece = get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type);
+                    if (promotion_piece == Piece::Type::Knight) {
+                        game->white_knights |= to_index_bitboard;
+                    } else if (promotion_piece == Piece::Type::Bishop) {
+                        game->white_bishops |= to_index_bitboard;
+                    } else if (promotion_piece == Piece::Type::Rook) {
+                        game->white_rooks |= to_index_bitboard;
+                    } else {
+                        CHESS_ASSERT(promotion_piece == Piece::Type::Queen);
+                        game->white_queens |= to_index_bitboard;
+                    }
+
+                    // remove taken piece
+                    if (U64* const to_bitboard = get_black_bitboard(game, to_index_bitboard)) {
+                        *to_bitboard &= ~to_index_bitboard;
+                        if (to_bitboard == &game->black_pawns) {
+                            CHESS_ASSERT(
+                                get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
+                                || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
+                                    move->compressed_taken_piece_type_and_promotion_piece_type
+                                ) == Piece::Type::Pawn);
+                            move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Pawn);
+                        } else if (to_bitboard == &game->black_knights) {
+                            CHESS_ASSERT(
+                                get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
+                                || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
+                                    move->compressed_taken_piece_type_and_promotion_piece_type
+                                ) == Piece::Type::Knight);
+                            move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Knight);
+                        } else if (to_bitboard == &game->black_bishops) {
+                            CHESS_ASSERT(
+                                get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
+                                || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
+                                    move->compressed_taken_piece_type_and_promotion_piece_type
+                                ) == Piece::Type::Bishop);
+                            move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Bishop);
+                        } else if (to_bitboard == &game->black_rooks) {
+                            CHESS_ASSERT(
+                                get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
+                                || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
+                                    move->compressed_taken_piece_type_and_promotion_piece_type
+                                ) == Piece::Type::Rook);
+                            move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Rook);
+                        } else {
+                            CHESS_ASSERT(to_bitboard == &game->black_queens);
+                            CHESS_ASSERT(
+                                get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
+                                || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
+                                    move->compressed_taken_piece_type_and_promotion_piece_type
+                                ) == Piece::Type::Queen);
+                            move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Queen);
+                        }
+                    }
+
+                    // en passant not possible
+                    game->can_en_passant = false;
+                    game->cache.possible_moves_calculated = 0;
+                } else {
+                    // non promotion pawn move
+                    CHESS_ASSERT(get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty);
+
+                    // add piece at 'to' cell
+                    game->white_pawns |= to_index_bitboard;
+
+                    // remove taken piece, considering en passant
+                    if (game->can_en_passant && game->en_passant_square == move_index_south(move->to)) {
+                        CHESS_ASSERT(
+                            get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
+                            || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
+                                move->compressed_taken_piece_type_and_promotion_piece_type
+                            ) == Piece::Type::Pawn);
+                        game->black_pawns &= ~nth_bit(game->en_passant_square);
+                        move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Pawn);
+                    } else if (U64* const to_bitboard = get_black_bitboard(game, to_index_bitboard)) {
+                        CHESS_ASSERT(
+                            get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
+                            || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
+                                move->compressed_taken_piece_type_and_promotion_piece_type
+                            ) == Piece::Type::Pawn);
+                        *to_bitboard &= ~to_index_bitboard;
+                        move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Pawn);
+                    }
+
+                    // update information about en passant
+                    if (to_index_bitboard == move_bitboard_north(move_bitboard_north(from_index_bitboard))) {
+                        game->en_passant_square = move->to;
+                        game->can_en_passant = true;
+                    } else {
+                        game->can_en_passant = false;
+                    }
+                }
+            } else if (has_white_knight(game, from_index_bitboard)) {
+                CHESS_ASSERT(get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty);
+                return false;
+            } else if (has_white_bishop(game, from_index_bitboard)) {
+                CHESS_ASSERT(get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty);
+                return false;
+            } else if (has_white_rook(game, from_index_bitboard)) {
+                CHESS_ASSERT(get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty);
+                return false;
+            } else if (has_white_queen(game, from_index_bitboard)) {
+                CHESS_ASSERT(get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty);
+                return false;
+            } else if (has_white_king(game, from_index_bitboard)) {
+                CHESS_ASSERT(get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty);
+                return false;
+            } else {
+                CHESS_ASSERT(get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty);
+                return false;
+            }
+        }
+
+        game->next_turn = !game->next_turn;
+        game->cache.possible_moves_calculated = 0;
+
+        return true;
+    }
+
     bool move(Game* game, U8 from, U8 to) {
         if (from < 0 || from >= CHESS_BOARD_SIZE || to < 0 || to >= CHESS_BOARD_SIZE) {
             CHESS_ASSERT(false);
             return false;
         }
 
-        const U64 possible_moves = get_moves(game, from);
-        const U64 to_index_bitboard = nth_bit(to);
-        if (!(possible_moves & to_index_bitboard)) {
-            // not a valid move
-            return false;
+        Move move{
+            from,
+            to,
+            0,
+            // TODO(TB): fill in in_check parameter correctly
+            false,
+            game->white_can_never_castle_short,
+            game->white_can_never_castle_long,
+            game->black_can_never_castle_short,
+            game->black_can_never_castle_long,
+            game->can_en_passant
+        };
+
+        if (perform_move(game, &move)) {
+            add_move(game, move);
+            return true;
         }
 
-        const U64 from_index_bitboard = nth_bit(from);
-
-        if (game->next_turn) {
-            if (has_black_pawn(game, from_index_bitboard)) {
-
-                // can not be a pawn promotion move
-                if (is_rank(from_index_bitboard, RANK_2)) {
-                    return false;
-                }
-
-
-                game->black_pawns &= ~from_index_bitboard;
-                game->black_pawns |= to_index_bitboard;
-                if (game->can_en_passant && game->en_passant_square == move_index_north(to)) {
-                    game->white_pawns &= ~nth_bit(game->en_passant_square);
-                } else if (U64* const to_bitboard = get_white_bitboard(game, to_index_bitboard)) {
-                    *to_bitboard &= ~to_index_bitboard;
-                }
-
-                if (to_index_bitboard == move_bitboard_south(move_bitboard_south(from_index_bitboard))) {
-                    game->en_passant_square = to;
-                    game->can_en_passant = true;
-                } else {
-                    game->can_en_passant = false;
-                }
-            } else if (has_black_knight(game, from_index_bitboard)) {
-                return false;
-            } else if (has_black_bishop(game, from_index_bitboard)) {
-                return false;
-            } else if (has_black_rook(game, from_index_bitboard)) {
-                return false;
-            } else if (has_black_queen(game, from_index_bitboard)) {
-                return false;
-            } else if (has_black_king(game, from_index_bitboard)) {
-                return false;
-            } else {
-                return false;
-            }
-        } else {
-            if (has_white_pawn(game, from_index_bitboard)) {
-                // can not be a pawn promotion move
-                if (is_rank(from_index_bitboard, RANK_7)) {
-                    return false;
-                }
-
-                game->white_pawns &= ~from_index_bitboard;
-                game->white_pawns |= to_index_bitboard;
-
-                if (game->can_en_passant && game->en_passant_square == move_index_south(to)) {
-                    game->black_pawns &= ~nth_bit(game->en_passant_square);
-                } else if (U64* const to_bitboard = get_black_bitboard(game, to_index_bitboard)) {
-                    *to_bitboard &= ~to_index_bitboard;
-                }
-
-                if (to_index_bitboard == move_bitboard_north(move_bitboard_north(from_index_bitboard))) {
-                    game->en_passant_square = to;
-                    game->can_en_passant = true;
-                } else {
-                    game->can_en_passant = false;
-                }
-            } else if (has_white_knight(game, from_index_bitboard)) {
-                return false;
-            } else if (has_white_bishop(game, from_index_bitboard)) {
-                return false;
-            } else if (has_white_rook(game, from_index_bitboard)) {
-                return false;
-            } else if (has_white_queen(game, from_index_bitboard)) {
-                return false;
-            } else if (has_white_king(game, from_index_bitboard)) {
-                return false;
-            } else {
-                return false;
-            }
-        }
-
-        game->next_turn = !game->next_turn;
-        game->cache.possible_moves_calculated = 0;
-        return true;
+        return false;
     }
 
     bool move_and_promote(Game* game, U8 from, U8 to, Piece::Type promotion_piece) {
-        if (from < 0 || from >= CHESS_BOARD_SIZE || to < 0 || to >= CHESS_BOARD_SIZE) {
+        if (from < 0 || from >= CHESS_BOARD_SIZE || to < 0 || to >= CHESS_BOARD_SIZE || !(promotion_piece == Piece::Type::Knight || promotion_piece == Piece::Type::Bishop || promotion_piece == Piece::Type::Rook || promotion_piece == Piece::Type::Queen)) {
             CHESS_ASSERT(false);
             return false;
         }
 
-        if (promotion_piece != Piece::Type::Knight && promotion_piece != Piece::Type::Bishop && promotion_piece != Piece::Type::Rook && promotion_piece != Piece::Type::Queen) {
-            return false;
+        Move move{
+            from,
+            to,
+            create_promotion_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(promotion_piece),
+            // TODO(TB): fill in in_check parameter correctly
+            false,
+            game->white_can_never_castle_short,
+            game->white_can_never_castle_long,
+            game->black_can_never_castle_short,
+            game->black_can_never_castle_long,
+            game->can_en_passant
+        };
+
+        if (perform_move(game, &move)) {
+            add_move(game, move);
+            return true;
         }
 
-        const U64 possible_moves = get_moves(game, from);
-        const U64 to_index_bitboard = nth_bit(to);
-        if (!(possible_moves & to_index_bitboard)) {
-            // not a valid move
-            return false;
-        }
-
-        const U64 from_index_bitboard = nth_bit(from);
-
-        if (game->next_turn) {
-            if (has_black_pawn(game, from_index_bitboard)) {
-                // must be a pawn promotion move
-                if (!is_rank(from_index_bitboard, RANK_2)) {
-                    return false;
-                }
-
-                game->black_pawns &= ~from_index_bitboard;
-
-                if (promotion_piece == Piece::Type::Knight) {
-                    game->black_knights |= to_index_bitboard;
-                } else if (promotion_piece == Piece::Type::Bishop) {
-                    game->black_bishops |= to_index_bitboard;
-                } else if (promotion_piece == Piece::Type::Rook) {
-                    game->black_rooks |= to_index_bitboard;
-                } else if (promotion_piece == Piece::Type::Queen) {
-                    game->black_queens |= to_index_bitboard;
-                } else {
-                    CHESS_ASSERT(false);
-                }
-
-                if (U64* const to_bitboard = get_white_bitboard(game, to_index_bitboard)) {
-                    *to_bitboard &= ~to_index_bitboard;
-                }
-            } else {
-                return false;
-            }
-        } else {
-            if (has_white_pawn(game, from_index_bitboard)) {
-                // must be a pawn promotion move
-                if (!is_rank(from_index_bitboard, RANK_7)) {
-                    return false;
-                }
-
-                game->white_pawns &= ~from_index_bitboard;
-
-                if (promotion_piece == Piece::Type::Knight) {
-                    game->white_knights |= to_index_bitboard;
-                } else if (promotion_piece == Piece::Type::Bishop) {
-                    game->white_bishops |= to_index_bitboard;
-                } else if (promotion_piece == Piece::Type::Rook) {
-                    game->white_rooks |= to_index_bitboard;
-                } else if (promotion_piece == Piece::Type::Queen) {
-                    game->white_queens |= to_index_bitboard;
-                } else {
-                    CHESS_ASSERT(false);
-                }
-
-                if (U64* const to_bitboard = get_black_bitboard(game, to_index_bitboard)) {
-                    *to_bitboard &= ~to_index_bitboard;
-                }
-            } else {
-                return false;
-            }
-        }
-
-        game->next_turn = !game->next_turn;
-        game->can_en_passant = false;
-        game->cache.possible_moves_calculated = 0;
-        return true;
+        return false;
     }
 
     U64 get_cells_moved_from(const Game* game) {
-        // TODO(TB): get position last moved from. could be 2 from castling. need to find pieces of last moves colour that arent where they were.
-        // last_move_colour_all_pieces_last_move & ~last_move_colour_all_pieces_this_move
+        if (game->moves_index != 0) {
+            const Move* move = &game->moves[game->moves_index - 1];
+            const U64 to_bitboard = nth_bit(move->to);
+            if (game->next_turn) {
+                if (has_white_king(game, to_bitboard) && move->from == CHESS_E1) {
+                    if (move->to == CHESS_G1) {
+                        return nth_bit(CHESS_E1, CHESS_H1);
+                    } else if (move->to == CHESS_C1) {
+                        return nth_bit(CHESS_E1, CHESS_A1);
+                    }
+                }
+            } else if (has_black_king(game, to_bitboard) && move->from == CHESS_E8) {
+                if (move->to == CHESS_G8) {
+                    return nth_bit(CHESS_E8, CHESS_H8);
+                } else if (move->to == CHESS_C8) {
+                    return nth_bit(CHESS_E8, CHESS_A8);
+                }
+            }
+
+            return nth_bit(move->from);
+        }
+
         return 0;
     }
 
     U64 get_cells_moved_to(const Game* game) {
-        // TODO(TB): get position last moved from. could be 2 from castling. need to find pieces of last moves colour that arent where they were.
-        // last_move_colour_all_pieces_last_move & ~last_move_colour_all_pieces_this_move
+        if (game->moves_index != 0) {
+            const Move* move = &game->moves[game->moves_index - 1];
+            const U64 to_bitboard = nth_bit(move->to);
+            if (game->next_turn) {
+                if (has_white_king(game, to_bitboard) && move->from == CHESS_E1) {
+                    if (move->to == CHESS_G1) {
+                        return to_bitboard | move_bitboard_west(to_bitboard);
+                    } else if (move->to == CHESS_C1) {
+                        return to_bitboard | move_bitboard_east(to_bitboard);
+                    }
+                }
+            } else if (has_black_king(game, to_bitboard) && move->from == CHESS_E8) {
+                if (move->to == CHESS_G8) {
+                    return to_bitboard | move_bitboard_west(to_bitboard);
+                } else if (move->to == CHESS_C8) {
+                    return to_bitboard | move_bitboard_east(to_bitboard);
+                }
+            }
+
+            return to_bitboard;
+        }
+
         return 0;
     }
 
@@ -712,5 +984,162 @@ namespace chess { namespace engine {
 
     bool is_light_cell(U8 file, U8 rank) {
         return file % 2 == 0 ? rank % 2 == 0 : rank % 2 != 0;
+    }
+
+    bool can_undo(const Game* game) {
+        return game->moves_index != 0;
+    }
+
+    bool can_redo(const Game* game) {
+        return game->moves_index < game->moves_count;
+    }
+
+    bool undo(Game* game) {
+        if (game->moves_index == 0) {
+            return false;
+        }
+
+        --game->moves_index;
+        const Move move = game->moves[game->moves_index];
+        game->cache.possible_moves_calculated = 0;
+        game->white_can_never_castle_short = move.white_can_never_castle_short;
+        game->white_can_never_castle_long = move.white_can_never_castle_long;
+        game->black_can_never_castle_short = move.black_can_never_castle_short;
+        game->black_can_never_castle_long = move.black_can_never_castle_long;
+        game->can_en_passant = move.can_en_passant;
+        game->next_turn = !game->next_turn;
+
+        if (game->can_en_passant) {
+            CHESS_ASSERT(game->moves_index > 0);
+            game->en_passant_square = game->moves[game->moves_index - 1].to;
+        }
+
+        const U64 to_index_bitboard = nth_bit(move.to);
+
+        if (game->next_turn) {
+            U64* to_bitboard = get_black_bitboard(game, to_index_bitboard);
+            if (to_bitboard) {
+                *to_bitboard &= ~to_index_bitboard;
+            } else {
+                CHESS_ASSERT(false);
+            }
+
+            const Piece::Type taken_piece = get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move.compressed_taken_piece_type_and_promotion_piece_type);
+            const Piece::Type promotion_piece = get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move.compressed_taken_piece_type_and_promotion_piece_type);
+
+            if (to_bitboard == &game->black_kings && move.from == CHESS_E8) {
+                if (move.to == CHESS_C8) {
+                    CHESS_ASSERT(game->black_rooks & nth_bit(CHESS_D8));
+                    game->black_rooks &= ~nth_bit(CHESS_D8);
+                    game->black_rooks |= nth_bit(CHESS_A8);
+                    return true;
+                } else if (move.to == CHESS_G8) {
+                    CHESS_ASSERT(game->black_rooks & nth_bit(CHESS_F8));
+                    game->black_rooks &= ~nth_bit(CHESS_F8);
+                    game->black_rooks |= nth_bit(CHESS_H8);
+                    return true;
+                }
+            }
+
+            if (taken_piece != Piece::Type::Empty) {
+                if (taken_piece == Piece::Type::Pawn) {
+                    if (move.to == move_index_south(game->en_passant_square)) {
+                        // en passant
+                        game->white_pawns |= move_bitboard_north(to_index_bitboard);
+                    } else {
+                        game->white_pawns |= to_index_bitboard;
+                    }
+                } else if (taken_piece == Piece::Type::Knight) {
+                    game->white_knights |= to_index_bitboard;
+                } else if (taken_piece == Piece::Type::Bishop) {
+                    game->white_bishops |= to_index_bitboard;
+                } else if (taken_piece == Piece::Type::Rook) {
+                    game->white_rooks |= to_index_bitboard;
+                } else {
+                    // king cannot be taken
+                    CHESS_ASSERT(taken_piece == Piece::Type::Queen);
+                    game->white_queens |= to_index_bitboard;
+                }
+            }
+
+            if (promotion_piece == Piece::Type::Empty) {
+                if (to_bitboard) {
+                    *to_bitboard |= nth_bit(move.from);
+                } else {
+                    CHESS_ASSERT(false);
+                }
+            } else {
+                game->black_pawns |= nth_bit(move.from);
+            }
+        } else {
+            U64* to_bitboard = get_white_bitboard(game, to_index_bitboard);
+            if (to_bitboard) {
+                *to_bitboard &= ~to_index_bitboard;
+            } else {
+                CHESS_ASSERT(false);
+            }
+
+            const Piece::Type taken_piece = get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move.compressed_taken_piece_type_and_promotion_piece_type);
+            const Piece::Type promotion_piece = get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move.compressed_taken_piece_type_and_promotion_piece_type);
+
+            if (to_bitboard == &game->white_kings && move.from == CHESS_E1) {
+                if (move.to == CHESS_C1) {
+                    CHESS_ASSERT(game->white_rooks & nth_bit(CHESS_D1));
+                    game->white_rooks &= ~nth_bit(CHESS_D1);
+                    game->white_rooks |= nth_bit(CHESS_A1);
+                    return true;
+                } else if (move.to == CHESS_G1) {
+                    CHESS_ASSERT(game->white_rooks & nth_bit(CHESS_F1));
+                    game->white_rooks &= ~nth_bit(CHESS_F1);
+                    game->white_rooks |= nth_bit(CHESS_H1);
+                    return true;
+                }
+            }
+
+            if (taken_piece != Piece::Type::Empty) {
+                if (taken_piece == Piece::Type::Pawn) {
+                    if (move.to == move_index_north(game->en_passant_square)) {
+                        // en passant
+                        game->black_pawns |= move_bitboard_south(to_index_bitboard);
+                    } else {
+                        game->black_pawns |= to_index_bitboard;
+                    }
+                } else if (taken_piece == Piece::Type::Knight) {
+                    game->black_knights |= to_index_bitboard;
+                } else if (taken_piece == Piece::Type::Bishop) {
+                    game->black_bishops |= to_index_bitboard;
+                } else if (taken_piece == Piece::Type::Rook) {
+                    game->black_rooks |= to_index_bitboard;
+                } else {
+                    // king cannot be taken
+                    CHESS_ASSERT(taken_piece == Piece::Type::Queen);
+                    game->black_queens |= to_index_bitboard;
+                }
+            }
+
+            if (promotion_piece == Piece::Type::Empty) {
+                if (to_bitboard) {
+                    *to_bitboard |= nth_bit(move.from);
+                } else {
+                    CHESS_ASSERT(false);
+                }
+            } else {
+                game->white_pawns |= nth_bit(move.from);
+            }
+        }
+
+        return true;
+    }
+
+    bool redo(Game* game) {
+        if (game->moves_index < game->moves_count) {
+            Move* the_move = &game->moves[game->moves_index];
+            const Piece::Type promotion_piece_type = get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(the_move->compressed_taken_piece_type_and_promotion_piece_type);
+            if (perform_move(game, the_move)) {
+                ++game->moves_index;
+            }
+        }
+
+        return false;
     }
 }}

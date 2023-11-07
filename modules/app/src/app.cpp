@@ -31,6 +31,14 @@ namespace chess { namespace app {
     static constexpr U64 promotion_dialog_width = promotion_dialog_cell_size * 4;
     static constexpr U64 promotion_dialog_height = promotion_dialog_cell_size;
     static constexpr float pieces_texture_item_size = 60.0f;
+    static constexpr U32 button_margin = 10;
+    static constexpr U32 button_width = 60;
+    static constexpr U32 button_height = 30;
+    static constexpr U32 redo_button_x = board_x + CHESS_UI_BOARD_SIZE - button_width;
+    static constexpr U32 undo_redo_button_y = board_y + CHESS_UI_BOARD_SIZE + (CHESS_UI_HEIGHT - (board_y + CHESS_UI_BOARD_SIZE) - button_height) / 2;
+    static constexpr U32 undo_button_x = redo_button_x - button_margin - button_width;
+    static constexpr Color button_enabled_colour{125, 125, 125, 255};
+    static constexpr Color button_disabled_colour{125, 125, 125, 100};
 
     static void draw_piece(App* app, engine::Piece piece, Rectangle position) {
         if (piece.type == engine::Piece::Type::Empty) {
@@ -94,6 +102,10 @@ namespace chess { namespace app {
                     app->cell_is_selected = false;
                     app->promotion_dialog = false;
                 }
+            } else if (pos.x > undo_button_x && pos.x < undo_button_x + button_width && pos.y > undo_redo_button_y && pos.y < undo_redo_button_y + button_height) {
+                engine::undo(&app->game);
+            } else if (pos.x > redo_button_x && pos.x < redo_button_x + button_width && pos.y > undo_redo_button_y && pos.y < undo_redo_button_y + button_height) {
+                engine::redo(&app->game);
             } else if (pos.x > board_x && pos.x < board_x + CHESS_UI_BOARD_SIZE
                 && pos.y > board_y && pos.y < board_y + CHESS_UI_BOARD_SIZE) {
                 const U8 cell = engine::coordinate_with_flipped_rank((pos.x - board_x) / cell_size, static_cast<U64>((pos.y - board_y) / cell_size));
@@ -168,6 +180,11 @@ namespace chess { namespace app {
                     {static_cast<float>(promotion_dialog_x + promotion_dialog_cell_size * 2), static_cast<float>(promotion_dialog_y), static_cast<float>(promotion_dialog_cell_size), static_cast<float>(promotion_dialog_cell_size)});
                 draw_piece(app, {colour, engine::Piece::Type::Queen},
                     {static_cast<float>(promotion_dialog_x + promotion_dialog_cell_size * 3), static_cast<float>(promotion_dialog_y), static_cast<float>(promotion_dialog_cell_size), static_cast<float>(promotion_dialog_cell_size)});
+            }
+
+            {
+                DrawRectangle(undo_button_x, undo_redo_button_y, button_width, button_height, engine::can_undo(&app->game) ? button_enabled_colour : button_disabled_colour);
+                DrawRectangle(redo_button_x, undo_redo_button_y, button_width, button_height, engine::can_redo(&app->game) ? button_enabled_colour : button_disabled_colour);
             }
         }
         EndDrawing();

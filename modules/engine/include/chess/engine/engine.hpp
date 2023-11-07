@@ -122,10 +122,10 @@ RNBQKBNR
 #define CHESS_H8 63
 
 namespace chess { namespace engine {
-    enum class Colour { White, Black };
+    enum class Colour : U8 { White, Black };
 
     struct Piece {
-        enum class Type { Empty, Pawn, Knight, Bishop, Rook, Queen, King };
+        enum class Type : U8 { Empty, Pawn, Knight, Bishop, Rook, Queen, King };
 
         Colour colour;
         Type type;
@@ -141,8 +141,22 @@ namespace chess { namespace engine {
         U64 possible_moves_calculated;
     };
 
+    struct Move {
+        U8 from;
+        U8 to;
+        // taken_piece_type is filled in by perform_move
+        U8 compressed_taken_piece_type_and_promotion_piece_type;
+        bool in_check : 1;
+        bool white_can_never_castle_short : 1;
+        bool white_can_never_castle_long : 1;
+        bool black_can_never_castle_short : 1;
+        bool black_can_never_castle_long : 1;
+        bool can_en_passant : 1;
+    };
+
     struct Game {
-        Game() noexcept;
+        Game();
+        ~Game();
 
         U64 white_pawns;
         U64 white_knights;
@@ -164,6 +178,10 @@ namespace chess { namespace engine {
         bool white_can_never_castle_long : 1;
         bool black_can_never_castle_short : 1;
         bool black_can_never_castle_long : 1;
+        U64 moves_allocated;
+        U64 moves_count;
+        U64 moves_index;
+        Move* moves;
     };
 
     inline constexpr U64 nth_bit(U8 n) {
@@ -207,6 +225,8 @@ namespace chess { namespace engine {
     extern bool is_empty_for_index(const Game* game, U8 index);
     extern Piece get_piece(const Game* game, U64 bitboard);
     extern Piece get_piece_for_index(const Game* game, U8 index);
+    extern Piece::Type get_white_piece_type_for_index(const Game* game, U8 index);
+    extern Piece::Type get_black_piece_type_for_index(const Game* game, U8 index);
     extern U64 get_moves(const Game* game, U8 index);
     extern bool is_rank(U64 bitboard, U8 rank);
     extern bool is_rank_for_index(U8 index, U8 rank);
@@ -239,4 +259,8 @@ namespace chess { namespace engine {
     extern U64 move_bitboard_west(U64 bitboard);
     extern U64 move_bitboard_north_west(U64 bitboard);
     extern bool is_light_cell(U8 file, U8 rank);
+    extern bool can_undo(const Game* game);
+    extern bool can_redo(const Game* game);
+    extern bool undo(Game* game);
+    extern bool redo(Game* game);
 }}
