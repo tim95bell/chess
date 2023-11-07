@@ -159,6 +159,8 @@ namespace chess { namespace app {
                         }
                     } else if (engine::get_cells_moved_from(&app->game) & engine::nth_bit(i)) {
                         cell_colour = light_square ? light_moved_from_colour : dark_moved_from_colour;
+                    } else if (engine::get_cells_moved_to(&app->game) & engine::nth_bit(i)) {
+                        cell_colour = light_square ? light_moved_to_colour : dark_moved_to_colour;
                     } else {
                         cell_colour = light_square ? light_colour : dark_colour;
                     }

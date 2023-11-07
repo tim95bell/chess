@@ -442,10 +442,10 @@ namespace chess { namespace engine {
                 U64 result = move_bitboard_south(bitboard);
                 const U64 all_black_pieces = game->black_pawns | game->black_knights | game->black_bishops | game->black_rooks | game->black_queens | game->black_kings;
                 const U64 all_white_pieces = game->white_pawns | game->white_knights | game->white_bishops | game->white_rooks | game->white_queens | game->white_kings;
-                result ^= result & all_black_pieces;
+                result = result & ~(all_white_pieces | all_black_pieces);
                 if (result && is_rank(bitboard, RANK_7)) {
                     result |= move_bitboard_south(move_bitboard_south(bitboard));
-                    result ^= result & all_black_pieces;
+                    result = result & ~(all_white_pieces | all_black_pieces);
                 }
 
                 if (!is_file(bitboard, FILE_A)) {
@@ -478,10 +478,10 @@ namespace chess { namespace engine {
                 U64 result = move_bitboard_north(bitboard);
                 const U64 all_white_pieces = game->white_pawns | game->white_knights | game->white_bishops | game->white_rooks | game->white_queens | game->white_kings;
                 const U64 all_black_pieces = game->black_pawns | game->black_knights | game->black_bishops | game->black_rooks | game->black_queens | game->black_kings;
-                result ^= result & all_white_pieces;
+                result = result & ~(all_white_pieces | all_black_pieces);
                 if (result && is_rank(bitboard, RANK_2)) {
                     result |= move_bitboard_north(move_bitboard_north(bitboard));
-                    result ^= result & all_white_pieces;
+                    result = result & ~(all_white_pieces | all_black_pieces);
                 }
                 
                 if (!is_file(bitboard, FILE_A)) {
