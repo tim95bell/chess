@@ -147,11 +147,77 @@ namespace chess { namespace engine {
         Piece(Colour, Type) noexcept;
     };
 
+// #region Bitboard
+    struct Bitboard {
+        U64 data;
+
+        inline constexpr Bitboard operator|(Bitboard other) const {
+            return Bitboard{data | other.data};
+        }
+
+        inline constexpr Bitboard* operator|=(Bitboard other) {
+            data |= other.data;
+            return this;
+        }
+
+        inline constexpr Bitboard operator&(Bitboard other) const {
+            return Bitboard{data & other.data};
+        }
+
+        inline constexpr Bitboard* operator&=(Bitboard other) {
+            data &= other.data;
+            return this;
+        }
+
+        inline constexpr Bitboard operator~() const {
+            return Bitboard{~data};
+        }
+
+        inline constexpr bool operator==(Bitboard other) const {
+            return data == other.data;
+        }
+
+        inline constexpr bool operator!=(Bitboard other) const {
+            return data != other.data;
+        }
+
+        inline constexpr bool operator!() const {
+            return !data;
+        }
+
+        inline constexpr operator bool() const {
+            return static_cast<bool>(data);
+        }
+    };
+
+    inline constexpr Bitboard nth_bit(U8 n) {
+        return Bitboard{1ULL << n};
+    }
+
+    template <typename... Args>
+    inline consteval Bitboard nth_bit(U8 n, Args... args) {
+        return nth_bit(n) | nth_bit(args...);
+    }
+
+    template <Colour colour>
+    extern Bitboard move_forward(Bitboard bitboard);
+    template <Colour colour>
+    extern Bitboard move_backward(Bitboard bitboard);
+    extern Bitboard move_north(Bitboard bitboard);
+    extern Bitboard move_north_east(Bitboard bitboard);
+    extern Bitboard move_east(Bitboard bitboard);
+    extern Bitboard move_south_east(Bitboard bitboard);
+    extern Bitboard move_south(Bitboard bitboard);
+    extern Bitboard move_south_west(Bitboard bitboard);
+    extern Bitboard move_west(Bitboard bitboard);
+    extern Bitboard move_north_west(Bitboard bitboard);
+// #endregion
+
     struct Cache {
         Cache() noexcept;
 
-        U64 possible_moves[64];
-        U64 possible_moves_calculated;
+        Bitboard possible_moves[64];
+        Bitboard possible_moves_calculated;
     };
 
     struct Move {
@@ -172,18 +238,18 @@ namespace chess { namespace engine {
         Game();
         ~Game();
 
-        U64 white_pawns;
-        U64 white_knights;
-        U64 white_bishops;
-        U64 white_rooks;
-        U64 white_queens;
-        U64 white_kings;
-        U64 black_pawns;
-        U64 black_knights;
-        U64 black_bishops;
-        U64 black_rooks;
-        U64 black_queens;
-        U64 black_kings;
+        Bitboard white_pawns;
+        Bitboard white_knights;
+        Bitboard white_bishops;
+        Bitboard white_rooks;
+        Bitboard white_queens;
+        Bitboard white_kings;
+        Bitboard black_pawns;
+        Bitboard black_knights;
+        Bitboard black_bishops;
+        Bitboard black_rooks;
+        Bitboard black_queens;
+        Bitboard black_kings;
         mutable Cache cache;
         U8 en_passant_square;
         bool can_en_passant : 1;
@@ -199,70 +265,70 @@ namespace chess { namespace engine {
     };
 
     template <Colour colour>
-    extern bool has_friendly_piece(const Game* game, U64 bitboard);
+    extern bool has_friendly_piece(const Game* game, Bitboard bitboard);
     template <Colour colour>
     extern bool has_friendly_piece_for_index(const Game* game, U8 index);
     template <Colour colour>
-    extern bool has_friendly_pawn(const Game* game, U64 bitboard);
+    extern bool has_friendly_pawn(const Game* game, Bitboard bitboard);
     template <Colour colour>
-    extern bool has_friendly_knight(const Game* game, U64 bitboard);
+    extern bool has_friendly_knight(const Game* game, Bitboard bitboard);
     template <Colour colour>
-    extern bool has_friendly_bishop(const Game* game, U64 bitboard);
+    extern bool has_friendly_bishop(const Game* game, Bitboard bitboard);
     template <Colour colour>
-    extern bool has_friendly_rook(const Game* game, U64 bitboard);
+    extern bool has_friendly_rook(const Game* game, Bitboard bitboard);
     template <Colour colour>
-    extern bool has_friendly_queen(const Game* game, U64 bitboard);
+    extern bool has_friendly_queen(const Game* game, Bitboard bitboard);
     template <Colour colour>
-    extern bool has_friendly_king(const Game* game, U64 bitboard);
+    extern bool has_friendly_king(const Game* game, Bitboard bitboard);
     template <Colour colour>
-    extern bool is_empty(const Game* game, U64 bitboard);
+    extern bool is_empty(const Game* game, Bitboard bitboard);
     template <Colour colour>
     extern bool is_empty_for_index(const Game* game, U8 index);
-    extern bool is_empty(const Game* game, U64 bitboard);
+    extern bool is_empty(const Game* game, Bitboard bitboard);
     extern bool is_empty_for_index(const Game* game, U8 index);
-    extern Piece get_piece(const Game* game, U64 bitboard);
+    extern Piece get_piece(const Game* game, Bitboard bitboard);
     extern Piece get_piece_for_index(const Game* game, U8 index);
     template <Colour colour>
-    extern Piece::Type get_friendly_piece_type(const Game* game, U64 bitboard);
+    extern Piece::Type get_friendly_piece_type(const Game* game, Bitboard bitboard);
     template <Colour colour>
     extern Piece::Type get_friendly_piece_type_for_index(const Game* game, U8 index);
     template <Colour colour>
-    extern const U64* get_friendly_pawns(const Game* game);
+    extern const Bitboard* get_friendly_pawns(const Game* game);
     template <Colour colour>
-    extern U64* get_friendly_pawns(Game* game);
+    extern Bitboard* get_friendly_pawns(Game* game);
     template <Colour colour>
-    extern const U64* get_friendly_knights(const Game* game);
+    extern const Bitboard* get_friendly_knights(const Game* game);
     template <Colour colour>
-    extern U64* get_friendly_knights(Game* game);
+    extern Bitboard* get_friendly_knights(Game* game);
     template <Colour colour>
-    extern const U64* get_friendly_bishops(const Game* game);
+    extern const Bitboard* get_friendly_bishops(const Game* game);
     template <Colour colour>
-    extern U64* get_friendly_bishops(Game* game);
+    extern Bitboard* get_friendly_bishops(Game* game);
     template <Colour colour>
-    extern const U64* get_friendly_rooks(const Game* game);
+    extern const Bitboard* get_friendly_rooks(const Game* game);
     template <Colour colour>
-    extern U64* get_friendly_rooks(Game* game);
+    extern Bitboard* get_friendly_rooks(Game* game);
     template <Colour colour>
-    extern const U64* get_friendly_queens(const Game* game);
+    extern const Bitboard* get_friendly_queens(const Game* game);
     template <Colour colour>
-    extern U64* get_friendly_queens(Game* game);
+    extern Bitboard* get_friendly_queens(Game* game);
     template <Colour colour>
-    extern const U64* get_friendly_kings(const Game* game);
+    extern const Bitboard* get_friendly_kings(const Game* game);
     template <Colour colour>
-    extern U64* get_friendly_kings(Game* game);
+    extern Bitboard* get_friendly_kings(Game* game);
     template <Colour colour>
-    extern U64 get_friendly_pieces(const Game* game);
-    extern U64 get_cells_moved_from(const Game* game);
-    extern U64 get_cells_moved_to(const Game* game);
+    extern Bitboard get_friendly_pieces(const Game* game);
+    extern Bitboard get_cells_moved_from(const Game* game);
+    extern Bitboard get_cells_moved_to(const Game* game);
     template <Colour colour>
-    extern const U64* get_friendly_bitboard(const Game* game, U64 bitboard);
+    extern const Bitboard* get_friendly_bitboard(const Game* game, Bitboard bitboard);
     template <Colour colour>
-    extern U64* get_friendly_bitboard(Game* game, U64 bitboard);
+    extern Bitboard* get_friendly_bitboard(Game* game, Bitboard bitboard);
     template <Colour colour>
-    extern const U64* get_friendly_bitboard_for_index(const Game* game, U8 index);
+    extern const Bitboard* get_friendly_bitboard_for_index(const Game* game, U8 index);
     template <Colour colour>
-    extern U64* get_friendly_bitboard_for_index(Game* game, U8 index);
-    extern U64 get_moves(const Game* game, U8 index);
+    extern Bitboard* get_friendly_bitboard_for_index(Game* game, U8 index);
+    extern Bitboard get_moves(const Game* game, U8 index);
     extern bool move(Game* game, U8 from, U8 to);
     extern bool move_and_promote(Game* game, U8 from, U8 to, Piece::Type promotion_piece);
     extern bool can_undo(const Game* game);
@@ -271,46 +337,25 @@ namespace chess { namespace engine {
     extern bool redo(Game* game);
 // #endregion
 
-    inline constexpr U64 nth_bit(U8 n) {
-        return 1ULL << n;
-    }
-
-    template <typename... Args>
-    inline constexpr U64 nth_bit(U8 n, Args... args) {
-        return nth_bit(n) | nth_bit(args...);
-    }
-
     extern bool is_light_cell(U8 file, U8 rank);
     template <Colour colour>
-    extern U64 front_rank();
+    extern constexpr U8 front_rank();
     template <Colour colour>
-    extern U64 rear_rank();
-    extern bool is_rank(U64 bitboard, U8 rank);
+    extern constexpr U8 rear_rank();
+    extern bool is_rank(Bitboard bitboard, U8 rank);
     extern bool is_rank_for_index(U8 index, U8 rank);
-    extern bool is_file(U64 bitboard, U8 file);
+    extern bool is_file(Bitboard bitboard, U8 file);
     extern bool is_file_for_index(U8 index, U8 file);
-    extern U8 coordinate(U8 file, U8 rank);
-    extern U8 coordinate_with_flipped_rank(U8 file, U8 rank);
+    extern constexpr U8 coordinate(U8 file, U8 rank);
+    extern constexpr U8 coordinate_with_flipped_rank(U8 file, U8 rank);
     extern U8 flip_rank(U8 rank);
     extern U8 flip_rank_for_index(U8 index);
     extern U8 get_rank_for_index(U8 index);
     extern U8 get_file_for_index(U8 index);
     template <Colour colour>
-    extern U64 move_bitboard_forward(U64 bitboard);
+    extern U8 move_index_forward(U8 index);
     template <Colour colour>
-    extern U64 move_bitboard_backward(U64 bitboard);
-    extern U64 move_bitboard_north(U64 bitboard);
-    extern U64 move_bitboard_north_east(U64 bitboard);
-    extern U64 move_bitboard_east(U64 bitboard);
-    extern U64 move_bitboard_south_east(U64 bitboard);
-    extern U64 move_bitboard_south(U64 bitboard);
-    extern U64 move_bitboard_south_west(U64 bitboard);
-    extern U64 move_bitboard_west(U64 bitboard);
-    extern U64 move_bitboard_north_west(U64 bitboard);
-    template <Colour colour>
-    extern U64 move_index_forward(U8 index);
-    template <Colour colour>
-    extern U64 move_index_backward(U8 index);
+    extern U8 move_index_backward(U8 index);
     extern U8 move_index_north(U8 index);
     extern U8 move_index_north_east(U8 index);
     extern U8 move_index_east(U8 index);

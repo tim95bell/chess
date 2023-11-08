@@ -16,7 +16,7 @@ namespace chess { namespace app {
         Texture2D pieces_texture;
         bool cell_is_selected;
         U8 selected_cell;
-        U64 possible_moves;
+        engine::Bitboard possible_moves;
         bool promotion_dialog;
         U8 promotion_cell;
     };

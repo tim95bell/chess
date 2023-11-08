@@ -7,7 +7,7 @@
 namespace chess { namespace engine {
     // #region internal
     // TODO(TB): bitboard_rank and bitboard_file will make it hard to inline functions using these in different compilation units?
-    static constexpr U64 bitboard_file[CHESS_BOARD_WIDTH]{
+    static constexpr Bitboard bitboard_file[CHESS_BOARD_WIDTH]{
         nth_bit(CHESS_A1, CHESS_A2, CHESS_A3, CHESS_A4, CHESS_A5, CHESS_A6, CHESS_A7, CHESS_A8),
         nth_bit(CHESS_B1, CHESS_B2, CHESS_B3, CHESS_B4, CHESS_B5, CHESS_B6, CHESS_B7, CHESS_B8),
         nth_bit(CHESS_C1, CHESS_C2, CHESS_C3, CHESS_C4, CHESS_C5, CHESS_C6, CHESS_C7, CHESS_C8),
@@ -18,7 +18,7 @@ namespace chess { namespace engine {
         nth_bit(CHESS_H1, CHESS_H2, CHESS_H3, CHESS_H4, CHESS_H5, CHESS_H6, CHESS_H7, CHESS_H8)
     };
 
-    static constexpr U64 bitboard_rank[CHESS_BOARD_HEIGHT]{
+    static constexpr Bitboard bitboard_rank[CHESS_BOARD_HEIGHT]{
         nth_bit(CHESS_A1, CHESS_B1, CHESS_C1, CHESS_D1, CHESS_E1, CHESS_F1, CHESS_G1, CHESS_H1),
         nth_bit(CHESS_A2, CHESS_B2, CHESS_C2, CHESS_D2, CHESS_E2, CHESS_F2, CHESS_G2, CHESS_H2),
         nth_bit(CHESS_A3, CHESS_B3, CHESS_C3, CHESS_D3, CHESS_E3, CHESS_F3, CHESS_G3, CHESS_H3),
@@ -59,56 +59,56 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static inline U64 get_knight_moves(const Game* game, U64 bitboard) {
+    static inline Bitboard get_knight_moves(const Game* game, Bitboard bitboard) {
         CHESS_ASSERT((bitboard & *get_friendly_knights<colour>(game)) == bitboard);
 
         return (
             (
-                (move_bitboard_north(move_bitboard_north_east(bitboard)) | move_bitboard_south(move_bitboard_south_east(bitboard)))
+                (move_north(move_north_east(bitboard)) | move_south(move_south_east(bitboard)))
                 & ~bitboard_file[FILE_A]
             ) | (
-                (move_bitboard_east(move_bitboard_north_east(bitboard)) | move_bitboard_east(move_bitboard_south_east(bitboard)))
+                (move_east(move_north_east(bitboard)) | move_east(move_south_east(bitboard)))
                 & ~(bitboard_file[FILE_A] | bitboard_file[FILE_B])
             ) | (
-                (move_bitboard_north(move_bitboard_north_west(bitboard)) | move_bitboard_south(move_bitboard_south_west(bitboard)))
+                (move_north(move_north_west(bitboard)) | move_south(move_south_west(bitboard)))
                 & ~bitboard_file[FILE_H]
             ) | (
-                (move_bitboard_west(move_bitboard_north_west(bitboard)) | move_bitboard_west(move_bitboard_south_west(bitboard)))
+                (move_west(move_north_west(bitboard)) | move_west(move_south_west(bitboard)))
                 & ~(bitboard_file[FILE_H] | bitboard_file[FILE_G])
             )
         ) & ~get_friendly_pieces<colour>(game);
     }
 
     template <Colour colour>
-    static inline U64 get_pawn_moves(const Game* game, U64 bitboard) {
+    static inline Bitboard get_pawn_moves(const Game* game, Bitboard bitboard) {
         CHESS_ASSERT((bitboard & *get_friendly_pawns<colour>(game)) == bitboard);
         CHESS_ASSERT(!is_rank(bitboard, rear_rank<colour>()));
-        U64 result = move_bitboard_forward<colour>(bitboard);
-        const U64 all_friendly_pieces = get_friendly_pieces<colour>(game);
-        const U64 all_enemy_pieces = get_friendly_pieces<EnemyColour<colour>::colour>(game);
-        const U64 all_pieces = all_friendly_pieces | all_enemy_pieces;
+        Bitboard result = move_forward<colour>(bitboard);
+        const Bitboard all_friendly_pieces = get_friendly_pieces<colour>(game);
+        const Bitboard all_enemy_pieces = get_friendly_pieces<EnemyColour<colour>::colour>(game);
+        const Bitboard all_pieces = all_friendly_pieces | all_enemy_pieces;
         result = result & ~all_pieces;
         if (result && is_rank(bitboard, move_rank_forward<colour>(rear_rank<colour>()))) {
-            result |= move_bitboard_forward<colour>(move_bitboard_forward<colour>(bitboard));
+            result |= move_forward<colour>(move_forward<colour>(bitboard));
             result = result & ~all_pieces;
         }
 
         if (!is_file(bitboard, FILE_A)) {
-            result |= move_bitboard_forward<colour>(move_bitboard_west(bitboard)) & all_enemy_pieces;
+            result |= move_forward<colour>(move_west(bitboard)) & all_enemy_pieces;
         }
 
         if (!is_file(bitboard, FILE_H)) {
-            result |= move_bitboard_forward<colour>(move_bitboard_east(bitboard)) & all_enemy_pieces;
+            result |= move_forward<colour>(move_east(bitboard)) & all_enemy_pieces;
         }
 
         if (game->can_en_passant) {
             CHESS_ASSERT(get_piece_for_index(game, move_index_backward<colour>(game->en_passant_square)).type == Piece::Type::Empty);
             CHESS_ASSERT(get_piece_for_index(game, game->en_passant_square).type == Piece::Type::Pawn);
             CHESS_ASSERT(get_piece_for_index(game, game->en_passant_square).colour == EnemyColour<colour>::colour);
-            if (!is_file(bitboard, FILE_H) && nth_bit(game->en_passant_square) == move_bitboard_east(bitboard)) {
-                result |= move_bitboard_forward<colour>(move_bitboard_east(bitboard));
-            } else if (!is_file(bitboard, FILE_A) && nth_bit(game->en_passant_square) == move_bitboard_west(bitboard)) {
-                result |= move_bitboard_forward<colour>(move_bitboard_west(bitboard));
+            if (!is_file(bitboard, FILE_H) && nth_bit(game->en_passant_square) == move_east(bitboard)) {
+                result |= move_forward<colour>(move_east(bitboard));
+            } else if (!is_file(bitboard, FILE_A) && nth_bit(game->en_passant_square) == move_west(bitboard)) {
+                result |= move_forward<colour>(move_west(bitboard));
             }
         }
 
@@ -116,7 +116,7 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static inline U64 get_moves(const Game* game, U64 bitboard) {
+    static inline Bitboard get_moves(const Game* game, Bitboard bitboard) {
         // non templated get_moves should only call this if there is no cache entry
         CHESS_ASSERT(!(game->cache.possible_moves_calculated & bitboard));
 
@@ -128,11 +128,11 @@ namespace chess { namespace engine {
             return get_knight_moves<colour>(game, bitboard);
         }
 
-        return 0;
+        return Bitboard{};
     }
 
     template <Colour colour>
-    static inline void perform_pawn_move(Game* game, Move* move, U64 from_index_bitboard, U64 to_index_bitboard) {
+    static inline void perform_pawn_move(Game* game, Move* move, Bitboard from_index_bitboard, Bitboard to_index_bitboard) {
         // remove pawn that is being moved from 'from' cell
         *get_friendly_pawns<colour>(game) &= ~from_index_bitboard;
 
@@ -153,7 +153,7 @@ namespace chess { namespace engine {
             }
 
             // remove taken piece
-            if (U64* const to_bitboard = get_friendly_bitboard<EnemyColour<colour>::colour>(game, to_index_bitboard)) {
+            if (Bitboard* const to_bitboard = get_friendly_bitboard<EnemyColour<colour>::colour>(game, to_index_bitboard)) {
                 *to_bitboard &= ~to_index_bitboard;
                 if (to_bitboard == get_friendly_knights<EnemyColour<colour>::colour>(game)) {
                     CHESS_ASSERT(
@@ -206,7 +206,7 @@ namespace chess { namespace engine {
                     ) == Piece::Type::Pawn);
                 *get_friendly_pawns<EnemyColour<colour>::colour>(game) &= ~nth_bit(game->en_passant_square);
                 move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Pawn);
-            } else if (U64* const to_bitboard = get_friendly_bitboard<EnemyColour<colour>::colour>(game, to_index_bitboard)) {
+            } else if (Bitboard* const to_bitboard = get_friendly_bitboard<EnemyColour<colour>::colour>(game, to_index_bitboard)) {
                 *to_bitboard &= ~to_index_bitboard;
                 if (to_bitboard == get_friendly_pawns<EnemyColour<colour>::colour>(game)) {
                     CHESS_ASSERT(
@@ -248,7 +248,7 @@ namespace chess { namespace engine {
             }
 
             // update information about en passant
-            if (to_index_bitboard == move_bitboard_forward<colour>(move_bitboard_forward<colour>(from_index_bitboard))) {
+            if (to_index_bitboard == move_forward<colour>(move_forward<colour>(from_index_bitboard))) {
                 game->en_passant_square = move->to;
                 game->can_en_passant = true;
             } else {
@@ -258,10 +258,10 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static inline void perform_knight_move(Game* game, Move* move, U64 from_index_bitboard, U64 to_index_bitboard) {
+    static inline void perform_knight_move(Game* game, Move* move, Bitboard from_index_bitboard, Bitboard to_index_bitboard) {
         CHESS_ASSERT(get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty);
         *get_friendly_knights<colour>(game) &= ~from_index_bitboard;
-        if (U64* to_bitboard = get_friendly_bitboard<EnemyColour<colour>::colour>(game, to_index_bitboard)) {
+        if (Bitboard* to_bitboard = get_friendly_bitboard<EnemyColour<colour>::colour>(game, to_index_bitboard)) {
             *to_bitboard &= ~to_index_bitboard;
             if (to_bitboard == get_friendly_pawns<EnemyColour<colour>::colour>(game)) {
                 CHESS_ASSERT(
@@ -307,14 +307,14 @@ namespace chess { namespace engine {
 
     template <Colour colour>
     static inline bool perform_move(Game* game, Move* move) {
-        const U64 possible_moves = get_moves(game, move->from);
-        const U64 to_index_bitboard = nth_bit(move->to);
+        const Bitboard possible_moves = get_moves(game, move->from);
+        const Bitboard to_index_bitboard = nth_bit(move->to);
         if (!(possible_moves & to_index_bitboard)) {
             // not a valid move
             return false;
         }
 
-        const U64 from_index_bitboard = nth_bit(move->from);
+        const Bitboard from_index_bitboard = nth_bit(move->from);
 
         if (has_friendly_pawn<colour>(game, from_index_bitboard)) {
             perform_pawn_move<colour>(game, move, from_index_bitboard, to_index_bitboard);
@@ -325,7 +325,7 @@ namespace chess { namespace engine {
         }
 
         game->next_turn = !game->next_turn;
-        game->cache.possible_moves_calculated = 0;
+        game->cache.possible_moves_calculated = Bitboard{};
 
         return true;
     }
@@ -338,7 +338,7 @@ namespace chess { namespace engine {
 
         --game->moves_index;
         const Move move = game->moves[game->moves_index];
-        game->cache.possible_moves_calculated = 0;
+        game->cache.possible_moves_calculated = Bitboard{};
         game->white_can_never_castle_short = move.white_can_never_castle_short;
         game->white_can_never_castle_long = move.white_can_never_castle_long;
         game->black_can_never_castle_short = move.black_can_never_castle_short;
@@ -351,8 +351,8 @@ namespace chess { namespace engine {
             game->en_passant_square = game->moves[game->moves_index - 1].to;
         }
 
-        const U64 to_index_bitboard = nth_bit(move.to);
-        U64* to_bitboard = get_friendly_bitboard<colour>(game, to_index_bitboard);
+        const Bitboard to_index_bitboard = nth_bit(move.to);
+        Bitboard* to_bitboard = get_friendly_bitboard<colour>(game, to_index_bitboard);
         if (to_bitboard) {
             *to_bitboard &= ~to_index_bitboard;
         } else {
@@ -371,7 +371,7 @@ namespace chess { namespace engine {
             } else if (move.to == coordinate(FILE_G, rear_rank<colour>())) {
                 CHESS_ASSERT(*get_friendly_rooks<colour>(game) & nth_bit(coordinate(FILE_F, rear_rank<colour>())));
                 *get_friendly_rooks<colour>(game) &= ~nth_bit(coordinate(FILE_F, rear_rank<colour>()));
-                *get_friendly_rooks<colour>(game) |= nth_bit(FILE_H, rear_rank<colour>());
+                *get_friendly_rooks<colour>(game) |= nth_bit(coordinate(FILE_H, rear_rank<colour>()));
                 return true;
             }
         }
@@ -380,7 +380,7 @@ namespace chess { namespace engine {
             if (taken_piece == Piece::Type::Pawn) {
                 if (move.to == move_index_forward<colour>(game->en_passant_square)) {
                     // en passant
-                    *get_friendly_pawns<EnemyColour<colour>::colour>(game) |= move_bitboard_backward<colour>(to_index_bitboard);
+                    *get_friendly_pawns<EnemyColour<colour>::colour>(game) |= move_backward<colour>(to_index_bitboard);
                 } else {
                     *get_friendly_pawns<EnemyColour<colour>::colour>(game) |= to_index_bitboard;
                 }
@@ -419,10 +419,10 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static inline U64 get_cells_moved_from(const Game* game) {
+    static inline Bitboard get_cells_moved_from(const Game* game) {
         if (game->moves_index != 0) {
             const Move* move = &game->moves[game->moves_index - 1];
-            const U64 to_bitboard = nth_bit(move->to);
+            const Bitboard to_bitboard = nth_bit(move->to);
             if (has_friendly_king<EnemyColour<colour>::colour>(game, to_bitboard) && move->from == coordinate(FILE_E, front_rank<colour>())) {
                 if (move->to == coordinate(FILE_G, front_rank<colour>())) {
                     return nth_bit(coordinate(FILE_E, front_rank<colour>()), coordinate(FILE_H, front_rank<colour>()));
@@ -434,26 +434,26 @@ namespace chess { namespace engine {
             return nth_bit(move->from);
         }
 
-        return 0;
+        return Bitboard{};
     }
 
     template <Colour colour>
-    static inline U64 get_cells_moved_to(const Game* game) {
+    static inline Bitboard get_cells_moved_to(const Game* game) {
         if (game->moves_index != 0) {
             const Move* move = &game->moves[game->moves_index - 1];
-            const U64 to_bitboard = nth_bit(move->to);
+            const Bitboard to_bitboard = nth_bit(move->to);
             if (has_friendly_king<EnemyColour<colour>::colour>(game, to_bitboard) && move->from == coordinate(FILE_E, front_rank<colour>())) {
                 if (move->to == coordinate(FILE_G, front_rank<colour>())) {
-                    return to_bitboard | move_bitboard_west(to_bitboard);
+                    return to_bitboard | move_west(to_bitboard);
                 } else if (move->to == coordinate(FILE_C, front_rank<colour>())) {
-                    return to_bitboard | move_bitboard_east(to_bitboard);
+                    return to_bitboard | move_east(to_bitboard);
                 }
             }
 
             return to_bitboard;
         }
 
-        return 0;
+        return Bitboard{};
     }
     // #endregion
 
@@ -472,8 +472,60 @@ namespace chess { namespace engine {
     // #region Cache
     Cache::Cache() noexcept
         : possible_moves{}
-        , possible_moves_calculated(0)
+        , possible_moves_calculated{0}
     {}
+    // #endregion
+
+    // #region Bitboard
+    template <Colour colour>
+    Bitboard move_forward(Bitboard bitboard) {
+        if constexpr (colour == Colour::Black) {
+            return move_south(bitboard);
+        } else {
+            return move_north(bitboard);
+        }
+    }
+
+    template <Colour colour>
+    Bitboard move_backward(Bitboard bitboard) {
+        if constexpr (colour == Colour::Black) {
+            return move_north(bitboard);
+        } else {
+            return move_south(bitboard);
+        }
+    }
+
+    Bitboard move_north(Bitboard bitboard) {
+        return Bitboard{bitboard.data << CHESS_BOARD_WIDTH};
+    }
+
+    Bitboard move_north_east(Bitboard bitboard) {
+        return Bitboard{bitboard.data << (CHESS_BOARD_WIDTH + 1)};
+    }
+
+    Bitboard move_east(Bitboard bitboard) {
+        return Bitboard{bitboard.data << 1};
+    }
+
+    Bitboard move_south_east(Bitboard bitboard) {
+        return Bitboard{bitboard.data >> (CHESS_BOARD_WIDTH - 1)};
+    }
+
+    Bitboard move_south(Bitboard bitboard) {
+        return Bitboard{bitboard.data >> CHESS_BOARD_WIDTH};
+    }
+
+    Bitboard move_south_west(Bitboard bitboard) {
+        return Bitboard{bitboard.data >> (CHESS_BOARD_WIDTH + 1)};
+    }
+
+    Bitboard move_west(Bitboard bitboard) {
+        return Bitboard{bitboard.data >> 1};
+    }
+
+    Bitboard move_north_west(Bitboard bitboard) {
+        return Bitboard{bitboard.data << (CHESS_BOARD_WIDTH - 1)};
+    }
     // #endregion
 
     // #region Game
@@ -508,7 +560,7 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    bool has_friendly_piece(const Game* game, U64 bitboard) {
+    bool has_friendly_piece(const Game* game, Bitboard bitboard) {
         return has_friendly_pawn<colour>(game, bitboard)
             || has_friendly_knight<colour>(game, bitboard)
             || has_friendly_bishop<colour>(game, bitboard)
@@ -527,37 +579,37 @@ namespace chess { namespace engine {
     template bool has_friendly_piece_for_index<Colour::Black>(const Game* game, U8 index);
 
     template <Colour colour>
-    bool has_friendly_pawn(const Game* game, U64 bitboard) {
+    bool has_friendly_pawn(const Game* game, Bitboard bitboard) {
         return *get_friendly_pawns<colour>(game) & bitboard;
     }
 
     template <Colour colour>
-    bool has_friendly_knight(const Game* game, U64 bitboard) {
+    bool has_friendly_knight(const Game* game, Bitboard bitboard) {
         return *get_friendly_knights<colour>(game) & bitboard;
     }
 
     template <Colour colour>
-    bool has_friendly_bishop(const Game* game, U64 bitboard) {
+    bool has_friendly_bishop(const Game* game, Bitboard bitboard) {
         return *get_friendly_bishops<colour>(game) & bitboard;
     }
 
     template <Colour colour>
-    bool has_friendly_rook(const Game* game, U64 bitboard) {
+    bool has_friendly_rook(const Game* game, Bitboard bitboard) {
         return *get_friendly_rooks<colour>(game) & bitboard;
     }
 
     template <Colour colour>
-    bool has_friendly_queen(const Game* game, U64 bitboard) {
+    bool has_friendly_queen(const Game* game, Bitboard bitboard) {
         return *get_friendly_queens<colour>(game) & bitboard;
     }
 
     template <Colour colour>
-    bool has_friendly_king(const Game* game, U64 bitboard) {
+    bool has_friendly_king(const Game* game, Bitboard bitboard) {
         return *get_friendly_kings<colour>(game) & bitboard;
     }
 
     template <Colour colour>
-    bool is_empty(const Game* game, U64 bitboard) {
+    bool is_empty(const Game* game, Bitboard bitboard) {
         return !has_friendly_piece<colour>(game, bitboard);
     }
 
@@ -566,7 +618,7 @@ namespace chess { namespace engine {
         return !has_friendly_piece<colour>(game, nth_bit(index));
     }
 
-    bool is_empty(const Game* game, U64 bitboard) {
+    bool is_empty(const Game* game, Bitboard bitboard) {
         return is_empty<Colour::Black>(game, bitboard) && is_empty<Colour::White>(game, bitboard);
     }
 
@@ -574,7 +626,7 @@ namespace chess { namespace engine {
         return is_empty(game, nth_bit(index));
     }
 
-    Piece get_piece(const Game* game, U64 bitboard) {
+    Piece get_piece(const Game* game, Bitboard bitboard) {
         if (has_friendly_pawn<Colour::White>(game, bitboard)) {
             return Piece(Colour::White, Piece::Type::Pawn);
         }
@@ -631,7 +683,7 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    Piece::Type get_friendly_piece_type(const Game* game, U64 bitboard) {
+    Piece::Type get_friendly_piece_type(const Game* game, Bitboard bitboard) {
         if (has_friendly_pawn<colour>(game, bitboard)) {
             return Piece::Type::Pawn;
         }
@@ -665,7 +717,7 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    const U64* get_friendly_pawns(const Game* game) {
+    const Bitboard* get_friendly_pawns(const Game* game) {
         if constexpr (colour == Colour::Black) {
             return &game->black_pawns;
         } else {
@@ -674,12 +726,12 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    U64* get_friendly_pawns(Game* game) {
-        return const_cast<U64*>(get_friendly_pawns<colour>(static_cast<const Game*>(game)));
+    Bitboard* get_friendly_pawns(Game* game) {
+        return const_cast<Bitboard*>(get_friendly_pawns<colour>(static_cast<const Game*>(game)));
     }
 
     template <Colour colour>
-    const U64* get_friendly_knights(const Game* game) {
+    const Bitboard* get_friendly_knights(const Game* game) {
         if constexpr (colour == Colour::Black) {
             return &game->black_knights;
         } else {
@@ -688,12 +740,12 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    U64* get_friendly_knights(Game* game) {
-        return const_cast<U64*>(get_friendly_knights<colour>(static_cast<const Game*>(game)));
+    Bitboard* get_friendly_knights(Game* game) {
+        return const_cast<Bitboard*>(get_friendly_knights<colour>(static_cast<const Game*>(game)));
     }
 
     template <Colour colour>
-    const U64* get_friendly_bishops(const Game* game) {
+    const Bitboard* get_friendly_bishops(const Game* game) {
         if constexpr (colour == Colour::Black) {
             return &game->black_bishops;
         } else {
@@ -702,12 +754,12 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    U64* get_friendly_bishops(Game* game) {
-        return const_cast<U64*>(get_friendly_bishops<colour>(static_cast<const Game*>(game)));
+    Bitboard* get_friendly_bishops(Game* game) {
+        return const_cast<Bitboard*>(get_friendly_bishops<colour>(static_cast<const Game*>(game)));
     }
 
     template <Colour colour>
-    const U64* get_friendly_rooks(const Game* game) {
+    const Bitboard* get_friendly_rooks(const Game* game) {
         if constexpr (colour == Colour::Black) {
             return &game->black_rooks;
         } else {
@@ -716,12 +768,12 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    U64* get_friendly_rooks(Game* game) {
-        return const_cast<U64*>(get_friendly_rooks<colour>(static_cast<const Game*>(game)));
+    Bitboard* get_friendly_rooks(Game* game) {
+        return const_cast<Bitboard*>(get_friendly_rooks<colour>(static_cast<const Game*>(game)));
     }
 
     template <Colour colour>
-    const U64* get_friendly_queens(const Game* game) {
+    const Bitboard* get_friendly_queens(const Game* game) {
         if constexpr (colour == Colour::Black) {
             return &game->black_queens;
         } else {
@@ -730,12 +782,12 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    U64* get_friendly_queens(Game* game) {
-        return const_cast<U64*>(get_friendly_queens<colour>(static_cast<const Game*>(game)));
+    Bitboard* get_friendly_queens(Game* game) {
+        return const_cast<Bitboard*>(get_friendly_queens<colour>(static_cast<const Game*>(game)));
     }
 
     template <Colour colour>
-    const U64* get_friendly_kings(const Game* game) {
+    const Bitboard* get_friendly_kings(const Game* game) {
         if constexpr (colour == Colour::Black) {
             return &game->black_kings;
         } else {
@@ -744,18 +796,18 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    U64* get_friendly_kings(Game* game) {
-        return const_cast<U64*>(get_friendly_kings<colour>(static_cast<const Game*>(game)));
+    Bitboard* get_friendly_kings(Game* game) {
+        return const_cast<Bitboard*>(get_friendly_kings<colour>(static_cast<const Game*>(game)));
     }
 
     template <Colour colour>
-    U64 get_friendly_pieces(const Game* game) {
+    Bitboard get_friendly_pieces(const Game* game) {
         return *get_friendly_pawns<colour>(game) | *get_friendly_knights<colour>(game)
             | *get_friendly_bishops<colour>(game) | *get_friendly_rooks<colour>(game)
             | *get_friendly_queens<colour>(game) | *get_friendly_kings<colour>(game);
     }
 
-    U64 get_cells_moved_from(const Game* game) {
+    Bitboard get_cells_moved_from(const Game* game) {
         if (game->next_turn) {
             return get_cells_moved_from<Colour::Black>(game);
         }
@@ -763,7 +815,7 @@ namespace chess { namespace engine {
         return get_cells_moved_from<Colour::White>(game);
     }
 
-    U64 get_cells_moved_to(const Game* game) {
+    Bitboard get_cells_moved_to(const Game* game) {
         if (game->next_turn) {
             return get_cells_moved_to<Colour::Black>(game);
         }
@@ -772,7 +824,7 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    const U64* get_friendly_bitboard(const Game* game, U64 bitboard) {
+    const Bitboard* get_friendly_bitboard(const Game* game, Bitboard bitboard) {
         if (has_friendly_pawn<colour>(game, bitboard)) {
             return get_friendly_pawns<colour>(game);
         }
@@ -801,27 +853,27 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    U64* get_friendly_bitboard(Game* game, U64 bitboard) {
-        return const_cast<U64*>(get_friendly_bitboard<colour>(static_cast<const Game*>(game), bitboard));
+    Bitboard* get_friendly_bitboard(Game* game, Bitboard bitboard) {
+        return const_cast<Bitboard*>(get_friendly_bitboard<colour>(static_cast<const Game*>(game), bitboard));
     }
 
     template <Colour colour>
-    const U64* get_friendly_bitboard_for_index(const Game* game, U8 index) {
+    const Bitboard* get_friendly_bitboard_for_index(const Game* game, U8 index) {
         return get_friendly_bitboard<colour>(game, nth_bit(index));
     }
 
     template <Colour colour>
-    U64* get_friendly_bitboard_for_index(Game* game, U8 index) {
+    Bitboard* get_friendly_bitboard_for_index(Game* game, U8 index) {
         return get_friendly_bitboard<colour>(game, nth_bit(index));
     }
 
-    U64 get_moves(const Game* game, U8 index) {
-        const U64 bitboard = nth_bit(index);
+    Bitboard get_moves(const Game* game, U8 index) {
+        const Bitboard bitboard = nth_bit(index);
         if (game->cache.possible_moves_calculated & bitboard) {
             return game->cache.possible_moves[index];
         }
 
-        const U64 result = game->next_turn ? get_moves<Colour::Black>(game, bitboard) : get_moves<Colour::White>(game, bitboard);
+        const Bitboard result = game->next_turn ? get_moves<Colour::Black>(game, bitboard) : get_moves<Colour::White>(game, bitboard);
         game->cache.possible_moves[index] = result;
         game->cache.possible_moves_calculated |= bitboard;
 
@@ -917,7 +969,7 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    U64 front_rank() {
+    constexpr U8 front_rank() {
         if constexpr (colour == Colour::Black) {
             return RANK_1;
         } else {
@@ -926,7 +978,7 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    U64 rear_rank() {
+    constexpr U8 rear_rank() {
         if constexpr (colour == Colour::Black) {
             return RANK_8;
         } else {
@@ -934,7 +986,7 @@ namespace chess { namespace engine {
         }
     }
 
-    bool is_rank(U64 bitboard, U8 rank) {
+    bool is_rank(Bitboard bitboard, U8 rank) {
         // TODO(TB): make templated on rank?
         return bitboard & bitboard_rank[rank];
     }
@@ -943,7 +995,7 @@ namespace chess { namespace engine {
         return get_rank_for_index(index) == rank;
     }
 
-    bool is_file(U64 bitboard, U8 file) {
+    bool is_file(Bitboard bitboard, U8 file) {
         return bitboard & bitboard_file[file];
     }
 
@@ -951,11 +1003,11 @@ namespace chess { namespace engine {
         return get_file_for_index(index) == file;
     }
 
-    U8 coordinate(U8 file, U8 rank) {
+    constexpr U8 coordinate(U8 file, U8 rank) {
         return rank * CHESS_BOARD_WIDTH + file;
     }
 
-    U8 coordinate_with_flipped_rank(U8 file, U8 rank) {
+    constexpr U8 coordinate_with_flipped_rank(U8 file, U8 rank) {
         return coordinate(file, flip_rank(rank));
     }
 
@@ -979,57 +1031,7 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    U64 move_bitboard_forward(U64 bitboard) {
-        if constexpr (colour == Colour::Black) {
-            return move_bitboard_south(bitboard);
-        } else {
-            return move_bitboard_north(bitboard);
-        }
-    }
-
-    template <Colour colour>
-    U64 move_bitboard_backward(U64 bitboard) {
-        if constexpr (colour == Colour::Black) {
-            return move_bitboard_north(bitboard);
-        } else {
-            return move_bitboard_south(bitboard);
-        }
-    }
-
-    U64 move_bitboard_north(U64 bitboard) {
-        return bitboard << CHESS_BOARD_WIDTH;
-    }
-
-    U64 move_bitboard_north_east(U64 bitboard) {
-        return bitboard << (CHESS_BOARD_WIDTH + 1);
-    }
-
-    U64 move_bitboard_east(U64 bitboard) {
-        return bitboard << 1;
-    }
-
-    U64 move_bitboard_south_east(U64 bitboard) {
-        return bitboard >> (CHESS_BOARD_WIDTH - 1);
-    }
-
-    U64 move_bitboard_south(U64 bitboard) {
-        return bitboard >> CHESS_BOARD_WIDTH;
-    }
-
-    U64 move_bitboard_south_west(U64 bitboard) {
-        return bitboard >> (CHESS_BOARD_WIDTH + 1);
-    }
-
-    U64 move_bitboard_west(U64 bitboard) {
-        return bitboard >> 1;
-    }
-
-    U64 move_bitboard_north_west(U64 bitboard) {
-        return bitboard << (CHESS_BOARD_WIDTH - 1);
-    }
-
-    template <Colour colour>
-    U64 move_index_forward(U8 index) {
+    U8 move_index_forward(U8 index) {
         if constexpr (colour == Colour::Black) {
             return move_index_south(index);
         } else {
@@ -1038,7 +1040,7 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    U64 move_index_backward(U8 index) {
+    U8 move_index_backward(U8 index) {
         if constexpr (colour == Colour::Black) {
             return move_index_north(index);
         } else {

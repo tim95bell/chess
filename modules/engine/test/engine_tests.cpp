@@ -341,7 +341,7 @@ namespace chess { namespace engine {
         // moves
         SECTION("white pawn available moves") {
             const U8 file = GENERATE(Catch::Generators::range(FILE_A, FILE_H + 1));
-            CHECK(get_moves(&game, coordinate(file, RANK_2)) == nth_bit(coordinate(file, RANK_3), coordinate(file, RANK_4)));
+            CHECK(get_moves(&game, coordinate(file, RANK_2)) == (nth_bit(coordinate(file, RANK_3)) | nth_bit(coordinate(file, RANK_4))));
         }
 
         SECTION("everything except white pawns and knights has no moves") {
