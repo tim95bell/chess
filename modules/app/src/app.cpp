@@ -111,7 +111,7 @@ namespace chess { namespace app {
                 const U8 cell = engine::coordinate_with_flipped_rank((pos.x - board_x) / cell_size, static_cast<U64>((pos.y - board_y) / cell_size));
                 if (app->cell_is_selected) {
                     if (app->possible_moves & engine::nth_bit(cell)) {
-                        if (app->game.next_turn ? (engine::is_rank_for_index(app->selected_cell, RANK_2) && engine::has_black_pawn_for_index(&app->game, app->selected_cell)) : (engine::is_rank_for_index(app->selected_cell, RANK_7) && engine::has_white_pawn_for_index(&app->game, app->selected_cell))) {
+                        if (app->game.next_turn ? (engine::is_rank_for_index(app->selected_cell, RANK_2) && engine::has_friendly_pawn<engine::Colour::Black>(&app->game, engine::nth_bit(app->selected_cell))) : (engine::is_rank_for_index(app->selected_cell, RANK_7) && engine::has_friendly_pawn<engine::Colour::White>(&app->game, engine::nth_bit(app->selected_cell)))) {
                             app->promotion_dialog = true;
                             app->promotion_cell = cell;
                         } else {

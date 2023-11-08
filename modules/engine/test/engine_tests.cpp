@@ -37,29 +37,29 @@ namespace chess { namespace engine {
         for (U8 rank = CHESS_BOARD_HEIGHT - 1; rank < CHESS_BOARD_HEIGHT; --rank) {
             for (U8 file = 0; file < CHESS_BOARD_WIDTH; ++file) {
                 const U8 i = coordinate(file, rank);
-                if (has_white_pawn_for_index(game, i)) {
+                if (has_friendly_pawn<Colour::White>(game, nth_bit(i))) {
                     std::cout << "P";
-                } else if (has_white_knight_for_index(game, i)) {
+                } else if (has_friendly_knight<Colour::White>(game, nth_bit(i))) {
                     std::cout << "N";
-                } else if (has_white_bishop_for_index(game, i)) {
+                } else if (has_friendly_bishop<Colour::White>(game, nth_bit(i))) {
                     std::cout << "B";
-                } else if (has_white_rook_for_index(game, i)) {
+                } else if (has_friendly_rook<Colour::White>(game, nth_bit(i))) {
                     std::cout << "R";
-                } else if (has_white_queen_for_index(game, i)) {
+                } else if (has_friendly_queen<Colour::White>(game, nth_bit(i))) {
                     std::cout << "Q";
-                } else if (has_white_king_for_index(game, i)) {
+                } else if (has_friendly_king<Colour::White>(game, nth_bit(i))) {
                     std::cout << "K";
-                } else if (has_black_pawn_for_index(game, i)) {
+                } else if (has_friendly_pawn<Colour::Black>(game, nth_bit(i))) {
                     std::cout << "p";
-                } else if (has_black_knight_for_index(game, i)) {
+                } else if (has_friendly_knight<Colour::Black>(game, nth_bit(i))) {
                     std::cout << "n";
-                } else if (has_black_bishop_for_index(game, i)) {
+                } else if (has_friendly_bishop<Colour::Black>(game, nth_bit(i))) {
                     std::cout << "b";
-                } else if (has_black_rook_for_index(game, i)) {
+                } else if (has_friendly_rook<Colour::Black>(game, nth_bit(i))) {
                     std::cout << "r";
-                } else if (has_black_queen_for_index(game, i)) {
+                } else if (has_friendly_queen<Colour::Black>(game, nth_bit(i))) {
                     std::cout << "q";
-                } else if (has_black_king_for_index(game, i)) {
+                } else if (has_friendly_king<Colour::Black>(game, nth_bit(i))) {
                     std::cout << "k";
                 } else {
                     std::cout << ".";
@@ -84,258 +84,258 @@ namespace chess { namespace engine {
         SECTION("empty squares are empty") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_A3, CHESS_H6 + 1));
             CHECK(get_piece_for_index(&game, i).type == Piece::Type::Empty);
-            CHECK(!has_white_pawn_for_index(&game, i));
-            CHECK(!has_white_knight_for_index(&game, i));
-            CHECK(!has_white_bishop_for_index(&game, i));
-            CHECK(!has_white_rook_for_index(&game, i));
-            CHECK(!has_white_queen_for_index(&game, i));
-            CHECK(!has_white_king_for_index(&game, i));
-            CHECK(!has_black_pawn_for_index(&game, i));
-            CHECK(!has_black_knight_for_index(&game, i));
-            CHECK(!has_black_bishop_for_index(&game, i));
-            CHECK(!has_black_rook_for_index(&game, i));
-            CHECK(!has_black_queen_for_index(&game, i));
-            CHECK(!has_black_king_for_index(&game, i));
+            CHECK(!has_friendly_pawn<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_knight<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_bishop<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_rook<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_queen<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_king<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_pawn<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_knight<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_bishop<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_rook<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_queen<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_king<Colour::Black>(&game, nth_bit(i)));
         }
 
         // white pawns
         SECTION("white pawns are in correct cells") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_A2, CHESS_H2 + 1));
-            CHECK(has_white_pawn_for_index(&game, i));
+            CHECK(has_friendly_pawn<Colour::White>(&game, nth_bit(i)));
             Piece piece = get_piece_for_index(&game, i);
             CHECK(piece.colour == Colour::White);
             CHECK(piece.type == Piece::Type::Pawn);
-            CHECK(!has_white_knight_for_index(&game, i));
-            CHECK(!has_white_bishop_for_index(&game, i));
-            CHECK(!has_white_rook_for_index(&game, i));
-            CHECK(!has_white_queen_for_index(&game, i));
-            CHECK(!has_white_king_for_index(&game, i));
-            CHECK(!has_black_pawn_for_index(&game, i));
-            CHECK(!has_black_knight_for_index(&game, i));
-            CHECK(!has_black_bishop_for_index(&game, i));
-            CHECK(!has_black_rook_for_index(&game, i));
-            CHECK(!has_black_queen_for_index(&game, i));
-            CHECK(!has_black_king_for_index(&game, i));
+            CHECK(!has_friendly_knight<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_bishop<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_rook<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_queen<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_king<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_pawn<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_knight<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_bishop<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_rook<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_queen<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_king<Colour::Black>(&game, nth_bit(i)));
         }
 
         // white knights
         SECTION("white knights are in correct cells") {
             const U8 i = GENERATE(CHESS_B1, CHESS_G1);
-            CHECK(has_white_knight_for_index(&game, i));
+            CHECK(has_friendly_knight<Colour::White>(&game, nth_bit(i)));
             Piece piece = get_piece_for_index(&game, i);
             CHECK(piece.colour == Colour::White);
             CHECK(piece.type == Piece::Type::Knight);
-            CHECK(!has_white_pawn_for_index(&game, i));
-            CHECK(!has_white_bishop_for_index(&game, i));
-            CHECK(!has_white_rook_for_index(&game, i));
-            CHECK(!has_white_queen_for_index(&game, i));
-            CHECK(!has_white_king_for_index(&game, i));
-            CHECK(!has_black_pawn_for_index(&game, i));
-            CHECK(!has_black_knight_for_index(&game, i));
-            CHECK(!has_black_bishop_for_index(&game, i));
-            CHECK(!has_black_rook_for_index(&game, i));
-            CHECK(!has_black_queen_for_index(&game, i));
-            CHECK(!has_black_king_for_index(&game, i));
+            CHECK(!has_friendly_pawn<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_bishop<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_rook<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_queen<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_king<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_pawn<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_knight<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_bishop<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_rook<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_queen<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_king<Colour::Black>(&game, nth_bit(i)));
         }
 
         // white bishops
         SECTION("white bishops are in correct cells") {
             const U8 i = GENERATE(CHESS_C1, CHESS_F1);
-            CHECK(has_white_bishop_for_index(&game, i));
+            CHECK(has_friendly_bishop<Colour::White>(&game, nth_bit(i)));
             Piece piece = get_piece_for_index(&game, i);
             CHECK(piece.colour == Colour::White);
             CHECK(piece.type == Piece::Type::Bishop);
-            CHECK(!has_white_pawn_for_index(&game, i));
-            CHECK(!has_white_knight_for_index(&game, i));
-            CHECK(!has_white_rook_for_index(&game, i));
-            CHECK(!has_white_queen_for_index(&game, i));
-            CHECK(!has_white_king_for_index(&game, i));
-            CHECK(!has_black_pawn_for_index(&game, i));
-            CHECK(!has_black_knight_for_index(&game, i));
-            CHECK(!has_black_bishop_for_index(&game, i));
-            CHECK(!has_black_rook_for_index(&game, i));
-            CHECK(!has_black_queen_for_index(&game, i));
-            CHECK(!has_black_king_for_index(&game, i));
+            CHECK(!has_friendly_pawn<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_knight<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_rook<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_queen<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_king<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_pawn<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_knight<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_bishop<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_rook<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_queen<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_king<Colour::Black>(&game, nth_bit(i)));
         }
 
         // white rooks
         SECTION("white rooks are in correct cells") {
             const U8 i = GENERATE(CHESS_A1, CHESS_H1);
-            CHECK(has_white_rook_for_index(&game, i));
+            CHECK(has_friendly_rook<Colour::White>(&game, nth_bit(i)));
             Piece piece = get_piece_for_index(&game, i);
             CHECK(piece.colour == Colour::White);
             CHECK(piece.type == Piece::Type::Rook);
-            CHECK(!has_white_pawn_for_index(&game, i));
-            CHECK(!has_white_knight_for_index(&game, i));
-            CHECK(!has_white_bishop_for_index(&game, i));
-            CHECK(!has_white_queen_for_index(&game, i));
-            CHECK(!has_white_king_for_index(&game, i));
-            CHECK(!has_black_pawn_for_index(&game, i));
-            CHECK(!has_black_knight_for_index(&game, i));
-            CHECK(!has_black_bishop_for_index(&game, i));
-            CHECK(!has_black_rook_for_index(&game, i));
-            CHECK(!has_black_queen_for_index(&game, i));
-            CHECK(!has_black_king_for_index(&game, i));
+            CHECK(!has_friendly_pawn<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_knight<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_bishop<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_queen<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_king<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_pawn<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_knight<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_bishop<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_rook<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_queen<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_king<Colour::Black>(&game, nth_bit(i)));
         }
 
         // white queens
         SECTION("white queens are in correct cells") {
             const U8 i = CHESS_D1;
-            CHECK(has_white_queen_for_index(&game, i));
+            CHECK(has_friendly_queen<Colour::White>(&game, nth_bit(i)));
             Piece piece = get_piece_for_index(&game, i);
             CHECK(piece.colour == Colour::White);
             CHECK(piece.type == Piece::Type::Queen);
-            CHECK(!has_white_pawn_for_index(&game, i));
-            CHECK(!has_white_knight_for_index(&game, i));
-            CHECK(!has_white_bishop_for_index(&game, i));
-            CHECK(!has_white_rook_for_index(&game, i));
-            CHECK(!has_white_king_for_index(&game, i));
-            CHECK(!has_black_pawn_for_index(&game, i));
-            CHECK(!has_black_knight_for_index(&game, i));
-            CHECK(!has_black_bishop_for_index(&game, i));
-            CHECK(!has_black_rook_for_index(&game, i));
-            CHECK(!has_black_queen_for_index(&game, i));
-            CHECK(!has_black_king_for_index(&game, i));
+            CHECK(!has_friendly_pawn<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_knight<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_bishop<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_rook<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_king<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_pawn<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_knight<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_bishop<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_rook<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_queen<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_king<Colour::Black>(&game, nth_bit(i)));
         }
 
         // white kings
         SECTION("white kings are in correct cells") {
             const U8 i = CHESS_E1;
-            CHECK(has_white_king_for_index(&game, i));
+            CHECK(has_friendly_king<Colour::White>(&game, nth_bit(i)));
             Piece piece = get_piece_for_index(&game, i);
             CHECK(piece.colour == Colour::White);
             CHECK(piece.type == Piece::Type::King);
-            CHECK(!has_white_pawn_for_index(&game, i));
-            CHECK(!has_white_knight_for_index(&game, i));
-            CHECK(!has_white_bishop_for_index(&game, i));
-            CHECK(!has_white_rook_for_index(&game, i));
-            CHECK(!has_white_queen_for_index(&game, i));
-            CHECK(!has_black_pawn_for_index(&game, i));
-            CHECK(!has_black_knight_for_index(&game, i));
-            CHECK(!has_black_bishop_for_index(&game, i));
-            CHECK(!has_black_rook_for_index(&game, i));
-            CHECK(!has_black_queen_for_index(&game, i));
-            CHECK(!has_black_king_for_index(&game, i));
+            CHECK(!has_friendly_pawn<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_knight<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_bishop<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_rook<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_queen<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_pawn<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_knight<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_bishop<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_rook<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_queen<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_king<Colour::Black>(&game, nth_bit(i)));
         }
 
         // black pawns
         SECTION("black pawns are in correct cells") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_A7, CHESS_H7 + 1));
-            CHECK(has_black_pawn_for_index(&game, i));
+            CHECK(has_friendly_pawn<Colour::Black>(&game, nth_bit(i)));
             Piece piece = get_piece_for_index(&game, i);
             CHECK(piece.colour == Colour::Black);
             CHECK(piece.type == Piece::Type::Pawn);
-            CHECK(!has_white_pawn_for_index(&game, i));
-            CHECK(!has_white_knight_for_index(&game, i));
-            CHECK(!has_white_bishop_for_index(&game, i));
-            CHECK(!has_white_rook_for_index(&game, i));
-            CHECK(!has_white_queen_for_index(&game, i));
-            CHECK(!has_white_king_for_index(&game, i));
-            CHECK(!has_black_knight_for_index(&game, i));
-            CHECK(!has_black_bishop_for_index(&game, i));
-            CHECK(!has_black_rook_for_index(&game, i));
-            CHECK(!has_black_queen_for_index(&game, i));
-            CHECK(!has_black_king_for_index(&game, i));
+            CHECK(!has_friendly_pawn<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_knight<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_bishop<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_rook<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_queen<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_king<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_knight<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_bishop<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_rook<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_queen<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_king<Colour::Black>(&game, nth_bit(i)));
         }
 
         // black knights
         SECTION("black knights are in correct cells") {
             const U8 i = GENERATE(CHESS_B8, CHESS_G8);
-            CHECK(has_black_knight_for_index(&game, i));
+            CHECK(has_friendly_knight<Colour::Black>(&game, nth_bit(i)));
             Piece piece = get_piece_for_index(&game, i);
             CHECK(piece.colour == Colour::Black);
             CHECK(piece.type == Piece::Type::Knight);
-            CHECK(!has_white_pawn_for_index(&game, i));
-            CHECK(!has_white_knight_for_index(&game, i));
-            CHECK(!has_white_bishop_for_index(&game, i));
-            CHECK(!has_white_rook_for_index(&game, i));
-            CHECK(!has_white_queen_for_index(&game, i));
-            CHECK(!has_white_king_for_index(&game, i));
-            CHECK(!has_black_pawn_for_index(&game, i));
-            CHECK(!has_black_bishop_for_index(&game, i));
-            CHECK(!has_black_rook_for_index(&game, i));
-            CHECK(!has_black_queen_for_index(&game, i));
-            CHECK(!has_black_king_for_index(&game, i));
+            CHECK(!has_friendly_pawn<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_knight<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_bishop<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_rook<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_queen<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_king<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_pawn<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_bishop<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_rook<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_queen<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_king<Colour::Black>(&game, nth_bit(i)));
         }
 
         // black bishops
         SECTION("black bishops are in correct cells") {
             const U8 i = GENERATE(CHESS_C8, CHESS_F8);
-            CHECK(has_black_bishop_for_index(&game, i));
+            CHECK(has_friendly_bishop<Colour::Black>(&game, nth_bit(i)));
             Piece piece = get_piece_for_index(&game, i);
             CHECK(piece.colour == Colour::Black);
             CHECK(piece.type == Piece::Type::Bishop);
-            CHECK(!has_white_pawn_for_index(&game, i));
-            CHECK(!has_white_knight_for_index(&game, i));
-            CHECK(!has_white_bishop_for_index(&game, i));
-            CHECK(!has_white_rook_for_index(&game, i));
-            CHECK(!has_white_queen_for_index(&game, i));
-            CHECK(!has_white_king_for_index(&game, i));
-            CHECK(!has_black_pawn_for_index(&game, i));
-            CHECK(!has_black_knight_for_index(&game, i));
-            CHECK(!has_black_rook_for_index(&game, i));
-            CHECK(!has_black_queen_for_index(&game, i));
-            CHECK(!has_black_king_for_index(&game, i));
+            CHECK(!has_friendly_pawn<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_knight<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_bishop<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_rook<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_queen<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_king<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_pawn<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_knight<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_rook<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_queen<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_king<Colour::Black>(&game, nth_bit(i)));
         }
 
         // black rooks
         SECTION("black rooks are in correct cells") {
             const U8 i = GENERATE(CHESS_A8, CHESS_H8);
-            CHECK(has_black_rook_for_index(&game, i));
+            CHECK(has_friendly_rook<Colour::Black>(&game, nth_bit(i)));
             Piece piece = get_piece_for_index(&game, i);
             CHECK(piece.colour == Colour::Black);
             CHECK(piece.type == Piece::Type::Rook);
-            CHECK(!has_white_pawn_for_index(&game, i));
-            CHECK(!has_white_knight_for_index(&game, i));
-            CHECK(!has_white_bishop_for_index(&game, i));
-            CHECK(!has_white_rook_for_index(&game, i));
-            CHECK(!has_white_queen_for_index(&game, i));
-            CHECK(!has_white_king_for_index(&game, i));
-            CHECK(!has_black_pawn_for_index(&game, i));
-            CHECK(!has_black_knight_for_index(&game, i));
-            CHECK(!has_black_bishop_for_index(&game, i));
-            CHECK(!has_black_queen_for_index(&game, i));
-            CHECK(!has_black_king_for_index(&game, i));
+            CHECK(!has_friendly_pawn<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_knight<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_bishop<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_rook<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_queen<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_king<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_pawn<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_knight<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_bishop<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_queen<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_king<Colour::Black>(&game, nth_bit(i)));
         }
 
         // black queens
         SECTION("black queens are in correct cells") {
             const U8 i = CHESS_D8;
-            CHECK(has_black_queen_for_index(&game, i));
+            CHECK(has_friendly_queen<Colour::Black>(&game, nth_bit(i)));
             Piece piece = get_piece_for_index(&game, i);
             CHECK(piece.colour == Colour::Black);
             CHECK(piece.type == Piece::Type::Queen);
-            CHECK(!has_white_pawn_for_index(&game, i));
-            CHECK(!has_white_knight_for_index(&game, i));
-            CHECK(!has_white_bishop_for_index(&game, i));
-            CHECK(!has_white_rook_for_index(&game, i));
-            CHECK(!has_white_queen_for_index(&game, i));
-            CHECK(!has_white_king_for_index(&game, i));
-            CHECK(!has_black_pawn_for_index(&game, i));
-            CHECK(!has_black_knight_for_index(&game, i));
-            CHECK(!has_black_bishop_for_index(&game, i));
-            CHECK(!has_black_rook_for_index(&game, i));
-            CHECK(!has_black_king_for_index(&game, i));
+            CHECK(!has_friendly_pawn<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_knight<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_bishop<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_rook<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_queen<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_king<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_pawn<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_knight<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_bishop<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_rook<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_king<Colour::Black>(&game, nth_bit(i)));
         }
 
         // black kings
         SECTION("black kings are in correct cells") {
             const U8 i = CHESS_E8;
-            CHECK(has_black_king_for_index(&game, i));
+            CHECK(has_friendly_king<Colour::Black>(&game, nth_bit(i)));
             Piece piece = get_piece_for_index(&game, i);
             CHECK(piece.colour == Colour::Black);
             CHECK(piece.type == Piece::Type::King);
-            CHECK(!has_white_pawn_for_index(&game, i));
-            CHECK(!has_white_knight_for_index(&game, i));
-            CHECK(!has_white_bishop_for_index(&game, i));
-            CHECK(!has_white_rook_for_index(&game, i));
-            CHECK(!has_white_queen_for_index(&game, i));
-            CHECK(!has_white_king_for_index(&game, i));
-            CHECK(!has_black_pawn_for_index(&game, i));
-            CHECK(!has_black_knight_for_index(&game, i));
-            CHECK(!has_black_bishop_for_index(&game, i));
-            CHECK(!has_black_rook_for_index(&game, i));
-            CHECK(!has_black_queen_for_index(&game, i));
+            CHECK(!has_friendly_pawn<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_knight<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_bishop<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_rook<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_queen<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_king<Colour::White>(&game, nth_bit(i)));
+            CHECK(!has_friendly_pawn<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_knight<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_bishop<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_rook<Colour::Black>(&game, nth_bit(i)));
+            CHECK(!has_friendly_queen<Colour::Black>(&game, nth_bit(i)));
         }
 
         // moves
@@ -344,32 +344,31 @@ namespace chess { namespace engine {
             CHECK(get_moves(&game, coordinate(file, RANK_2)) == nth_bit(coordinate(file, RANK_3), coordinate(file, RANK_4)));
         }
 
-        SECTION("everything except white pawns has no moves") {
-            const U8 file = GENERATE(Catch::Generators::range(FILE_A, FILE_H + 1));
-            const U8 rank = GENERATE(Catch::Generators::filter([](U8 rank) { return rank != RANK_2; }, Catch::Generators::range(RANK_1, RANK_8 + 1)));
-            CHECK(get_moves(&game, coordinate(file, rank)) == 0);
+        SECTION("everything except white pawns and knights has no moves") {
+            const U8 i = GENERATE(Catch::Generators::filter([](U8 i) { return !engine::is_rank_for_index(i, RANK_2) && i != CHESS_B1 && i != CHESS_G1; }, Catch::Generators::range(CHESS_A1, CHESS_H8 + 1)));
+            CHECK(get_moves(&game, i) == 0);
         }
 
         // has white piece in expected squares
-        SECTION("has_white_piece_for_index is true for correct cells") {
+        SECTION("has_friendly_piece_for_index<Colour::White> is true for correct cells") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_A1, CHESS_H2 + 1));
-            CHECK(has_white_piece_for_index(&game, i));
+            CHECK(has_friendly_piece_for_index<Colour::White>(&game, i));
         }
 
-        SECTION("has_white_piece_for_index is false for correct cells") {
+        SECTION("has_friendly_piece_for_index<Colour::White> is false for correct cells") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_A3, CHESS_H8 + 1));
-            CHECK(!has_white_piece_for_index(&game, i));
+            CHECK(!has_friendly_piece_for_index<Colour::White>(&game, i));
         }
 
         // has black piece in expected squares
-        SECTION("has_black_piece_for_index is true for correct cells") {
+        SECTION("has_friendly_piece_for_index<Colour::Black> is true for correct cells") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_A7, CHESS_H8 + 1));
-            CHECK(has_black_piece_for_index(&game, i));
+            CHECK(has_friendly_piece_for_index<Colour::Black>(&game, i));
         }
 
-        SECTION("has_black_piece_for_index is false for correct cells") {
+        SECTION("has_friendly_piece_for_index<Colour::Black> is false for correct cells") {
             const U8 i = GENERATE(Catch::Generators::range(CHESS_A1, CHESS_H6 + 1));
-            CHECK(!has_black_piece_for_index(&game, i));
+            CHECK(!has_friendly_piece_for_index<Colour::Black>(&game, i));
         }
     }
 

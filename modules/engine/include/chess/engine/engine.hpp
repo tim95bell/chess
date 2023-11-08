@@ -124,6 +124,19 @@ RNBQKBNR
 namespace chess { namespace engine {
     enum class Colour : U8 { White, Black };
 
+    template <Colour colour>
+    struct EnemyColour;
+
+    template <>
+    struct EnemyColour<Colour::Black> {
+        static constexpr Colour colour = Colour::White;
+    };
+
+    template <>
+    struct EnemyColour<Colour::White> {
+        static constexpr Colour colour = Colour::Black;
+    };
+
     struct Piece {
         enum class Type : U8 { Empty, Pawn, Knight, Bishop, Rook, Queen, King };
 
@@ -154,6 +167,7 @@ namespace chess { namespace engine {
         bool can_en_passant : 1;
     };
 
+// #region Game
     struct Game {
         Game();
         ~Game();
@@ -184,6 +198,79 @@ namespace chess { namespace engine {
         Move* moves;
     };
 
+    template <Colour colour>
+    extern bool has_friendly_piece(const Game* game, U64 bitboard);
+    template <Colour colour>
+    extern bool has_friendly_piece_for_index(const Game* game, U8 index);
+    template <Colour colour>
+    extern bool has_friendly_pawn(const Game* game, U64 bitboard);
+    template <Colour colour>
+    extern bool has_friendly_knight(const Game* game, U64 bitboard);
+    template <Colour colour>
+    extern bool has_friendly_bishop(const Game* game, U64 bitboard);
+    template <Colour colour>
+    extern bool has_friendly_rook(const Game* game, U64 bitboard);
+    template <Colour colour>
+    extern bool has_friendly_queen(const Game* game, U64 bitboard);
+    template <Colour colour>
+    extern bool has_friendly_king(const Game* game, U64 bitboard);
+    template <Colour colour>
+    extern bool is_empty(const Game* game, U64 bitboard);
+    template <Colour colour>
+    extern bool is_empty_for_index(const Game* game, U8 index);
+    extern bool is_empty(const Game* game, U64 bitboard);
+    extern bool is_empty_for_index(const Game* game, U8 index);
+    extern Piece get_piece(const Game* game, U64 bitboard);
+    extern Piece get_piece_for_index(const Game* game, U8 index);
+    template <Colour colour>
+    extern Piece::Type get_friendly_piece_type(const Game* game, U64 bitboard);
+    template <Colour colour>
+    extern Piece::Type get_friendly_piece_type_for_index(const Game* game, U8 index);
+    template <Colour colour>
+    extern const U64* get_friendly_pawns(const Game* game);
+    template <Colour colour>
+    extern U64* get_friendly_pawns(Game* game);
+    template <Colour colour>
+    extern const U64* get_friendly_knights(const Game* game);
+    template <Colour colour>
+    extern U64* get_friendly_knights(Game* game);
+    template <Colour colour>
+    extern const U64* get_friendly_bishops(const Game* game);
+    template <Colour colour>
+    extern U64* get_friendly_bishops(Game* game);
+    template <Colour colour>
+    extern const U64* get_friendly_rooks(const Game* game);
+    template <Colour colour>
+    extern U64* get_friendly_rooks(Game* game);
+    template <Colour colour>
+    extern const U64* get_friendly_queens(const Game* game);
+    template <Colour colour>
+    extern U64* get_friendly_queens(Game* game);
+    template <Colour colour>
+    extern const U64* get_friendly_kings(const Game* game);
+    template <Colour colour>
+    extern U64* get_friendly_kings(Game* game);
+    template <Colour colour>
+    extern U64 get_friendly_pieces(const Game* game);
+    extern U64 get_cells_moved_from(const Game* game);
+    extern U64 get_cells_moved_to(const Game* game);
+    template <Colour colour>
+    extern const U64* get_friendly_bitboard(const Game* game, U64 bitboard);
+    template <Colour colour>
+    extern U64* get_friendly_bitboard(Game* game, U64 bitboard);
+    template <Colour colour>
+    extern const U64* get_friendly_bitboard_for_index(const Game* game, U8 index);
+    template <Colour colour>
+    extern U64* get_friendly_bitboard_for_index(Game* game, U8 index);
+    extern U64 get_moves(const Game* game, U8 index);
+    extern bool move(Game* game, U8 from, U8 to);
+    extern bool move_and_promote(Game* game, U8 from, U8 to, Piece::Type promotion_piece);
+    extern bool can_undo(const Game* game);
+    extern bool can_redo(const Game* game);
+    extern bool undo(Game* game);
+    extern bool redo(Game* game);
+// #endregion
+
     inline constexpr U64 nth_bit(U8 n) {
         return 1ULL << n;
     }
@@ -193,41 +280,11 @@ namespace chess { namespace engine {
         return nth_bit(n) | nth_bit(args...);
     }
 
-    extern bool has_white_pawn(const Game* game, U64 bitboard);
-    extern bool has_white_pawn_for_index(const Game* game, U8 index);
-    extern bool has_white_knight(const Game* game, U64 bitboard);
-    extern bool has_white_knight_for_index(const Game* game, U8 index);
-    extern bool has_white_bishop(const Game* game, U64 bitboard);
-    extern bool has_white_bishop_for_index(const Game* game, U8 index);
-    extern bool has_white_rook(const Game* game, U64 bitboard);
-    extern bool has_white_rook_for_index(const Game* game, U8 index);
-    extern bool has_white_queen(const Game* game, U64 bitboard);
-    extern bool has_white_queen_for_index(const Game* game, U8 index);
-    extern bool has_white_king(const Game* game, U64 bitboard);
-    extern bool has_white_king_for_index(const Game* game, U8 index);
-    extern bool has_black_pawn(const Game* game, U64 bitboard);
-    extern bool has_black_pawn_for_index(const Game* game, U8 index);
-    extern bool has_black_knight(const Game* game, U64 bitboard);
-    extern bool has_black_knight_for_index(const Game* game, U8 index);
-    extern bool has_black_bishop(const Game* game, U64 bitboard);
-    extern bool has_black_bishop_for_index(const Game* game, U8 index);
-    extern bool has_black_rook(const Game* game, U64 bitboard);
-    extern bool has_black_rook_for_index(const Game* game, U8 index);
-    extern bool has_black_queen(const Game* game, U64 bitboard);
-    extern bool has_black_queen_for_index(const Game* game, U8 index);
-    extern bool has_black_king(const Game* game, U64 bitboard);
-    extern bool has_black_king_for_index(const Game* game, U8 index);
-    extern bool has_white_piece(const Game* game, U64 bitboard);
-    extern bool has_white_piece_for_index(const Game* game, U8 index);
-    extern bool has_black_piece(const Game* game, U64 bitboard);
-    extern bool has_black_piece_for_index(const Game* game, U8 index);
-    extern bool is_empty(const Game* game, U64 bitboard);
-    extern bool is_empty_for_index(const Game* game, U8 index);
-    extern Piece get_piece(const Game* game, U64 bitboard);
-    extern Piece get_piece_for_index(const Game* game, U8 index);
-    extern Piece::Type get_white_piece_type_for_index(const Game* game, U8 index);
-    extern Piece::Type get_black_piece_type_for_index(const Game* game, U8 index);
-    extern U64 get_moves(const Game* game, U8 index);
+    extern bool is_light_cell(U8 file, U8 rank);
+    template <Colour colour>
+    extern U64 front_rank();
+    template <Colour colour>
+    extern U64 rear_rank();
     extern bool is_rank(U64 bitboard, U8 rank);
     extern bool is_rank_for_index(U8 index, U8 rank);
     extern bool is_file(U64 bitboard, U8 file);
@@ -238,18 +295,10 @@ namespace chess { namespace engine {
     extern U8 flip_rank_for_index(U8 index);
     extern U8 get_rank_for_index(U8 index);
     extern U8 get_file_for_index(U8 index);
-    extern bool move(Game* game, U8 from, U8 to);
-    extern bool move_and_promote(Game* game, U8 from, U8 to, Piece::Type promotion_piece);
-    extern U64 get_cells_moved_from(const Game* game);
-    extern U64 get_cells_moved_to(const Game* game);
-    extern U8 move_index_north(U8 index);
-    extern U8 move_index_north_east(U8 index);
-    extern U8 move_index_east(U8 index);
-    extern U8 move_index_south_east(U8 index);
-    extern U8 move_index_south(U8 index);
-    extern U8 move_index_south_west(U8 index);
-    extern U8 move_index_west(U8 index);
-    extern U8 move_index_north_west(U8 index);
+    template <Colour colour>
+    extern U64 move_bitboard_forward(U64 bitboard);
+    template <Colour colour>
+    extern U64 move_bitboard_backward(U64 bitboard);
     extern U64 move_bitboard_north(U64 bitboard);
     extern U64 move_bitboard_north_east(U64 bitboard);
     extern U64 move_bitboard_east(U64 bitboard);
@@ -258,9 +307,20 @@ namespace chess { namespace engine {
     extern U64 move_bitboard_south_west(U64 bitboard);
     extern U64 move_bitboard_west(U64 bitboard);
     extern U64 move_bitboard_north_west(U64 bitboard);
-    extern bool is_light_cell(U8 file, U8 rank);
-    extern bool can_undo(const Game* game);
-    extern bool can_redo(const Game* game);
-    extern bool undo(Game* game);
-    extern bool redo(Game* game);
+    template <Colour colour>
+    extern U64 move_index_forward(U8 index);
+    template <Colour colour>
+    extern U64 move_index_backward(U8 index);
+    extern U8 move_index_north(U8 index);
+    extern U8 move_index_north_east(U8 index);
+    extern U8 move_index_east(U8 index);
+    extern U8 move_index_south_east(U8 index);
+    extern U8 move_index_south(U8 index);
+    extern U8 move_index_south_west(U8 index);
+    extern U8 move_index_west(U8 index);
+    extern U8 move_index_north_west(U8 index);
+    template <Colour colour>
+    extern U8 move_rank_forward(U8 rank);
+    template <Colour colour>
+    extern U8 move_rank_backward(U8 rank);
 }}
