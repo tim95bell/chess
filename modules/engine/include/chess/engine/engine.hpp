@@ -2,6 +2,7 @@
 #pragma once
 
 #include <chess/common/number_types.hpp>
+#include <chess/common/assert.hpp>
 
 /*
 
@@ -149,10 +150,62 @@ namespace chess { namespace engine {
 
 // #region Bitboard
     struct Bitboard {
+        struct Index {
+            explicit constexpr Index(U8 in_data) noexcept : data(in_data) {}
+            constexpr Index() noexcept : data(0) {}
+
+            U8 data;
+
+            inline constexpr bool operator<(Index other) {
+                CHESS_ASSERT(other.data != 0);
+                return data < other.data;
+            }
+
+            inline constexpr bool operator<=(Index other) {
+                return data <= other.data;
+            }
+
+            inline constexpr bool operator==(Index other) {
+                return data == other.data;
+            }
+
+            inline constexpr bool operator>=(Index other) {
+                return data >= other.data;
+            }
+
+            inline constexpr bool operator>(Index other) {
+                return data > other.data;
+            }
+
+            inline constexpr Bitboard::Index operator/(Bitboard::Index other) {
+                return Bitboard::Index(data / other.data);
+            }
+
+            inline constexpr Bitboard::Index operator%(Bitboard::Index other) {
+                return Bitboard::Index(data % other.data);
+            }
+
+            inline constexpr Bitboard::Index operator+(Bitboard::Index other) {
+                return Bitboard::Index(data + other.data);
+            }
+
+            inline constexpr Bitboard::Index operator-(Bitboard::Index other) {
+                return Bitboard::Index(data - other.data);
+            }
+
+            explicit inline constexpr operator U8() {
+                return data;
+            }
+        };
+
+        explicit constexpr Bitboard(Index index) noexcept : data(1ULL << index.data) {}
+        explicit constexpr Bitboard(U64 in_data) noexcept : data(in_data) {}
+        constexpr Bitboard() noexcept : data(0) {}
+
         U64 data;
 
         inline constexpr Bitboard operator|(Bitboard other) const {
-            return Bitboard{data | other.data};
+            return Bitboard(data | other.data);
         }
 
         inline constexpr Bitboard* operator|=(Bitboard other) {
@@ -161,7 +214,7 @@ namespace chess { namespace engine {
         }
 
         inline constexpr Bitboard operator&(Bitboard other) const {
-            return Bitboard{data & other.data};
+            return Bitboard(data & other.data);
         }
 
         inline constexpr Bitboard* operator&=(Bitboard other) {
@@ -170,7 +223,7 @@ namespace chess { namespace engine {
         }
 
         inline constexpr Bitboard operator~() const {
-            return Bitboard{~data};
+            return Bitboard(~data);
         }
 
         inline constexpr bool operator==(Bitboard other) const {
@@ -190,27 +243,64 @@ namespace chess { namespace engine {
         }
     };
 
-    inline constexpr Bitboard nth_bit(U8 n) {
-        return Bitboard{1ULL << n};
+    inline consteval Bitboard nth_bit(Bitboard::Index n) {
+        return Bitboard(n);
     }
 
     template <typename... Args>
-    inline consteval Bitboard nth_bit(U8 n, Args... args) {
-        return nth_bit(n) | nth_bit(args...);
+    inline consteval Bitboard nth_bit(Bitboard::Index n, Args... args) {
+        return Bitboard(n) | nth_bit(args...);
+    }
+
+    constexpr Bitboard move_north(Bitboard bitboard) {
+        return Bitboard(bitboard.data << CHESS_BOARD_WIDTH);
+    }
+
+    constexpr Bitboard move_north_east(Bitboard bitboard) {
+        return Bitboard(bitboard.data << (CHESS_BOARD_WIDTH + 1));
+    }
+
+    constexpr Bitboard move_east(Bitboard bitboard) {
+        return Bitboard(bitboard.data << 1);
+    }
+
+    constexpr Bitboard move_south_east(Bitboard bitboard) {
+        return Bitboard(bitboard.data >> (CHESS_BOARD_WIDTH - 1));
+    }
+
+    constexpr Bitboard move_south(Bitboard bitboard) {
+        return Bitboard(bitboard.data >> CHESS_BOARD_WIDTH);
+    }
+
+    constexpr Bitboard move_south_west(Bitboard bitboard) {
+        return Bitboard(bitboard.data >> (CHESS_BOARD_WIDTH + 1));
+    }
+
+    constexpr Bitboard move_west(Bitboard bitboard) {
+        return Bitboard(bitboard.data >> 1);
+    }
+
+    constexpr Bitboard move_north_west(Bitboard bitboard) {
+        return Bitboard(bitboard.data << (CHESS_BOARD_WIDTH - 1));
     }
 
     template <Colour colour>
-    extern Bitboard move_forward(Bitboard bitboard);
+    constexpr Bitboard move_forward(Bitboard bitboard) {
+        if constexpr (colour == Colour::Black) {
+            return move_south(bitboard);
+        } else {
+            return move_north(bitboard);
+        }
+    }
+
     template <Colour colour>
-    extern Bitboard move_backward(Bitboard bitboard);
-    extern Bitboard move_north(Bitboard bitboard);
-    extern Bitboard move_north_east(Bitboard bitboard);
-    extern Bitboard move_east(Bitboard bitboard);
-    extern Bitboard move_south_east(Bitboard bitboard);
-    extern Bitboard move_south(Bitboard bitboard);
-    extern Bitboard move_south_west(Bitboard bitboard);
-    extern Bitboard move_west(Bitboard bitboard);
-    extern Bitboard move_north_west(Bitboard bitboard);
+    constexpr Bitboard move_backward(Bitboard bitboard) {
+        if constexpr (colour == Colour::Black) {
+            return move_north(bitboard);
+        } else {
+            return move_south(bitboard);
+        }
+    }
 // #endregion
 
     struct Cache {
@@ -221,8 +311,8 @@ namespace chess { namespace engine {
     };
 
     struct Move {
-        U8 from;
-        U8 to;
+        Bitboard::Index from;
+        Bitboard::Index to;
         // taken_piece_type is filled in by perform_move
         U8 compressed_taken_piece_type_and_promotion_piece_type;
         bool in_check : 1;
@@ -251,7 +341,7 @@ namespace chess { namespace engine {
         Bitboard black_queens;
         Bitboard black_kings;
         mutable Cache cache;
-        U8 en_passant_square;
+        Bitboard::Index en_passant_square;
         bool can_en_passant : 1;
         bool next_turn : 1;
         bool white_can_never_castle_short : 1;
@@ -267,8 +357,6 @@ namespace chess { namespace engine {
     template <Colour colour>
     extern bool has_friendly_piece(const Game* game, Bitboard bitboard);
     template <Colour colour>
-    extern bool has_friendly_piece_for_index(const Game* game, U8 index);
-    template <Colour colour>
     extern bool has_friendly_pawn(const Game* game, Bitboard bitboard);
     template <Colour colour>
     extern bool has_friendly_knight(const Game* game, Bitboard bitboard);
@@ -282,16 +370,10 @@ namespace chess { namespace engine {
     extern bool has_friendly_king(const Game* game, Bitboard bitboard);
     template <Colour colour>
     extern bool is_empty(const Game* game, Bitboard bitboard);
-    template <Colour colour>
-    extern bool is_empty_for_index(const Game* game, U8 index);
     extern bool is_empty(const Game* game, Bitboard bitboard);
-    extern bool is_empty_for_index(const Game* game, U8 index);
     extern Piece get_piece(const Game* game, Bitboard bitboard);
-    extern Piece get_piece_for_index(const Game* game, U8 index);
     template <Colour colour>
     extern Piece::Type get_friendly_piece_type(const Game* game, Bitboard bitboard);
-    template <Colour colour>
-    extern Piece::Type get_friendly_piece_type_for_index(const Game* game, U8 index);
     template <Colour colour>
     extern const Bitboard* get_friendly_pawns(const Game* game);
     template <Colour colour>
@@ -324,13 +406,9 @@ namespace chess { namespace engine {
     extern const Bitboard* get_friendly_bitboard(const Game* game, Bitboard bitboard);
     template <Colour colour>
     extern Bitboard* get_friendly_bitboard(Game* game, Bitboard bitboard);
-    template <Colour colour>
-    extern const Bitboard* get_friendly_bitboard_for_index(const Game* game, U8 index);
-    template <Colour colour>
-    extern Bitboard* get_friendly_bitboard_for_index(Game* game, U8 index);
-    extern Bitboard get_moves(const Game* game, U8 index);
-    extern bool move(Game* game, U8 from, U8 to);
-    extern bool move_and_promote(Game* game, U8 from, U8 to, Piece::Type promotion_piece);
+    extern Bitboard get_moves(const Game* game, Bitboard::Index index);
+    extern bool move(Game* game, Bitboard::Index from, Bitboard::Index to);
+    extern bool move_and_promote(Game* game, Bitboard::Index from, Bitboard::Index to, Piece::Type promotion_piece);
     extern bool can_undo(const Game* game);
     extern bool can_redo(const Game* game);
     extern bool undo(Game* game);
@@ -338,32 +416,54 @@ namespace chess { namespace engine {
 // #endregion
 
     extern bool is_light_cell(U8 file, U8 rank);
+
     template <Colour colour>
-    extern constexpr U8 front_rank();
+    constexpr U8 front_rank() {
+        if constexpr (colour == Colour::Black) {
+            return RANK_1;
+        } else {
+            return RANK_8;
+        }
+    }
+
     template <Colour colour>
-    extern constexpr U8 rear_rank();
+    constexpr U8 rear_rank() {
+        if constexpr (colour == Colour::Black) {
+            return RANK_8;
+        } else {
+            return RANK_1;
+        }
+    }
+
     extern bool is_rank(Bitboard bitboard, U8 rank);
-    extern bool is_rank_for_index(U8 index, U8 rank);
+    extern bool is_rank(Bitboard::Index index, U8 rank);
     extern bool is_file(Bitboard bitboard, U8 file);
-    extern bool is_file_for_index(U8 index, U8 file);
-    extern constexpr U8 coordinate(U8 file, U8 rank);
-    extern constexpr U8 coordinate_with_flipped_rank(U8 file, U8 rank);
+    extern bool is_file(Bitboard::Index index, U8 file);
     extern U8 flip_rank(U8 rank);
-    extern U8 flip_rank_for_index(U8 index);
-    extern U8 get_rank_for_index(U8 index);
-    extern U8 get_file_for_index(U8 index);
+    extern Bitboard::Index flip_rank(Bitboard::Index index);
+    extern U8 get_rank(Bitboard::Index index);
+    extern U8 get_file(Bitboard::Index index);
+
+    inline constexpr Bitboard::Index coordinate(U8 file, U8 rank) {
+        return Bitboard::Index(rank * CHESS_BOARD_WIDTH + file);
+    }
+
+    inline constexpr Bitboard::Index coordinate_with_flipped_rank(U8 file, U8 rank) {
+        return coordinate(file, flip_rank(rank));
+    }
+
     template <Colour colour>
-    extern U8 move_index_forward(U8 index);
+    extern Bitboard::Index move_forward(Bitboard::Index index);
     template <Colour colour>
-    extern U8 move_index_backward(U8 index);
-    extern U8 move_index_north(U8 index);
-    extern U8 move_index_north_east(U8 index);
-    extern U8 move_index_east(U8 index);
-    extern U8 move_index_south_east(U8 index);
-    extern U8 move_index_south(U8 index);
-    extern U8 move_index_south_west(U8 index);
-    extern U8 move_index_west(U8 index);
-    extern U8 move_index_north_west(U8 index);
+    extern Bitboard::Index move_backward(Bitboard::Index index);
+    extern Bitboard::Index move_north(Bitboard::Index index);
+    extern Bitboard::Index move_north_east(Bitboard::Index index);
+    extern Bitboard::Index move_east(Bitboard::Index index);
+    extern Bitboard::Index move_south_east(Bitboard::Index index);
+    extern Bitboard::Index move_south(Bitboard::Index index);
+    extern Bitboard::Index move_south_west(Bitboard::Index index);
+    extern Bitboard::Index move_west(Bitboard::Index index);
+    extern Bitboard::Index move_north_west(Bitboard::Index index);
     template <Colour colour>
     extern U8 move_rank_forward(U8 rank);
     template <Colour colour>

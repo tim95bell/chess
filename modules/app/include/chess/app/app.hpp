@@ -15,10 +15,10 @@ namespace chess { namespace app {
         engine::Game game;
         Texture2D pieces_texture;
         bool cell_is_selected;
-        U8 selected_cell;
+        engine::Bitboard::Index selected_cell;
         engine::Bitboard possible_moves;
         bool promotion_dialog;
-        U8 promotion_cell;
+        engine::Bitboard::Index promotion_cell;
     };
 
 #if CHESS_HOT_RELOAD
