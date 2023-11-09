@@ -360,11 +360,36 @@ namespace chess { namespace engine {
         Bitboard possible_moves_calculated;
     };
 
+    // #region CompressedTakenAndPromotionPieceType
+    struct CompressedTakenAndPromotionPieceType {
+        constexpr CompressedTakenAndPromotionPieceType() noexcept : data(0) {}
+        constexpr CompressedTakenAndPromotionPieceType(Piece::Type taken_piece, Piece::Type promotion_piece) noexcept : data((U8(promotion_piece) << 4) | U8(taken_piece)) {}
+
+        U8 data;
+    };
+
+    inline void set_taken_piece_type(CompressedTakenAndPromotionPieceType* x, Piece::Type taken_piece) {
+        x->data = (x->data & (0b1111 << 4)) | U8(taken_piece);
+    }
+
+    inline void set_promotion_piece_type(CompressedTakenAndPromotionPieceType* x, Piece::Type taken_piece) {
+        x->data = (x->data & 0b1111) | (U8(taken_piece) << 4);
+    }
+
+    inline constexpr Piece::Type get_taken_piece_type(CompressedTakenAndPromotionPieceType x) {
+        return Piece::Type(x.data & 0b1111);
+    }
+
+    inline constexpr Piece::Type get_promotion_piece_type(CompressedTakenAndPromotionPieceType x) {
+        return Piece::Type(x.data >> 4);
+    }
+    // #endregion
+
     struct Move {
         Bitboard::Index from;
         Bitboard::Index to;
-        // taken_piece_type is filled in by perform_move
-        U8 compressed_taken_piece_type_and_promotion_piece_type;
+        // taken piece type is filled in by perform_move
+        CompressedTakenAndPromotionPieceType compressed_taken_and_promotion_piece_type;
         bool in_check : 1;
         bool white_can_never_castle_short : 1;
         bool white_can_never_castle_long : 1;

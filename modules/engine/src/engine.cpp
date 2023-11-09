@@ -29,23 +29,6 @@ namespace chess { namespace engine {
         nth_bit(Bitboard::Index(File::A, Rank::Eight), Bitboard::Index(File::B, Rank::Eight), Bitboard::Index(File::C, Rank::Eight), Bitboard::Index(File::D, Rank::Eight), Bitboard::Index(File::E, Rank::Eight), Bitboard::Index(File::F, Rank::Eight), Bitboard::Index(File::G, Rank::Eight), Bitboard::Index(File::H, Rank::Eight))
     };
 
-    // TODO(TB): abstract this into a struct
-    static inline constexpr U8 create_promotion_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type promotion_piece) {
-        return static_cast<U8>(promotion_piece) << 4;
-    }
-
-    static inline constexpr U8 create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type promotion_piece) {
-        return static_cast<U8>(promotion_piece);
-    }
-
-    static inline constexpr Piece::Type get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(U8 compressed_taken_piece_type_and_promotion_piece_type) {
-        return static_cast<Piece::Type>(compressed_taken_piece_type_and_promotion_piece_type >> 4);
-    }
-
-    static inline constexpr Piece::Type get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(U8 compressed_taken_piece_type_and_promotion_piece_type) {
-        return static_cast<Piece::Type>(compressed_taken_piece_type_and_promotion_piece_type & 0b1111);
-    }
-
     static void add_move(Game* game, Move move) {
         if (game->moves_index >= game->moves_allocated) {
             game->moves_allocated = game->moves_allocated * 2;
@@ -140,7 +123,7 @@ namespace chess { namespace engine {
             // pawn promotion move
 
             // add piece at 'to' cell
-            const Piece::Type promotion_piece = get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type);
+            const Piece::Type promotion_piece = get_promotion_piece_type(move->compressed_taken_and_promotion_piece_type);
             if (promotion_piece == Piece::Type::Knight) {
                 *get_friendly_knights<colour>(game) |= to_index_bitboard;
             } else if (promotion_piece == Piece::Type::Bishop) {
@@ -157,34 +140,34 @@ namespace chess { namespace engine {
                 *to_bitboard &= ~to_index_bitboard;
                 if (to_bitboard == get_friendly_knights<EnemyColour<colour>::colour>(game)) {
                     CHESS_ASSERT(
-                        get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
-                        || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
-                            move->compressed_taken_piece_type_and_promotion_piece_type
+                        get_taken_piece_type(move->compressed_taken_and_promotion_piece_type) == Piece::Type::Empty
+                        || get_taken_piece_type(
+                            move->compressed_taken_and_promotion_piece_type
                         ) == Piece::Type::Knight);
-                    move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Knight);
+                    set_taken_piece_type(&move->compressed_taken_and_promotion_piece_type, Piece::Type::Knight);
                 } else if (to_bitboard == get_friendly_bishops<EnemyColour<colour>::colour>(game)) {
                     CHESS_ASSERT(
-                        get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
-                        || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
-                            move->compressed_taken_piece_type_and_promotion_piece_type
+                        get_taken_piece_type(move->compressed_taken_and_promotion_piece_type) == Piece::Type::Empty
+                        || get_taken_piece_type(
+                            move->compressed_taken_and_promotion_piece_type
                         ) == Piece::Type::Bishop);
-                    move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Bishop);
+                    set_taken_piece_type(&move->compressed_taken_and_promotion_piece_type, Piece::Type::Bishop);
                 } else if (to_bitboard == get_friendly_rooks<EnemyColour<colour>::colour>(game)) {
                     CHESS_ASSERT(
-                        get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
-                        || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
-                            move->compressed_taken_piece_type_and_promotion_piece_type
+                        get_taken_piece_type(move->compressed_taken_and_promotion_piece_type) == Piece::Type::Empty
+                        || get_taken_piece_type(
+                            move->compressed_taken_and_promotion_piece_type
                         ) == Piece::Type::Rook);
-                    move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Rook);
+                    set_taken_piece_type(&move->compressed_taken_and_promotion_piece_type, Piece::Type::Rook);
                 } else {
                     // can not be a king or pawn (pawns cannot be on rank 1 or 9)
                     CHESS_ASSERT(to_bitboard == get_friendly_queens<EnemyColour<colour>::colour>(game));
                     CHESS_ASSERT(
-                        get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
-                        || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
-                            move->compressed_taken_piece_type_and_promotion_piece_type
+                        get_taken_piece_type(move->compressed_taken_and_promotion_piece_type) == Piece::Type::Empty
+                        || get_taken_piece_type(
+                            move->compressed_taken_and_promotion_piece_type
                         ) == Piece::Type::Queen);
-                    move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Queen);
+                    set_taken_piece_type(&move->compressed_taken_and_promotion_piece_type, Piece::Type::Queen);
                 }
             }
 
@@ -192,7 +175,7 @@ namespace chess { namespace engine {
             game->can_en_passant = false;
         } else {
             // non promotion pawn move
-            CHESS_ASSERT(get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty);
+            CHESS_ASSERT(get_promotion_piece_type(move->compressed_taken_and_promotion_piece_type) == Piece::Type::Empty);
 
             // add piece at 'to' cell
             *get_friendly_pawns<colour>(game) |= to_index_bitboard;
@@ -200,50 +183,50 @@ namespace chess { namespace engine {
             // remove taken piece, considering en passant
             if (game->can_en_passant && game->en_passant_square == move_index_backward<colour>(move->to)) {
                 CHESS_ASSERT(
-                    get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
-                    || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
-                        move->compressed_taken_piece_type_and_promotion_piece_type
+                    get_taken_piece_type(move->compressed_taken_and_promotion_piece_type) == Piece::Type::Empty
+                    || get_taken_piece_type(
+                        move->compressed_taken_and_promotion_piece_type
                     ) == Piece::Type::Pawn);
                 *get_friendly_pawns<EnemyColour<colour>::colour>(game) &= ~Bitboard(game->en_passant_square);
-                move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Pawn);
+                set_taken_piece_type(&move->compressed_taken_and_promotion_piece_type, Piece::Type::Pawn);
             } else if (Bitboard* const to_bitboard = get_friendly_bitboard<EnemyColour<colour>::colour>(game, to_index_bitboard)) {
                 *to_bitboard &= ~to_index_bitboard;
                 if (to_bitboard == get_friendly_pawns<EnemyColour<colour>::colour>(game)) {
                     CHESS_ASSERT(
-                        get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
-                        || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
-                            move->compressed_taken_piece_type_and_promotion_piece_type
+                        get_taken_piece_type(move->compressed_taken_and_promotion_piece_type) == Piece::Type::Empty
+                        || get_taken_piece_type(
+                            move->compressed_taken_and_promotion_piece_type
                         ) == Piece::Type::Pawn);
-                    move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Pawn);
+                    set_taken_piece_type(&move->compressed_taken_and_promotion_piece_type, Piece::Type::Pawn);
                 } else if (to_bitboard == get_friendly_knights<EnemyColour<colour>::colour>(game)) {
                     CHESS_ASSERT(
-                        get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
-                        || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
-                            move->compressed_taken_piece_type_and_promotion_piece_type
+                        get_taken_piece_type(move->compressed_taken_and_promotion_piece_type) == Piece::Type::Empty
+                        || get_taken_piece_type(
+                            move->compressed_taken_and_promotion_piece_type
                         ) == Piece::Type::Knight);
-                    move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Knight);
+                    set_taken_piece_type(&move->compressed_taken_and_promotion_piece_type, Piece::Type::Knight);
                 } else if (to_bitboard == get_friendly_bishops<EnemyColour<colour>::colour>(game)) {
                     CHESS_ASSERT(
-                        get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
-                        || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
-                            move->compressed_taken_piece_type_and_promotion_piece_type
+                        get_taken_piece_type(move->compressed_taken_and_promotion_piece_type) == Piece::Type::Empty
+                        || get_taken_piece_type(
+                            move->compressed_taken_and_promotion_piece_type
                         ) == Piece::Type::Bishop);
-                    move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Bishop);
+                    set_taken_piece_type(&move->compressed_taken_and_promotion_piece_type, Piece::Type::Bishop);
                 } else if (to_bitboard == get_friendly_rooks<EnemyColour<colour>::colour>(game)) {
                     CHESS_ASSERT(
-                        get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
-                        || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
-                            move->compressed_taken_piece_type_and_promotion_piece_type
+                        get_taken_piece_type(move->compressed_taken_and_promotion_piece_type) == Piece::Type::Empty
+                        || get_taken_piece_type(
+                            move->compressed_taken_and_promotion_piece_type
                         ) == Piece::Type::Rook);
-                    move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Rook);
+                    set_taken_piece_type(&move->compressed_taken_and_promotion_piece_type, Piece::Type::Rook);
                 } else {
                     CHESS_ASSERT(to_bitboard == get_friendly_queens<EnemyColour<colour>::colour>(game));
                     CHESS_ASSERT(
-                        get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
-                        || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
-                            move->compressed_taken_piece_type_and_promotion_piece_type
+                        get_taken_piece_type(move->compressed_taken_and_promotion_piece_type) == Piece::Type::Empty
+                        || get_taken_piece_type(
+                            move->compressed_taken_and_promotion_piece_type
                         ) == Piece::Type::Queen);
-                    move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Queen);
+                    set_taken_piece_type(&move->compressed_taken_and_promotion_piece_type, Piece::Type::Queen);
                 }
             }
 
@@ -259,46 +242,46 @@ namespace chess { namespace engine {
 
     template <Colour colour>
     static inline void perform_knight_move(Game* game, Move* move, Bitboard from_index_bitboard, Bitboard to_index_bitboard) {
-        CHESS_ASSERT(get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty);
+        CHESS_ASSERT(get_promotion_piece_type(move->compressed_taken_and_promotion_piece_type) == Piece::Type::Empty);
         *get_friendly_knights<colour>(game) &= ~from_index_bitboard;
         if (Bitboard* to_bitboard = get_friendly_bitboard<EnemyColour<colour>::colour>(game, to_index_bitboard)) {
             *to_bitboard &= ~to_index_bitboard;
             if (to_bitboard == get_friendly_pawns<EnemyColour<colour>::colour>(game)) {
                 CHESS_ASSERT(
-                    get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
-                    || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
-                        move->compressed_taken_piece_type_and_promotion_piece_type
+                    get_taken_piece_type(move->compressed_taken_and_promotion_piece_type) == Piece::Type::Empty
+                    || get_taken_piece_type(
+                        move->compressed_taken_and_promotion_piece_type
                     ) == Piece::Type::Pawn);
-                move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Pawn);
+                set_taken_piece_type(&move->compressed_taken_and_promotion_piece_type, Piece::Type::Pawn);
             } else if (to_bitboard == get_friendly_knights<EnemyColour<colour>::colour>(game)) {
                 CHESS_ASSERT(
-                    get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
-                    || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
-                        move->compressed_taken_piece_type_and_promotion_piece_type
+                    get_taken_piece_type(move->compressed_taken_and_promotion_piece_type) == Piece::Type::Empty
+                    || get_taken_piece_type(
+                        move->compressed_taken_and_promotion_piece_type
                     ) == Piece::Type::Knight);
-                move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Knight);
+                set_taken_piece_type(&move->compressed_taken_and_promotion_piece_type, Piece::Type::Knight);
             } else if (to_bitboard == get_friendly_bishops<EnemyColour<colour>::colour>(game)) {
                 CHESS_ASSERT(
-                    get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
-                    || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
-                        move->compressed_taken_piece_type_and_promotion_piece_type
+                    get_taken_piece_type(move->compressed_taken_and_promotion_piece_type) == Piece::Type::Empty
+                    || get_taken_piece_type(
+                        move->compressed_taken_and_promotion_piece_type
                     ) == Piece::Type::Bishop);
-                move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Bishop);
+                set_taken_piece_type(&move->compressed_taken_and_promotion_piece_type, Piece::Type::Bishop);
             } else if (to_bitboard == get_friendly_rooks<EnemyColour<colour>::colour>(game)) {
                 CHESS_ASSERT(
-                    get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
-                    || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
-                        move->compressed_taken_piece_type_and_promotion_piece_type
+                    get_taken_piece_type(move->compressed_taken_and_promotion_piece_type) == Piece::Type::Empty
+                    || get_taken_piece_type(
+                        move->compressed_taken_and_promotion_piece_type
                     ) == Piece::Type::Rook);
-                move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Rook);
+                set_taken_piece_type(&move->compressed_taken_and_promotion_piece_type, Piece::Type::Rook);
             } else {
                 CHESS_ASSERT(to_bitboard == get_friendly_queens<EnemyColour<colour>::colour>(game));
                 CHESS_ASSERT(
-                    get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move->compressed_taken_piece_type_and_promotion_piece_type) == Piece::Type::Empty
-                    || get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(
-                        move->compressed_taken_piece_type_and_promotion_piece_type
+                    get_taken_piece_type(move->compressed_taken_and_promotion_piece_type) == Piece::Type::Empty
+                    || get_taken_piece_type(
+                        move->compressed_taken_and_promotion_piece_type
                     ) == Piece::Type::Queen);
-                move->compressed_taken_piece_type_and_promotion_piece_type |= create_taken_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(Piece::Type::Queen);
+                set_taken_piece_type(&move->compressed_taken_and_promotion_piece_type, Piece::Type::Queen);
             }
         }
         *get_friendly_knights<colour>(game) |= to_index_bitboard;
@@ -359,8 +342,8 @@ namespace chess { namespace engine {
             CHESS_ASSERT(false);
         }
 
-        const Piece::Type taken_piece = get_taken_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move.compressed_taken_piece_type_and_promotion_piece_type);
-        const Piece::Type promotion_piece = get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(move.compressed_taken_piece_type_and_promotion_piece_type);
+        const Piece::Type taken_piece = get_taken_piece_type(move.compressed_taken_and_promotion_piece_type);
+        const Piece::Type promotion_piece = get_promotion_piece_type(move.compressed_taken_and_promotion_piece_type);
 
         if (to_bitboard == get_friendly_kings<colour>(game) && move.from == Bitboard::Index(File::E, rear_rank<colour>())) {
             if (move.to == Bitboard::Index(File::C, rear_rank<colour>())) {
@@ -800,7 +783,7 @@ namespace chess { namespace engine {
         Move move{
             from,
             to,
-            0,
+            CompressedTakenAndPromotionPieceType(),
             // TODO(TB): fill in in_check parameter correctly
             false,
             game->white_can_never_castle_short,
@@ -827,7 +810,7 @@ namespace chess { namespace engine {
         Move move{
             from,
             to,
-            create_promotion_piece_type_in_compressed_taken_piece_type_and_promotion_piece_type(promotion_piece),
+            CompressedTakenAndPromotionPieceType(Piece::Type::Empty, promotion_piece),
             // TODO(TB): fill in in_check parameter correctly
             false,
             game->white_can_never_castle_short,
@@ -865,7 +848,7 @@ namespace chess { namespace engine {
     bool redo(Game* game) {
         if (game->moves_index < game->moves_count) {
             Move* the_move = &game->moves[game->moves_index];
-            const Piece::Type promotion_piece_type = get_promotion_piece_type_from_compressed_taken_piece_type_and_promotion_piece_type(the_move->compressed_taken_piece_type_and_promotion_piece_type);
+            const Piece::Type promotion_piece_type = get_promotion_piece_type(the_move->compressed_taken_and_promotion_piece_type);
             if (perform_move(game, the_move)) {
                 ++game->moves_index;
             }
