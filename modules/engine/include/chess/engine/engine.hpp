@@ -32,98 +32,96 @@ RNBQKBNR
 #define CHESS_BOARD_WIDTH 8
 #define CHESS_BOARD_HEIGHT 8
 
-#define FILE_A 0
-#define FILE_B 1
-#define FILE_C 2
-#define FILE_D 3
-#define FILE_E 4
-#define FILE_F 5
-#define FILE_G 6
-#define FILE_H 7
-
-#define RANK_1 0
-#define RANK_2 1
-#define RANK_3 2
-#define RANK_4 3
-#define RANK_5 4
-#define RANK_6 5
-#define RANK_7 6
-#define RANK_8 7
-
-#define CHESS_A1 0
-#define CHESS_B1 1
-#define CHESS_C1 2
-#define CHESS_D1 3
-#define CHESS_E1 4
-#define CHESS_F1 5
-#define CHESS_G1 6
-#define CHESS_H1 7
-
-#define CHESS_A2 8
-#define CHESS_B2 9
-#define CHESS_C2 10
-#define CHESS_D2 11
-#define CHESS_E2 12
-#define CHESS_F2 13
-#define CHESS_G2 14
-#define CHESS_H2 15
-
-#define CHESS_A3 16
-#define CHESS_B3 17
-#define CHESS_C3 18
-#define CHESS_D3 19
-#define CHESS_E3 20
-#define CHESS_F3 21
-#define CHESS_G3 22
-#define CHESS_H3 23
-
-#define CHESS_A4 24
-#define CHESS_B4 25
-#define CHESS_C4 26
-#define CHESS_D4 27
-#define CHESS_E4 28
-#define CHESS_F4 29
-#define CHESS_G4 30
-#define CHESS_H4 31
-
-#define CHESS_A5 32
-#define CHESS_B5 33
-#define CHESS_C5 34
-#define CHESS_D5 35
-#define CHESS_E5 36
-#define CHESS_F5 37
-#define CHESS_G5 38
-#define CHESS_H5 39
-
-#define CHESS_A6 40
-#define CHESS_B6 41
-#define CHESS_C6 42
-#define CHESS_D6 43
-#define CHESS_E6 44
-#define CHESS_F6 45
-#define CHESS_G6 46
-#define CHESS_H6 47
-
-#define CHESS_A7 48
-#define CHESS_B7 49
-#define CHESS_C7 50
-#define CHESS_D7 51
-#define CHESS_E7 52
-#define CHESS_F7 53
-#define CHESS_G7 54
-#define CHESS_H7 55
-
-#define CHESS_A8 56
-#define CHESS_B8 57
-#define CHESS_C8 58
-#define CHESS_D8 59
-#define CHESS_E8 60
-#define CHESS_F8 61
-#define CHESS_G8 62
-#define CHESS_H8 63
-
 namespace chess { namespace engine {
     enum class Colour : U8 { White, Black };
+
+    enum class Rank { One, Two, Three, Four, Five, Six, Seven, Eight };
+
+    inline constexpr bool operator<(Rank rank, U8 other) {
+        return U8(rank) < other;
+    }
+
+    inline constexpr bool operator<=(Rank rank, U8 other) {
+        return U8(rank) <= other;
+    }
+
+    inline constexpr bool operator==(Rank rank, U8 other) {
+        return U8(rank) == other;
+    }
+
+    inline constexpr bool operator!=(Rank rank, U8 other) {
+        return U8(rank) != other;
+    }
+
+    inline constexpr bool operator>=(Rank rank, U8 other) {
+        return U8(rank) >= other;
+    }
+
+    inline constexpr bool operator>(Rank rank, U8 other) {
+        return U8(rank) > other;
+    }
+
+    inline constexpr Rank operator+(Rank rank, U8 other) {
+        return Rank(U8(rank) + other);
+    }
+
+    inline constexpr Rank operator-(Rank rank, U8 other) {
+        return Rank(U8(rank) - other);
+    }
+
+    inline constexpr Rank& operator++(Rank& rank) {
+        rank = rank + 1;
+        return rank;
+    }
+
+    inline constexpr Rank& operator--(Rank& rank) {
+        rank = rank - 1;
+        return rank;
+    }
+
+    enum class File { A, B, C, D, E, F, G, H };
+
+    inline constexpr bool operator<(File file, U8 other) {
+        return U8(file) < other;
+    }
+
+    inline constexpr bool operator<=(File file, U8 other) {
+        return U8(file) <= other;
+    }
+
+    inline constexpr bool operator==(File file, U8 other) {
+        return U8(file) == other;
+    }
+
+    inline constexpr bool operator!=(File file, U8 other) {
+        return U8(file) != other;
+    }
+
+    inline constexpr bool operator>=(File file, U8 other) {
+        return U8(file) >= other;
+    }
+
+    inline constexpr bool operator>(File file, U8 other) {
+        return U8(file) > other;
+    }
+
+    inline constexpr File operator+(File file, U8 other) {
+        return File(U8(file) + other);
+    }
+
+    inline constexpr File operator-(File file, U8 other) {
+        return File(U8(file) - other);
+    }
+
+    inline constexpr File& operator++(File& file) {
+        file = file + 1;
+        return file;
+    }
+
+    inline constexpr File& operator--(File& file) {
+        file = file - 1;
+        return file;
+    }
 
     template <Colour colour>
     struct EnemyColour;
@@ -152,53 +150,105 @@ namespace chess { namespace engine {
     struct Bitboard {
         struct Index {
             explicit constexpr Index(U8 in_data) noexcept : data(in_data) {}
+            constexpr Index(File file, Rank rank) noexcept : data(U8(rank) * CHESS_BOARD_WIDTH + U8(file)) {}
             constexpr Index() noexcept : data(0) {}
 
             U8 data;
 
-            inline constexpr bool operator<(Index other) {
+            inline constexpr bool operator<(Index other) const {
                 CHESS_ASSERT(other.data != 0);
                 return data < other.data;
             }
 
-            inline constexpr bool operator<=(Index other) {
+            inline constexpr bool operator<=(Index other) const {
                 return data <= other.data;
             }
 
-            inline constexpr bool operator==(Index other) {
+            inline constexpr bool operator==(Index other) const {
                 return data == other.data;
             }
 
-            inline constexpr bool operator>=(Index other) {
+            inline constexpr bool operator!=(Index other) const {
+                return data != other.data;
+            }
+
+            inline constexpr bool operator>=(Index other) const {
                 return data >= other.data;
             }
 
-            inline constexpr bool operator>(Index other) {
+            inline constexpr bool operator>(Index other) const {
                 return data > other.data;
             }
 
-            inline constexpr Bitboard::Index operator/(Bitboard::Index other) {
+            inline constexpr bool operator<(U8 other) const {
+                CHESS_ASSERT(other != 0);
+                return data < other;
+            }
+
+            inline constexpr bool operator<=(U8 other) const {
+                return data <= other;
+            }
+
+            inline constexpr bool operator==(U8 other) const {
+                return data == other;
+            }
+
+            inline constexpr bool operator!=(U8 other) const {
+                return data != other;
+            }
+
+            inline constexpr bool operator>=(U8 other) const {
+                return data >= other;
+            }
+
+            inline constexpr bool operator>(U8 other) const {
+                return data > other;
+            }
+
+            inline constexpr Bitboard::Index operator/(Bitboard::Index other) const {
                 return Bitboard::Index(data / other.data);
             }
 
-            inline constexpr Bitboard::Index operator%(Bitboard::Index other) {
+            inline constexpr Bitboard::Index operator%(Bitboard::Index other) const {
                 return Bitboard::Index(data % other.data);
             }
 
-            inline constexpr Bitboard::Index operator+(Bitboard::Index other) {
+            inline constexpr Bitboard::Index& operator++() {
+                data = data + 1;
+                return *this;
+            }
+
+            inline constexpr Bitboard::Index operator+(Bitboard::Index other) const {
                 return Bitboard::Index(data + other.data);
             }
 
-            inline constexpr Bitboard::Index operator-(Bitboard::Index other) {
+            inline constexpr Bitboard::Index operator-(Bitboard::Index other) const {
                 return Bitboard::Index(data - other.data);
             }
 
-            explicit inline constexpr operator U8() {
+            inline constexpr Bitboard::Index operator+(U8 other) const {
+                return Bitboard::Index(data + other);
+            }
+
+            inline constexpr Bitboard::Index operator-(U8 other) const {
+                return Bitboard::Index(data - other);
+            }
+
+            explicit inline constexpr operator U8() const {
                 return data;
+            }
+
+            explicit inline constexpr operator Rank() const {
+                return Rank(data / CHESS_BOARD_WIDTH);
+            }
+
+            explicit inline constexpr operator File() const {
+                return File(data % CHESS_BOARD_WIDTH);
             }
         };
 
         explicit constexpr Bitboard(Index index) noexcept : data(1ULL << index.data) {}
+        explicit constexpr Bitboard(File file, Rank rank) noexcept : Bitboard(Index(file, rank)) {}
         explicit constexpr Bitboard(U64 in_data) noexcept : data(in_data) {}
         constexpr Bitboard() noexcept : data(0) {}
 
@@ -415,41 +465,35 @@ namespace chess { namespace engine {
     extern bool redo(Game* game);
 // #endregion
 
-    extern bool is_light_cell(U8 file, U8 rank);
+    extern bool is_light_cell(File file, Rank rank);
 
     template <Colour colour>
-    constexpr U8 front_rank() {
+    constexpr Rank front_rank() {
         if constexpr (colour == Colour::Black) {
-            return RANK_1;
+            return Rank::One;
         } else {
-            return RANK_8;
+            return Rank::Eight;
         }
     }
 
     template <Colour colour>
-    constexpr U8 rear_rank() {
+    constexpr Rank rear_rank() {
         if constexpr (colour == Colour::Black) {
-            return RANK_8;
+            return Rank::Eight;
         } else {
-            return RANK_1;
+            return Rank::One;
         }
     }
 
-    extern bool is_rank(Bitboard bitboard, U8 rank);
-    extern bool is_rank(Bitboard::Index index, U8 rank);
-    extern bool is_file(Bitboard bitboard, U8 file);
-    extern bool is_file(Bitboard::Index index, U8 file);
-    extern U8 flip_rank(U8 rank);
+    extern bool is_rank(Bitboard bitboard, Rank rank);
+    extern bool is_rank(Bitboard::Index index, Rank rank);
+    extern bool is_file(Bitboard bitboard, File file);
+    extern bool is_file(Bitboard::Index index, File file);
+    extern Rank flip_rank(Rank rank);
     extern Bitboard::Index flip_rank(Bitboard::Index index);
-    extern U8 get_rank(Bitboard::Index index);
-    extern U8 get_file(Bitboard::Index index);
 
-    inline constexpr Bitboard::Index coordinate(U8 file, U8 rank) {
-        return Bitboard::Index(rank * CHESS_BOARD_WIDTH + file);
-    }
-
-    inline constexpr Bitboard::Index coordinate_with_flipped_rank(U8 file, U8 rank) {
-        return coordinate(file, flip_rank(rank));
+    inline constexpr Bitboard::Index coordinate_with_flipped_rank(File file, Rank rank) {
+        return Bitboard::Index(file, flip_rank(rank));
     }
 
     template <Colour colour>
@@ -465,7 +509,7 @@ namespace chess { namespace engine {
     extern Bitboard::Index move_west(Bitboard::Index index);
     extern Bitboard::Index move_north_west(Bitboard::Index index);
     template <Colour colour>
-    extern U8 move_rank_forward(U8 rank);
+    extern Rank move_rank_forward(Rank rank);
     template <Colour colour>
-    extern U8 move_rank_backward(U8 rank);
+    extern Rank move_rank_backward(Rank rank);
 }}
