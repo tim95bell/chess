@@ -103,8 +103,12 @@ namespace chess { namespace app {
                     app->promotion_dialog = false;
                 }
             } else if (pos.x > undo_button_x && pos.x < undo_button_x + button_width && pos.y > undo_redo_button_y && pos.y < undo_redo_button_y + button_height) {
+                app->cell_is_selected = false;
+                app->promotion_dialog = false;
                 engine::undo(&app->game);
             } else if (pos.x > redo_button_x && pos.x < redo_button_x + button_width && pos.y > undo_redo_button_y && pos.y < undo_redo_button_y + button_height) {
+                app->cell_is_selected = false;
+                app->promotion_dialog = false;
                 engine::redo(&app->game);
             } else if (pos.x > board_x && pos.x < board_x + CHESS_UI_BOARD_SIZE
                 && pos.y > board_y && pos.y < board_y + CHESS_UI_BOARD_SIZE) {

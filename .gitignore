@@ -5,6 +5,7 @@ libs/
 TODO.txt
 
 .DS_Store
+.vscode
 
 # Prerequisites
 *.d

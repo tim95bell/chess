@@ -302,40 +302,40 @@ namespace chess { namespace engine {
         return Bitboard(n) | nth_bit(args...);
     }
 
-    constexpr Bitboard move_north(Bitboard bitboard) {
+    inline constexpr Bitboard move_north(Bitboard bitboard) {
         return Bitboard(bitboard.data << CHESS_BOARD_WIDTH);
     }
 
-    constexpr Bitboard move_north_east(Bitboard bitboard) {
+    inline constexpr Bitboard move_north_east(Bitboard bitboard) {
         return Bitboard(bitboard.data << (CHESS_BOARD_WIDTH + 1));
     }
 
-    constexpr Bitboard move_east(Bitboard bitboard) {
+    inline constexpr Bitboard move_east(Bitboard bitboard) {
         return Bitboard(bitboard.data << 1);
     }
 
-    constexpr Bitboard move_south_east(Bitboard bitboard) {
+    inline constexpr Bitboard move_south_east(Bitboard bitboard) {
         return Bitboard(bitboard.data >> (CHESS_BOARD_WIDTH - 1));
     }
 
-    constexpr Bitboard move_south(Bitboard bitboard) {
+    inline constexpr Bitboard move_south(Bitboard bitboard) {
         return Bitboard(bitboard.data >> CHESS_BOARD_WIDTH);
     }
 
-    constexpr Bitboard move_south_west(Bitboard bitboard) {
+    inline constexpr Bitboard move_south_west(Bitboard bitboard) {
         return Bitboard(bitboard.data >> (CHESS_BOARD_WIDTH + 1));
     }
 
-    constexpr Bitboard move_west(Bitboard bitboard) {
+    inline constexpr Bitboard move_west(Bitboard bitboard) {
         return Bitboard(bitboard.data >> 1);
     }
 
-    constexpr Bitboard move_north_west(Bitboard bitboard) {
+    inline constexpr Bitboard move_north_west(Bitboard bitboard) {
         return Bitboard(bitboard.data << (CHESS_BOARD_WIDTH - 1));
     }
 
     template <Colour colour>
-    constexpr Bitboard move_forward(Bitboard bitboard) {
+    inline constexpr Bitboard move_forward(Bitboard bitboard) {
         if constexpr (colour == Colour::Black) {
             return move_south(bitboard);
         } else {
@@ -344,14 +344,14 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    constexpr Bitboard move_backward(Bitboard bitboard) {
+    inline constexpr Bitboard move_backward(Bitboard bitboard) {
         if constexpr (colour == Colour::Black) {
             return move_north(bitboard);
         } else {
             return move_south(bitboard);
         }
     }
-// #endregion
+    // #endregion
 
     struct Cache {
         Cache() noexcept;
@@ -385,20 +385,9 @@ namespace chess { namespace engine {
     }
     // #endregion
 
-    struct Move {
-        Bitboard::Index from;
-        Bitboard::Index to;
-        // taken piece type is filled in by perform_move
-        CompressedTakenAndPromotionPieceType compressed_taken_and_promotion_piece_type;
-        bool in_check : 1;
-        bool white_can_never_castle_short : 1;
-        bool white_can_never_castle_long : 1;
-        bool black_can_never_castle_short : 1;
-        bool black_can_never_castle_long : 1;
-        bool can_en_passant : 1;
-    };
+    // #region Game
+    struct Move;
 
-// #region Game
     struct Game {
         Game();
         ~Game();
@@ -481,14 +470,53 @@ namespace chess { namespace engine {
     extern const Bitboard* get_friendly_bitboard(const Game* game, Bitboard bitboard);
     template <Colour colour>
     extern Bitboard* get_friendly_bitboard(Game* game, Bitboard bitboard);
-    extern Bitboard get_moves(const Game* game, Bitboard::Index index);
+    extern Bitboard get_moves(Game* game, Bitboard::Index index);
     extern bool move(Game* game, Bitboard::Index from, Bitboard::Index to);
     extern bool move_and_promote(Game* game, Bitboard::Index from, Bitboard::Index to, Piece::Type promotion_piece);
     extern bool can_undo(const Game* game);
     extern bool can_redo(const Game* game);
     extern bool undo(Game* game);
     extern bool redo(Game* game);
-// #endregion
+    // #endregion
+
+    struct Move {
+        Move(const Game* game, Bitboard::Index in_from, Bitboard::Index in_to) noexcept
+            : from(in_from)
+            , to(in_to)
+            , compressed_taken_and_promotion_piece_type(CompressedTakenAndPromotionPieceType())
+            // TODO(TB): set in_check correctly
+            , in_check(false)
+            , white_can_never_castle_short(game->white_can_never_castle_short)
+            , white_can_never_castle_long(game->white_can_never_castle_long)
+            , black_can_never_castle_short(game->black_can_never_castle_short)
+            , black_can_never_castle_long(game->black_can_never_castle_long)
+            , can_en_passant(game->can_en_passant)
+        {}
+
+        Move(const Game* game, Bitboard::Index in_from, Bitboard::Index in_to, Piece::Type promotion_piece_type) noexcept
+            : from(in_from)
+            , to(in_to)
+            , compressed_taken_and_promotion_piece_type(Piece::Type::Empty, promotion_piece_type)
+            // TODO(TB): set in_check correctly
+            , in_check(false)
+            , white_can_never_castle_short(game->white_can_never_castle_short)
+            , white_can_never_castle_long(game->white_can_never_castle_long)
+            , black_can_never_castle_short(game->black_can_never_castle_short)
+            , black_can_never_castle_long(game->black_can_never_castle_long)
+            , can_en_passant(game->can_en_passant)
+        {}
+
+        Bitboard::Index from;
+        Bitboard::Index to;
+        // taken piece type is filled in by function move
+        CompressedTakenAndPromotionPieceType compressed_taken_and_promotion_piece_type;
+        bool in_check : 1;
+        bool white_can_never_castle_short : 1;
+        bool white_can_never_castle_long : 1;
+        bool black_can_never_castle_short : 1;
+        bool black_can_never_castle_long : 1;
+        bool can_en_passant : 1;
+    };
 
     extern bool is_light_cell(File file, Rank rank);
 
@@ -521,20 +549,71 @@ namespace chess { namespace engine {
         return Bitboard::Index(file, flip_rank(rank));
     }
 
+    inline constexpr Bitboard::Index move_north(Bitboard::Index index) {
+        return index + CHESS_BOARD_WIDTH;
+    }
+
+    inline constexpr Bitboard::Index move_north_east(Bitboard::Index index) {
+        return index + (CHESS_BOARD_WIDTH + 1);
+    }
+
+    inline constexpr Bitboard::Index move_east(Bitboard::Index index) {
+        return index + 1;
+    }
+
+    inline constexpr Bitboard::Index move_south_east(Bitboard::Index index) {
+        return index - (CHESS_BOARD_WIDTH - 1);
+    }
+
+    inline constexpr Bitboard::Index move_south(Bitboard::Index index) {
+        return index - CHESS_BOARD_WIDTH;
+    }
+
+    inline constexpr Bitboard::Index move_south_west(Bitboard::Index index) {
+        return index - (CHESS_BOARD_WIDTH + 1);
+    }
+
+    inline constexpr Bitboard::Index move_west(Bitboard::Index index) {
+        return index - 1;
+    }
+
+    inline constexpr Bitboard::Index move_north_west(Bitboard::Index index) {
+        return index + (CHESS_BOARD_WIDTH - 1);
+    }
+
     template <Colour colour>
-    extern Bitboard::Index move_forward(Bitboard::Index index);
+    inline constexpr Bitboard::Index move_forward(Bitboard::Index index) {
+        if constexpr (colour == Colour::Black) {
+            return move_south(index);
+        } else {
+            return move_north(index);
+        }
+    }
+
     template <Colour colour>
-    extern Bitboard::Index move_backward(Bitboard::Index index);
-    extern Bitboard::Index move_north(Bitboard::Index index);
-    extern Bitboard::Index move_north_east(Bitboard::Index index);
-    extern Bitboard::Index move_east(Bitboard::Index index);
-    extern Bitboard::Index move_south_east(Bitboard::Index index);
-    extern Bitboard::Index move_south(Bitboard::Index index);
-    extern Bitboard::Index move_south_west(Bitboard::Index index);
-    extern Bitboard::Index move_west(Bitboard::Index index);
-    extern Bitboard::Index move_north_west(Bitboard::Index index);
+    inline constexpr Bitboard::Index move_backward(Bitboard::Index index) {
+        if constexpr (colour == Colour::Black) {
+            return move_north(index);
+        } else {
+            return move_south(index);
+        }
+    }
+
     template <Colour colour>
-    extern Rank move_rank_forward(Rank rank);
+    inline constexpr Rank move_rank_forward(Rank rank) {
+        if constexpr (colour == Colour::Black) {
+            return Rank(U8(rank) - 1);
+        } else {
+            return Rank(U8(rank) + 1);
+        }
+    }
+
     template <Colour colour>
-    extern Rank move_rank_backward(Rank rank);
+    inline constexpr Rank move_rank_backward(Rank rank) {
+        if constexpr (colour == Colour::Black) {
+            return Rank(U8(rank) + 1);
+        } else {
+            return Rank(U8(rank) - 1);
+        }
+    }
 }}
