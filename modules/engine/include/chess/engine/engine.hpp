@@ -4,6 +4,10 @@
 #include <chess/common/number_types.hpp>
 #include <chess/common/assert.hpp>
 
+#if CHESS_DEBUG
+#include <string>
+#endif
+
 /*
 
 rnbqkbnr
@@ -385,6 +389,32 @@ namespace chess { namespace engine {
     }
     // #endregion
 
+    struct PerftResult {
+        U64 nodes;
+        U64 captures;
+        U64 en_passant;
+        U64 castles;
+        U64 promotions;
+        U64 checks;
+        U64 discovery_checks;
+        U64 double_checks;
+        U64 checkmates;
+
+        PerftResult operator+(PerftResult other) const {
+            return PerftResult{
+                nodes + other.nodes,
+                captures + other.captures,
+                en_passant + other.en_passant,
+                castles + other.castles,
+                promotions + other.promotions,
+                checks + other.checks,
+                discovery_checks + other.discovery_checks,
+                double_checks + other.double_checks,
+                checkmates + other.checkmates
+            };
+        }
+    };
+
     // #region Game
     struct Move;
 
@@ -477,6 +507,11 @@ namespace chess { namespace engine {
     extern bool can_redo(const Game* game);
     extern bool undo(Game* game);
     extern bool redo(Game* game);
+    extern PerftResult perft(Game* game, U8 depth);
+#if CHESS_DEBUG
+    extern std::string string_move(Move move);
+    extern void print_board(const Game* game);
+#endif
     // #endregion
 
     struct Move {

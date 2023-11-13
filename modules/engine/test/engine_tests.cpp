@@ -88,44 +88,6 @@ namespace chess { namespace engine {
         R, N, B, Q, K, B, N, R
     };
 
-    static void print_board(const Game* game) {
-        for (Rank rank = Rank::Eight; rank < CHESS_BOARD_HEIGHT; --rank) {
-            for (File file = File::A; file < CHESS_BOARD_WIDTH; ++file) {
-                const Bitboard bitboard(file, rank);
-                if (has_friendly_pawn<Colour::White>(game, bitboard)) {
-                    std::cout << "P";
-                } else if (has_friendly_knight<Colour::White>(game, bitboard)) {
-                    std::cout << "N";
-                } else if (has_friendly_bishop<Colour::White>(game, bitboard)) {
-                    std::cout << "B";
-                } else if (has_friendly_rook<Colour::White>(game, bitboard)) {
-                    std::cout << "R";
-                } else if (has_friendly_queen<Colour::White>(game, bitboard)) {
-                    std::cout << "Q";
-                } else if (has_friendly_king<Colour::White>(game, bitboard)) {
-                    std::cout << "K";
-                } else if (has_friendly_pawn<Colour::Black>(game, bitboard)) {
-                    std::cout << "p";
-                } else if (has_friendly_knight<Colour::Black>(game, bitboard)) {
-                    std::cout << "n";
-                } else if (has_friendly_bishop<Colour::Black>(game, bitboard)) {
-                    std::cout << "b";
-                } else if (has_friendly_rook<Colour::Black>(game, bitboard)) {
-                    std::cout << "r";
-                } else if (has_friendly_queen<Colour::Black>(game, bitboard)) {
-                    std::cout << "q";
-                } else if (has_friendly_king<Colour::Black>(game, bitboard)) {
-                    std::cout << "k";
-                } else {
-                    std::cout << ".";
-                }
-                std::cout << "\t";
-            }
-            std::cout << std::endl;
-        }
-        std::cout << std::endl << "-----------" << std::endl;
-    }
-
     TEST_CASE("starting position", "[engine]") {
         Game game;
         CHECK(game.can_en_passant == false);
@@ -810,7 +772,28 @@ namespace chess { namespace engine {
 
         SECTION("E2 to E4, D7 to D5, E4 to D5") {
             CHECK(move(&game, Bitboard::Index(File::E, Rank::Two), Bitboard::Index(File::E, Rank::Four)));
+            check_pieces(&game, {
+                r, n, b, q, k, b, n, r,
+                p, p, p, p, p, p, p, p,
+                E, E, E, E, E, E, E, E,
+                E, E, E, E, E, E, E, E,
+                E, E, E, E, P, E, E, E,
+                E, E, E, E, E, E, E, E,
+                P, P, P, P, E, P, P, P,
+                R, N, B, Q, K, B, N, R
+            });
             CHECK(move(&game, Bitboard::Index(File::D, Rank::Seven), Bitboard::Index(File::D, Rank::Five)));
+            check_pieces(&game, {
+                r, n, b, q, k, b, n, r,
+                p, p, p, E, p, p, p, p,
+                E, E, E, E, E, E, E, E,
+                E, E, E, p, E, E, E, E,
+                E, E, E, E, P, E, E, E,
+                E, E, E, E, E, E, E, E,
+                P, P, P, P, E, P, P, P,
+                R, N, B, Q, K, B, N, R
+            });
+            
             CHECK(move(&game, Bitboard::Index(File::E, Rank::Four), Bitboard::Index(File::D, Rank::Five)));
 
             CHECK(game.can_en_passant == false);
@@ -886,6 +869,31 @@ namespace chess { namespace engine {
                 P, P, P, P, E, P, P, P,
                 R, N, B, Q, K, B, N, R
             });
+        }
+    }
+
+    TEST_CASE("perft", "[engine]") {
+        Game game;
+
+        SECTION("initial position, depth 1") {
+            PerftResult result = perft(&game, 1);
+            CHECK(result.nodes == 20);
+            CHECK(result.captures == 0);
+            CHECK(result.checks == 0);
+        }
+
+        SECTION("initial position, depth 2") {
+            PerftResult result = perft(&game, 2);
+            CHECK(result.nodes == 400);
+            CHECK(result.captures == 0);
+            CHECK(result.checks == 0);
+        }
+
+        SECTION("initial position, depth 3") {
+            PerftResult result = perft(&game, 3);
+            CHECK(result.nodes == 8902);
+            CHECK(result.captures == 34);
+            CHECK(result.checks == 12);
         }
     }
 }}
