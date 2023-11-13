@@ -11,28 +11,6 @@
 namespace chess { namespace engine {
     // #region internal
     // TODO(TB): bitboard_rank and bitboard_file will make it hard to inline functions using these in different compilation units?
-    static constexpr Bitboard bitboard_file[CHESS_BOARD_WIDTH]{
-        nth_bit(Bitboard::Index(File::A, Rank::One), Bitboard::Index(File::A, Rank::Two), Bitboard::Index(File::A, Rank::Three), Bitboard::Index(File::A, Rank::Four), Bitboard::Index(File::A, Rank::Five), Bitboard::Index(File::A, Rank::Six), Bitboard::Index(File::A, Rank::Seven), Bitboard::Index(File::A, Rank::Eight)),
-        nth_bit(Bitboard::Index(File::B, Rank::One), Bitboard::Index(File::B, Rank::Two), Bitboard::Index(File::B, Rank::Three), Bitboard::Index(File::B, Rank::Four), Bitboard::Index(File::B, Rank::Five), Bitboard::Index(File::B, Rank::Six), Bitboard::Index(File::B, Rank::Seven), Bitboard::Index(File::B, Rank::Eight)),
-        nth_bit(Bitboard::Index(File::C, Rank::One), Bitboard::Index(File::C, Rank::Two), Bitboard::Index(File::C, Rank::Three), Bitboard::Index(File::C, Rank::Four), Bitboard::Index(File::C, Rank::Five), Bitboard::Index(File::C, Rank::Six), Bitboard::Index(File::C, Rank::Seven), Bitboard::Index(File::C, Rank::Eight)),
-        nth_bit(Bitboard::Index(File::D, Rank::One), Bitboard::Index(File::D, Rank::Two), Bitboard::Index(File::D, Rank::Three), Bitboard::Index(File::D, Rank::Four), Bitboard::Index(File::D, Rank::Five), Bitboard::Index(File::D, Rank::Six), Bitboard::Index(File::D, Rank::Seven), Bitboard::Index(File::D, Rank::Eight)),
-        nth_bit(Bitboard::Index(File::E, Rank::One), Bitboard::Index(File::E, Rank::Two), Bitboard::Index(File::E, Rank::Three), Bitboard::Index(File::E, Rank::Four), Bitboard::Index(File::E, Rank::Five), Bitboard::Index(File::E, Rank::Six), Bitboard::Index(File::E, Rank::Seven), Bitboard::Index(File::E, Rank::Eight)),
-        nth_bit(Bitboard::Index(File::F, Rank::One), Bitboard::Index(File::F, Rank::Two), Bitboard::Index(File::F, Rank::Three), Bitboard::Index(File::F, Rank::Four), Bitboard::Index(File::F, Rank::Five), Bitboard::Index(File::F, Rank::Six), Bitboard::Index(File::F, Rank::Seven), Bitboard::Index(File::F, Rank::Eight)),
-        nth_bit(Bitboard::Index(File::G, Rank::One), Bitboard::Index(File::G, Rank::Two), Bitboard::Index(File::G, Rank::Three), Bitboard::Index(File::G, Rank::Four), Bitboard::Index(File::G, Rank::Five), Bitboard::Index(File::G, Rank::Six), Bitboard::Index(File::G, Rank::Seven), Bitboard::Index(File::G, Rank::Eight)),
-        nth_bit(Bitboard::Index(File::H, Rank::One), Bitboard::Index(File::H, Rank::Two), Bitboard::Index(File::H, Rank::Three), Bitboard::Index(File::H, Rank::Four), Bitboard::Index(File::H, Rank::Five), Bitboard::Index(File::H, Rank::Six), Bitboard::Index(File::H, Rank::Seven), Bitboard::Index(File::H, Rank::Eight))
-    };
-
-    static constexpr Bitboard bitboard_rank[CHESS_BOARD_HEIGHT]{
-        nth_bit(Bitboard::Index(File::A, Rank::One), Bitboard::Index(File::B, Rank::One), Bitboard::Index(File::C, Rank::One), Bitboard::Index(File::D, Rank::One), Bitboard::Index(File::E, Rank::One), Bitboard::Index(File::F, Rank::One), Bitboard::Index(File::G, Rank::One), Bitboard::Index(File::H, Rank::One)),
-        nth_bit(Bitboard::Index(File::A, Rank::Two), Bitboard::Index(File::B, Rank::Two), Bitboard::Index(File::C, Rank::Two), Bitboard::Index(File::D, Rank::Two), Bitboard::Index(File::E, Rank::Two), Bitboard::Index(File::F, Rank::Two), Bitboard::Index(File::G, Rank::Two), Bitboard::Index(File::H, Rank::Two)),
-        nth_bit(Bitboard::Index(File::A, Rank::Three), Bitboard::Index(File::B, Rank::Three), Bitboard::Index(File::C, Rank::Three), Bitboard::Index(File::D, Rank::Three), Bitboard::Index(File::E, Rank::Three), Bitboard::Index(File::F, Rank::Three), Bitboard::Index(File::G, Rank::Three), Bitboard::Index(File::H, Rank::Three)),
-        nth_bit(Bitboard::Index(File::A, Rank::Four), Bitboard::Index(File::B, Rank::Four), Bitboard::Index(File::C, Rank::Four), Bitboard::Index(File::D, Rank::Four), Bitboard::Index(File::E, Rank::Four), Bitboard::Index(File::F, Rank::Four), Bitboard::Index(File::G, Rank::Four), Bitboard::Index(File::H, Rank::Four)),
-        nth_bit(Bitboard::Index(File::A, Rank::Five), Bitboard::Index(File::B, Rank::Five), Bitboard::Index(File::C, Rank::Five), Bitboard::Index(File::D, Rank::Five), Bitboard::Index(File::E, Rank::Five), Bitboard::Index(File::F, Rank::Five), Bitboard::Index(File::G, Rank::Five), Bitboard::Index(File::H, Rank::Five)),
-        nth_bit(Bitboard::Index(File::A, Rank::Six), Bitboard::Index(File::B, Rank::Six), Bitboard::Index(File::C, Rank::Six), Bitboard::Index(File::D, Rank::Six), Bitboard::Index(File::E, Rank::Six), Bitboard::Index(File::F, Rank::Six), Bitboard::Index(File::G, Rank::Six), Bitboard::Index(File::H, Rank::Six)),
-        nth_bit(Bitboard::Index(File::A, Rank::Seven), Bitboard::Index(File::B, Rank::Seven), Bitboard::Index(File::C, Rank::Seven), Bitboard::Index(File::D, Rank::Seven), Bitboard::Index(File::E, Rank::Seven), Bitboard::Index(File::F, Rank::Seven), Bitboard::Index(File::G, Rank::Seven), Bitboard::Index(File::H, Rank::Seven)),
-        nth_bit(Bitboard::Index(File::A, Rank::Eight), Bitboard::Index(File::B, Rank::Eight), Bitboard::Index(File::C, Rank::Eight), Bitboard::Index(File::D, Rank::Eight), Bitboard::Index(File::E, Rank::Eight), Bitboard::Index(File::F, Rank::Eight), Bitboard::Index(File::G, Rank::Eight), Bitboard::Index(File::H, Rank::Eight))
-    };
-
     static void add_move(Game* game, Move move) {
         if (game->moves_index >= game->moves_allocated) {
             game->moves_allocated = game->moves_allocated * 2;
@@ -103,7 +81,7 @@ namespace chess { namespace engine {
         const Bitboard enemy_pieces = get_friendly_pieces<EnemyColour<colour>::colour>(game);
         const Bitboard all_pieces_complement = ~(get_friendly_pieces<colour>(game) | enemy_pieces);
         result = result & all_pieces_complement;
-        result |= move_forward<colour>(result) & bitboard_rank[U8(move_rank_forward<colour>(move_rank_forward<colour>(move_rank_forward<colour>(rear_rank<colour>()))))] & all_pieces_complement;
+        result |= move_forward<colour>(result) & bitboard_rank[U8(move_forward<colour>(move_forward<colour>(move_forward<colour>(rear_rank<colour>()))))] & all_pieces_complement;
 
         Bitboard en_passant_square(U64(game->can_en_passant) << U8(game->en_passant_square));
         result |= get_pawn_attack_moves_moves<colour>(game, bitboard) & (en_passant_square | enemy_pieces);
@@ -144,28 +122,28 @@ namespace chess { namespace engine {
         Bitboard temp_result;
 
         temp_result = bitboard;
-        for (U8 i = 0; i < (CHESS_BOARD_WIDTH - 1); ++i) {
+        for (U8 i = 0; i < (chess_board_edge_size - 1); ++i) {
             temp_result = move_north_east(temp_result) & friendly_pieces_and_file_a_complement;
             result |= temp_result;
             temp_result &= ~enemy_pieces;
         }
 
         temp_result = bitboard;
-        for (U8 i = 0; i < (CHESS_BOARD_WIDTH - 1); ++i) {
+        for (U8 i = 0; i < (chess_board_edge_size - 1); ++i) {
             temp_result = move_south_east(temp_result) & friendly_pieces_and_file_a_complement;
             result |= temp_result;
             temp_result &= ~enemy_pieces;
         }
 
         temp_result = bitboard;
-        for (U8 i = 0; i < (CHESS_BOARD_WIDTH - 1); ++i) {
+        for (U8 i = 0; i < (chess_board_edge_size - 1); ++i) {
             temp_result = move_south_west(temp_result) & friendly_pieces_and_file_h_complement;
             result |= temp_result;
             temp_result &= ~enemy_pieces;
         }
 
         temp_result = bitboard;
-        for (U8 i = 0; i < (CHESS_BOARD_WIDTH - 1); ++i) {
+        for (U8 i = 0; i < (chess_board_edge_size - 1); ++i) {
             temp_result = move_north_west(temp_result) & friendly_pieces_and_file_h_complement;
             result |= temp_result;
             temp_result &= ~enemy_pieces;
@@ -184,28 +162,28 @@ namespace chess { namespace engine {
         Bitboard temp_result;
 
         temp_result = bitboard;
-        for (U8 i = 0; i < (CHESS_BOARD_WIDTH - 1); ++i) {
+        for (U8 i = 0; i < (chess_board_edge_size - 1); ++i) {
             temp_result = move_east(temp_result) & ~(friendly_pieces | bitboard_file[U8(File::A)]);
             result |= temp_result;
             temp_result &= ~enemy_pieces;
         }
 
         temp_result = bitboard;
-        for (U8 i = 0; i < (CHESS_BOARD_WIDTH - 1); ++i) {
+        for (U8 i = 0; i < (chess_board_edge_size - 1); ++i) {
             temp_result = move_south(temp_result) & ~friendly_pieces;
             result |= temp_result;
             temp_result &= ~enemy_pieces;
         }
 
         temp_result = bitboard;
-        for (U8 i = 0; i < (CHESS_BOARD_WIDTH - 1); ++i) {
+        for (U8 i = 0; i < (chess_board_edge_size - 1); ++i) {
             temp_result = move_west(temp_result) & ~(friendly_pieces | bitboard_file[U8(File::H)]);
             result |= temp_result;
             temp_result &= ~enemy_pieces;
         }
 
         temp_result = bitboard;
-        for (U8 i = 0; i < (CHESS_BOARD_WIDTH - 1); ++i) {
+        for (U8 i = 0; i < (chess_board_edge_size - 1); ++i) {
             temp_result = move_north(temp_result) & ~friendly_pieces;
             result |= temp_result;
             temp_result &= ~enemy_pieces;
@@ -281,7 +259,7 @@ namespace chess { namespace engine {
         const Bitboard all_friendly_pieces = get_friendly_pieces<colour>(game);
         const Bitboard all_enemy_pieces = get_friendly_pieces<EnemyColour<colour>::colour>(game);
         const Bitboard all_pieces = all_friendly_pieces | all_enemy_pieces;
-        const Piece::Type promotion_piece_type = is_rank(index, move_rank_backward<colour>(front_rank<colour>())) ? Piece::Type::Queen : Piece::Type::Empty;
+        const Piece::Type promotion_piece_type = is_rank(index, move_backward<colour>(front_rank<colour>())) ? Piece::Type::Queen : Piece::Type::Empty;
         Bitboard result;
 
         Bitboard::Index move_index = move_forward<colour>(index);
@@ -290,7 +268,7 @@ namespace chess { namespace engine {
             result |= move_bitboard;
         }
 
-        if (move_bitboard && is_rank(index, move_rank_forward<colour>(rear_rank<colour>()))) {
+        if (move_bitboard && is_rank(index, move_forward<colour>(rear_rank<colour>()))) {
             move_index = move_forward<colour>(move_index);
             move_bitboard = move_forward<colour>(move_bitboard) & ~all_pieces;
             if (move_bitboard && !test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
@@ -662,7 +640,7 @@ namespace chess { namespace engine {
         // remove pawn that is being moved from 'from' cell
         *get_friendly_pawns<colour>(game) &= ~from_index_bitboard;
 
-        if (is_rank(from_index_bitboard, move_rank_backward<colour>(front_rank<colour>()))) {
+        if (is_rank(from_index_bitboard, move_backward<colour>(front_rank<colour>()))) {
             // pawn promotion move
 
             // remove enemy piece that is being captured at 'to' cell
@@ -937,25 +915,6 @@ namespace chess { namespace engine {
 
         return Bitboard();
     }
-    // #endregion
-
-    // #region Piece
-    Piece::Piece() noexcept
-        : colour(Colour::White)
-        , type(Type::Empty)
-    {}
-
-    Piece::Piece(Colour in_colour, Type in_type) noexcept
-        : colour(in_colour)
-        , type(in_type)
-    {}
-    // #endregion
-
-    // #region Cache
-    Cache::Cache() noexcept
-        : possible_moves{}
-        , possible_moves_calculated{0}
-    {}
     // #endregion
 
     // #region Game
@@ -1305,7 +1264,7 @@ namespace chess { namespace engine {
     }
 
     bool move(Game* game, Bitboard::Index from, Bitboard::Index to) {
-        if (from >= CHESS_BOARD_SIZE || to >= CHESS_BOARD_SIZE) {
+        if (from >= chess_board_size || to >= chess_board_size) {
             CHESS_ASSERT(false);
             return false;
         }
@@ -1314,7 +1273,7 @@ namespace chess { namespace engine {
     }
 
     bool move_and_promote(Game* game, Bitboard::Index from, Bitboard::Index to, Piece::Type promotion_piece) {
-        if (from >= CHESS_BOARD_SIZE || to >= CHESS_BOARD_SIZE || !(promotion_piece == Piece::Type::Knight || promotion_piece == Piece::Type::Bishop || promotion_piece == Piece::Type::Rook || promotion_piece == Piece::Type::Queen)) {
+        if (from >= chess_board_size || to >= chess_board_size || !(promotion_piece == Piece::Type::Knight || promotion_piece == Piece::Type::Bishop || promotion_piece == Piece::Type::Rook || promotion_piece == Piece::Type::Queen)) {
             CHESS_ASSERT(false);
             return false;
         }
@@ -1406,9 +1365,9 @@ namespace chess { namespace engine {
 
         PerftResult result{};
 
-        for (Bitboard::Index index; index < CHESS_BOARD_SIZE; ++index) {
+        for (Bitboard::Index index; index < chess_board_size; ++index) {
             const Bitboard moves = get_moves<colour>(game, index);
-            for (Bitboard::Index move_index; move_index < CHESS_BOARD_SIZE; ++move_index) {
+            for (Bitboard::Index move_index; move_index < chess_board_size; ++move_index) {
                 if (moves & Bitboard(move_index)) {
                     if (has_friendly_pawn<colour>(game, Bitboard(index)) && is_rank(move_index, front_rank<colour>())) {
                         {
@@ -1462,48 +1421,17 @@ namespace chess { namespace engine {
     }
     // #endregion
 
-    bool is_light_cell(File file, Rank rank) {
-        return U8(file) % 2 == 0 ? U8(rank) % 2 == 0 : U8(rank) % 2 != 0;
-    }
-
-    bool is_rank(Bitboard bitboard, Rank rank) {
-        // TODO(TB): make templated on rank?
-        return bitboard & bitboard_rank[U8(rank)];
-    }
-
-    bool is_rank(Bitboard::Index index, Rank rank) {
-        return Rank(index) == rank;
-    }
-
-    bool is_file(Bitboard bitboard, File file) {
-        return bitboard & bitboard_file[U8(file)];
-    }
-
-    bool is_file(Bitboard::Index index, File file) {
-        return File(index) == file;
-    }
-
-    Rank flip_rank(Rank rank) {
-        CHESS_ASSERT(U8(rank) < CHESS_BOARD_HEIGHT);
-        return Rank((CHESS_BOARD_HEIGHT - 1) - U8(rank));
-    }
-
-    Bitboard::Index flip_rank(Bitboard::Index index) {
-        return coordinate_with_flipped_rank(File(index), Rank(index));
-    }
-
     std::string string_move(Move move) {
-        char from_rank = '1' + (U8(move.from) / CHESS_BOARD_WIDTH);
-        char from_file = 'A' + (U8(move.from) % CHESS_BOARD_WIDTH);
-        char to_rank = '1' + (U8(move.to) / CHESS_BOARD_WIDTH);
-        char to_file = 'A' + (U8(move.to) % CHESS_BOARD_WIDTH);
+        char from_rank = '1' + (U8(move.from) / chess_board_edge_size);
+        char from_file = 'A' + (U8(move.from) % chess_board_edge_size);
+        char to_rank = '1' + (U8(move.to) / chess_board_edge_size);
+        char to_file = 'A' + (U8(move.to) % chess_board_edge_size);
         return std::string("Move ") + from_file + from_rank + " to " + to_file + to_rank;
-
     }
 
     void print_board(const Game* game) {
-        for (Rank rank = Rank::Eight; rank < CHESS_BOARD_HEIGHT; --rank) {
-            for (File file = File::A; file < CHESS_BOARD_WIDTH; ++file) {
+        for (Rank rank = Rank::Eight; rank < chess_board_edge_size; --rank) {
+            for (File file = File::A; file < chess_board_edge_size; ++file) {
                 const Bitboard bitboard(file, rank);
                 if (has_friendly_pawn<Colour::White>(game, bitboard)) {
                     std::cout << "P";

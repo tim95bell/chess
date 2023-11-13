@@ -24,7 +24,7 @@ namespace chess { namespace app {
 
     static constexpr U64 board_x = (CHESS_UI_WIDTH - CHESS_UI_BOARD_SIZE) / 2;
     static constexpr U64 board_y = (CHESS_UI_HEIGHT - CHESS_UI_BOARD_SIZE) / 2;
-    static constexpr U64 cell_size = CHESS_UI_BOARD_SIZE / CHESS_BOARD_WIDTH;
+    static constexpr U64 cell_size = CHESS_UI_BOARD_SIZE / engine::chess_board_edge_size;
     static constexpr U64 promotion_dialog_cell_size = std::min<U64>(cell_size, (CHESS_UI_HEIGHT - CHESS_UI_BOARD_SIZE) / 2);
     static constexpr U64 promotion_dialog_x = (CHESS_UI_WIDTH - promotion_dialog_cell_size * 4) / 2;
     static constexpr U64 promotion_dialog_y = 0;
@@ -142,8 +142,8 @@ namespace chess { namespace app {
         BeginDrawing();
         {
             ClearBackground(WHITE);
-            for (U8 y = 0; y < CHESS_BOARD_WIDTH; ++y) {
-                for (U8 x = 0; x < CHESS_BOARD_WIDTH; ++x) {
+            for (U8 y = 0; y < engine::chess_board_edge_size; ++y) {
+                for (U8 x = 0; x < engine::chess_board_edge_size; ++x) {
                     const engine::Bitboard::Index i = engine::coordinate_with_flipped_rank(engine::File(x), engine::Rank(y));
                     const bool light_square = engine::is_light_cell(engine::File(x), engine::Rank(y));
                     const Rectangle cell{static_cast<float>(board_x + x * cell_size), static_cast<float>(board_y + y * cell_size), static_cast<float>(cell_size), static_cast<float>(cell_size)};

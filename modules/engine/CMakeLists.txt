@@ -5,6 +5,8 @@ project(chess_engine VERSION 0.0.0 LANGUAGES CXX)
 
 set(
     include_files
+    include/chess/engine/base.hpp
+    include/chess/engine/Bitboard.hpp
     include/chess/engine/engine.hpp
 )
 

@@ -77,7 +77,7 @@ namespace chess { namespace engine {
     }
 
 
-    static std::array<Piece, CHESS_BOARD_SIZE> starting_position{
+    static std::array<Piece, chess_board_size> starting_position{
         r, n, b, q, k, b, n, r,
         p, p, p, p, p, p, p, p,
         E, E, E, E, E, E, E, E,
@@ -489,7 +489,7 @@ namespace chess { namespace engine {
 
     TEST_CASE("is_file", "[engine]") {
         SECTION("file A") {
-            const Bitboard::Index i = GENERATE(bitboard_index_range(Bitboard::Index(File::A, Rank::One), Bitboard::Index(File::A, Rank::Eight) + 1, CHESS_BOARD_WIDTH));
+            const Bitboard::Index i = GENERATE(bitboard_index_range(Bitboard::Index(File::A, Rank::One), Bitboard::Index(File::A, Rank::Eight) + 1, chess_board_edge_size));
             CHECK(is_file(i, File::A));
             CHECK(!is_file(i, File::B));
             CHECK(!is_file(i, File::C));
@@ -501,7 +501,7 @@ namespace chess { namespace engine {
         }
 
         SECTION("file B") {
-            const Bitboard::Index i = GENERATE(bitboard_index_range(Bitboard::Index(File::B, Rank::One), Bitboard::Index(File::B, Rank::Eight) + 1, CHESS_BOARD_WIDTH));
+            const Bitboard::Index i = GENERATE(bitboard_index_range(Bitboard::Index(File::B, Rank::One), Bitboard::Index(File::B, Rank::Eight) + 1, chess_board_edge_size));
             CHECK(!is_file(i, File::A));
             CHECK(is_file(i, File::B));
             CHECK(!is_file(i, File::C));
@@ -513,7 +513,7 @@ namespace chess { namespace engine {
         }
 
         SECTION("file C") {
-            const Bitboard::Index i = GENERATE(bitboard_index_range(Bitboard::Index(File::C, Rank::One), Bitboard::Index(File::C, Rank::Eight) + 1, CHESS_BOARD_WIDTH));
+            const Bitboard::Index i = GENERATE(bitboard_index_range(Bitboard::Index(File::C, Rank::One), Bitboard::Index(File::C, Rank::Eight) + 1, chess_board_edge_size));
             CHECK(!is_file(i, File::A));
             CHECK(!is_file(i, File::B));
             CHECK(is_file(i, File::C));
@@ -525,7 +525,7 @@ namespace chess { namespace engine {
         }
 
         SECTION("file D") {
-            const Bitboard::Index i = GENERATE(bitboard_index_range(Bitboard::Index(File::D, Rank::One), Bitboard::Index(File::D, Rank::Eight) + 1, CHESS_BOARD_WIDTH));
+            const Bitboard::Index i = GENERATE(bitboard_index_range(Bitboard::Index(File::D, Rank::One), Bitboard::Index(File::D, Rank::Eight) + 1, chess_board_edge_size));
             CHECK(!is_file(i, File::A));
             CHECK(!is_file(i, File::B));
             CHECK(!is_file(i, File::C));
@@ -537,7 +537,7 @@ namespace chess { namespace engine {
         }
 
         SECTION("file E") {
-            const Bitboard::Index i = GENERATE(bitboard_index_range(Bitboard::Index(File::E, Rank::One), Bitboard::Index(File::E, Rank::Eight) + 1, CHESS_BOARD_WIDTH));
+            const Bitboard::Index i = GENERATE(bitboard_index_range(Bitboard::Index(File::E, Rank::One), Bitboard::Index(File::E, Rank::Eight) + 1, chess_board_edge_size));
             CHECK(!is_file(i, File::A));
             CHECK(!is_file(i, File::B));
             CHECK(!is_file(i, File::C));
@@ -549,7 +549,7 @@ namespace chess { namespace engine {
         }
 
         SECTION("file F") {
-            const Bitboard::Index i = GENERATE(bitboard_index_range(Bitboard::Index(File::F, Rank::One), Bitboard::Index(File::F, Rank::Eight) + 1, CHESS_BOARD_WIDTH));
+            const Bitboard::Index i = GENERATE(bitboard_index_range(Bitboard::Index(File::F, Rank::One), Bitboard::Index(File::F, Rank::Eight) + 1, chess_board_edge_size));
             CHECK(!is_file(i, File::A));
             CHECK(!is_file(i, File::B));
             CHECK(!is_file(i, File::C));
@@ -561,7 +561,7 @@ namespace chess { namespace engine {
         }
 
         SECTION("file G") {
-            const Bitboard::Index i = GENERATE(bitboard_index_range(Bitboard::Index(File::G, Rank::One), Bitboard::Index(File::G, Rank::Eight) + 1, CHESS_BOARD_WIDTH));
+            const Bitboard::Index i = GENERATE(bitboard_index_range(Bitboard::Index(File::G, Rank::One), Bitboard::Index(File::G, Rank::Eight) + 1, chess_board_edge_size));
             CHECK(!is_file(i, File::A));
             CHECK(!is_file(i, File::B));
             CHECK(!is_file(i, File::C));
@@ -573,7 +573,7 @@ namespace chess { namespace engine {
         }
 
         SECTION("file H") {
-            const Bitboard::Index i = GENERATE(bitboard_index_range(Bitboard::Index(File::H, Rank::One), Bitboard::Index(File::H, Rank::Eight) + 1, CHESS_BOARD_WIDTH));
+            const Bitboard::Index i = GENERATE(bitboard_index_range(Bitboard::Index(File::H, Rank::One), Bitboard::Index(File::H, Rank::Eight) + 1, chess_board_edge_size));
             CHECK(!is_file(i, File::A));
             CHECK(!is_file(i, File::B));
             CHECK(!is_file(i, File::C));
@@ -659,7 +659,7 @@ namespace chess { namespace engine {
         CHECK(Bitboard::Index(File::H, Rank::Eight) == Bitboard::Index(File::H, Rank::Eight));
     }
 
-    void check_pieces(const Game* game, std::array<Piece, CHESS_BOARD_SIZE> pieces) {
+    void check_pieces(const Game* game, std::array<Piece, chess_board_size> pieces) {
         for (Bitboard::Index i = Bitboard::Index(); i < pieces.size(); ++i) {
             const Piece piece = get_piece(game, Bitboard(i));
             // flip rank as pieces array is written top to bottom to be viewed as text, but board starts at bottom left
