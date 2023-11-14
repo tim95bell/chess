@@ -772,6 +772,12 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
+    static inline void move_unchecked(Game* game, Move move) {
+        set_taken_piece_type(&move.compressed_taken_and_promotion_piece_type, perform_move<colour>(game, move));
+        add_move(game, move);
+    }
+
+    template <Colour colour>
     static inline bool move(Game* game, Move move) {
         const Bitboard possible_moves = get_moves(game, move.from);
         const Bitboard to_index_bitboard = Bitboard(move.to);
@@ -780,9 +786,7 @@ namespace chess { namespace engine {
             return false;
         }
 
-        set_taken_piece_type(&move.compressed_taken_and_promotion_piece_type, perform_move<colour>(game, move));
-
-        add_move(game, move);
+        move_unchecked<colour>(game, move);
 
         return true;
     }
@@ -1554,7 +1558,6 @@ namespace chess { namespace engine {
 
     template <Colour colour>
     static U64 fast_perft(Game* game, U8 depth) {
-        // TODO(TB): replace move with peform_move and undo with unperform_move
         U64 result = 0;
         for (Bitboard::Index index; index < chess_board_size; ++index) {
             const Bitboard moves = get_moves<colour>(game, index);
@@ -1565,7 +1568,7 @@ namespace chess { namespace engine {
                             ++result;
                         } else {
                             Move the_move(game, index, move_index, Piece::Type::Knight);
-                            move<colour>(game, the_move);
+                            move_unchecked<colour>(game, the_move);
                             result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
                             undo(game);
                         }
@@ -1574,7 +1577,7 @@ namespace chess { namespace engine {
                             ++result;
                         } else {
                             Move the_move(game, index, move_index, Piece::Type::Bishop);
-                            move<colour>(game, the_move);
+                            move_unchecked<colour>(game, the_move);
                             result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
                             undo(game);
                         }
@@ -1583,7 +1586,7 @@ namespace chess { namespace engine {
                             ++result;
                         } else {
                             Move the_move(game, index, move_index, Piece::Type::Rook);
-                            move<colour>(game, the_move);
+                            move_unchecked<colour>(game, the_move);
                             result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
                             undo(game);
                         }
@@ -1592,7 +1595,7 @@ namespace chess { namespace engine {
                             ++result;
                         } else {
                             Move the_move(game, index, move_index, Piece::Type::Queen);
-                            move<colour>(game, the_move);
+                            move_unchecked<colour>(game, the_move);
                             result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
                             undo(game);
                         }
@@ -1601,7 +1604,7 @@ namespace chess { namespace engine {
                             ++result;
                         } else {
                             Move the_move(game, index, move_index);
-                            move<colour>(game, the_move);
+                            move_unchecked<colour>(game, the_move);
                             result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
                             undo(game);
                         }
