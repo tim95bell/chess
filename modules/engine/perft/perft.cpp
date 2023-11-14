@@ -26,7 +26,7 @@ namespace chess {
             std::cout << "perft from initial position with depth=" << U64(depth) << std::endl;
             engine::Game game;
             Timer timer;
-            result = engine::fast_perft(&game, depth);
+            result = engine::fast_perft<false>(&game, depth);
         }
         if (result == expected) {
             std::cout << "SUCCESS: " << result << std::endl;

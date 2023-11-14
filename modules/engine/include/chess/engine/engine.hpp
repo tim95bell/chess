@@ -95,6 +95,28 @@ namespace chess { namespace engine {
     // #region Game
     struct Move;
 
+    struct PieceTypeAndIndex {
+        Piece::Type type;
+        Bitboard::Index index;
+    };
+
+    struct Game;
+
+    struct PieceList {
+        PieceList(const Game* game);
+
+        U8 white_size;
+        U8 black_size;
+        PieceTypeAndIndex white[16];
+        PieceTypeAndIndex black[16];
+    };
+
+    void add_piece(PieceList* piece_list, Piece piece, Bitboard::Index index);
+    template <Colour colour>
+    void add_piece(PieceList* piece_list, Piece::Type piece_type, Bitboard::Index index);
+    template <Colour colour>
+    void remove_piece(PieceList* piece_list, Bitboard::Index index);
+
     struct Game {
         Game();
         ~Game();
@@ -113,16 +135,17 @@ namespace chess { namespace engine {
         Bitboard black_kings;
         mutable Cache cache;
         Bitboard::Index en_passant_square;
+        PieceList piece_list;
+        U64 moves_allocated;
+        U64 moves_count;
+        U64 moves_index;
+        Move* moves;
         bool can_en_passant : 1;
         bool next_turn : 1;
         bool white_can_never_castle_short : 1;
         bool white_can_never_castle_long : 1;
         bool black_can_never_castle_short : 1;
         bool black_can_never_castle_long : 1;
-        U64 moves_allocated;
-        U64 moves_count;
-        U64 moves_index;
-        Move* moves;
     };
 
     struct Move {
@@ -225,6 +248,7 @@ namespace chess { namespace engine {
     extern bool redo(Game* game);
     extern bool load_fen(Game* game, const char* fen);
     extern PerftResult perft(Game* game, U8 depth);
+    template <bool divided = false>
     extern U64 fast_perft(Game* game, U8 depth);
 #if CHESS_DEBUG
     extern void string_move(Move move, char* buffer);

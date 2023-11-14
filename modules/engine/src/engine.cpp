@@ -6,10 +6,100 @@
 #include <cstdio>
 // TODO(TB): remove this
 #include <iostream>
+#include <algorithm>
 
 namespace chess { namespace engine {
     // #region internal
-    // TODO(TB): bitboard_rank and bitboard_file will make it hard to inline functions using these in different compilation units?
+    template <Colour colour>
+    static const PieceTypeAndIndex* get_piece_list(const Game* game) {
+        if constexpr (colour == Colour::Black) {
+            return game->piece_list.black;
+        } else {
+            return game->piece_list.white;
+        }
+    }
+
+    template <Colour colour>
+    static U8 get_piece_list_size(const Game* game) {
+        if constexpr (colour == Colour::Black) {
+            return game->piece_list.black_size;
+        } else {
+            return game->piece_list.white_size;
+        }
+    }
+
+
+    template <Colour colour>
+    static U8 get_piece_list_copy(const Game* game, PieceTypeAndIndex* result) {
+        const PieceTypeAndIndex* piece_list = get_piece_list<colour>(game);
+        const U8 size = get_piece_list_size<colour>(game);
+        memcpy(result, piece_list, size * sizeof(PieceTypeAndIndex));
+        return size;
+    }
+
+    template <Colour colour>
+    static void assert_piece_list_does_not_have(const Game* game, Bitboard::Index index) {
+        const U8 piece_list_size = get_piece_list_size<colour>(game);
+        const PieceTypeAndIndex* piece_list = get_piece_list<colour>(game);
+        U8 count = 0;
+        for (U8 i = 0; i < piece_list_size; ++i) {
+            if (piece_list[i].index == index) {
+                ++count;
+            }
+        }
+        CHESS_ASSERT(count == 0);
+    }
+
+    template <Colour colour>
+    static void assert_piece_list_has_one_of(const Game* game, Bitboard::Index index, Piece::Type piece_type) {
+        assert_piece_list_does_not_have<EnemyColour<colour>::colour>(game, index);
+        const U8 piece_list_size = get_piece_list_size<colour>(game);
+        const PieceTypeAndIndex* piece_list = get_piece_list<colour>(game);
+        U8 count = 0;
+        for (U8 i = 0; i < piece_list_size; ++i) {
+            if (piece_list[i].index == index) {
+                CHESS_ASSERT(piece_list[i].type == piece_type);
+                ++count;
+            }
+        }
+
+        CHESS_ASSERT(count == 1);
+    }
+
+    static void assert_piece_list_correctness(const Game* game) {
+        for (Bitboard::Index i; i < chess_board_size; ++i) {
+            Bitboard i_bitboard(i);
+            if (has_friendly_pawn<Colour::White>(game, i_bitboard)) {
+                assert_piece_list_has_one_of<Colour::White>(game, i, Piece::Type::Pawn);
+            } else if (has_friendly_knight<Colour::White>(game, i_bitboard)) {
+                assert_piece_list_has_one_of<Colour::White>(game, i, Piece::Type::Knight);
+            } else if (has_friendly_bishop<Colour::White>(game, i_bitboard)) {
+                assert_piece_list_has_one_of<Colour::White>(game, i, Piece::Type::Bishop);
+            } else if (has_friendly_rook<Colour::White>(game, i_bitboard)) {
+                assert_piece_list_has_one_of<Colour::White>(game, i, Piece::Type::Rook);
+            } else if (has_friendly_queen<Colour::White>(game, i_bitboard)) {
+                assert_piece_list_has_one_of<Colour::White>(game, i, Piece::Type::Queen);
+            } else if (has_friendly_king<Colour::White>(game, i_bitboard)) {
+                assert_piece_list_has_one_of<Colour::White>(game, i, Piece::Type::King);
+            } else if (has_friendly_pawn<Colour::Black>(game, i_bitboard)) {
+                assert_piece_list_has_one_of<Colour::Black>(game, i, Piece::Type::Pawn);
+            } else if (has_friendly_knight<Colour::Black>(game, i_bitboard)) {
+                assert_piece_list_has_one_of<Colour::Black>(game, i, Piece::Type::Knight);
+            } else if (has_friendly_bishop<Colour::Black>(game, i_bitboard)) {
+                assert_piece_list_has_one_of<Colour::Black>(game, i, Piece::Type::Bishop);
+            } else if (has_friendly_rook<Colour::Black>(game, i_bitboard)) {
+                assert_piece_list_has_one_of<Colour::Black>(game, i, Piece::Type::Rook);
+            } else if (has_friendly_queen<Colour::Black>(game, i_bitboard)) {
+                assert_piece_list_has_one_of<Colour::Black>(game, i, Piece::Type::Queen);
+            } else if (has_friendly_king<Colour::Black>(game, i_bitboard)) {
+                assert_piece_list_has_one_of<Colour::Black>(game, i, Piece::Type::King);
+            } else {
+                assert_piece_list_does_not_have<Colour::Black>(game, i);
+                assert_piece_list_does_not_have<Colour::White>(game, i);
+            }
+        }
+    }
+
     static void add_move(Game* game, Move move) {
         if (game->moves_index >= game->moves_allocated) {
             game->moves_allocated = game->moves_allocated * 2;
@@ -44,21 +134,37 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static inline Piece::Type remove_friendly_piece(Game* game, Bitboard index_bitboard) {
+    static inline Piece::Type remove_friendly_piece(Game* game, Bitboard::Index index) {
+        Bitboard index_bitboard(index);
         if (has_friendly_pawn<colour>(game, index_bitboard)) {
+            //assert_piece_list_correctness(game);
             *get_friendly_pawns<colour>(game) &= ~index_bitboard;
+            remove_piece<colour>(&game->piece_list, index);
+            //assert_piece_list_correctness(game);
             return Piece::Type::Pawn;
         } else if (has_friendly_knight<colour>(game, index_bitboard)) {
+            //assert_piece_list_correctness(game);
             *get_friendly_knights<colour>(game) &= ~index_bitboard;
+            remove_piece<colour>(&game->piece_list, index);
+            //assert_piece_list_correctness(game);
             return Piece::Type::Knight;
         } else if (has_friendly_bishop<colour>(game, index_bitboard)) {
+            //assert_piece_list_correctness(game);
             *get_friendly_bishops<colour>(game) &= ~index_bitboard;
+            remove_piece<colour>(&game->piece_list, index);
+            //assert_piece_list_correctness(game);
             return Piece::Type::Bishop;
         } else if (has_friendly_rook<colour>(game, index_bitboard)) {
+            //assert_piece_list_correctness(game);
             *get_friendly_rooks<colour>(game) &= ~index_bitboard;
+            remove_piece<colour>(&game->piece_list, index);
+            //assert_piece_list_correctness(game);
             return Piece::Type::Rook;
         } else if (has_friendly_queen<colour>(game, index_bitboard)) {
+            //assert_piece_list_correctness(game);
             *get_friendly_queens<colour>(game) &= ~index_bitboard;
+            remove_piece<colour>(&game->piece_list, index);
+            //assert_piece_list_correctness(game);
             return Piece::Type::Queen;
         } else {
             CHESS_ASSERT(!has_friendly_king<colour>(game, index_bitboard));
@@ -640,18 +746,24 @@ namespace chess { namespace engine {
         Piece::Type result = Piece::Type::Empty;
 
         // remove pawn that is being moved from 'from' cell
+        //assert_piece_list_correctness(game);
         *get_friendly_pawns<colour>(game) &= ~from_index_bitboard;
+        remove_piece<colour>(&game->piece_list, move.from);
+        //assert_piece_list_correctness(game);
 
         if (is_rank(from_index_bitboard, move_backward<colour>(front_rank<colour>()))) {
             // pawn promotion move
 
             // remove enemy piece that is being captured at 'to' cell
-            result = remove_friendly_piece<EnemyColour<colour>::colour>(game, to_index_bitboard);
+            result = remove_friendly_piece<EnemyColour<colour>::colour>(game, move.to);
 
             // add promotion piece at 'to' cell
             const Piece::Type promotion_piece = get_promotion_piece_type(move.compressed_taken_and_promotion_piece_type);
             CHESS_ASSERT(promotion_piece == Piece::Type::Knight || promotion_piece == Piece::Type::Bishop || promotion_piece == Piece::Type::Rook ||promotion_piece == Piece::Type::Queen);
+            //assert_piece_list_correctness(game);
             *get_friendly_bitboard<colour>(game, promotion_piece) |= to_index_bitboard;
+            add_piece<colour>(&game->piece_list, promotion_piece, move.to);
+            //assert_piece_list_correctness(game);
 
             // en passant not possible
             game->can_en_passant = false;
@@ -663,15 +775,21 @@ namespace chess { namespace engine {
 
             // remove taken piece, considering en passant
             if (game->can_en_passant && game->en_passant_square == move_backward<colour>(move.to)) {
+                //assert_piece_list_correctness(game);
                 *get_friendly_pawns<EnemyColour<colour>::colour>(game) &= ~Bitboard(game->en_passant_square);
+                remove_piece<EnemyColour<colour>::colour>(&game->piece_list, game->en_passant_square);
+                //assert_piece_list_correctness(game);
                 result = Piece::Type::Pawn;
             } else {
                 // remove enemy piece that is being captured at 'to' cell
-                result = remove_friendly_piece<EnemyColour<colour>::colour>(game, to_index_bitboard);
+                result = remove_friendly_piece<EnemyColour<colour>::colour>(game, move.to);
             }
 
             // add piece at 'to' cell
+            //assert_piece_list_correctness(game);
             *get_friendly_pawns<colour>(game) |= to_index_bitboard;
+            add_piece<colour>(&game->piece_list, Piece::Type::Pawn, move.to);
+            //assert_piece_list_correctness(game);
 
             // update information about en passant
             if (to_index_bitboard == move_forward<colour>(move_forward<colour>(from_index_bitboard))) {
@@ -690,25 +808,41 @@ namespace chess { namespace engine {
         CHESS_ASSERT(get_promotion_piece_type(move.compressed_taken_and_promotion_piece_type) == Piece::Type::Empty);
 
         // remove friendly king that is being moved from 'from' cell
+        //assert_piece_list_correctness(game);
         *get_friendly_kings<colour>(game) &= ~from_index_bitboard;
+        remove_piece<colour>(&game->piece_list, move.from);
+        //assert_piece_list_correctness(game);
 
         // remove enemy piece that is being captured at 'to' cell
-        const Piece::Type result = remove_friendly_piece<EnemyColour<colour>::colour>(game, to_index_bitboard);
+        const Piece::Type result = remove_friendly_piece<EnemyColour<colour>::colour>(game, move.to);
 
         // add friendly king at 'to' cell
+        //assert_piece_list_correctness(game);
         *get_friendly_kings<colour>(game) |= to_index_bitboard;
+        add_piece<colour>(&game->piece_list, Piece::Type::King, move.to);
+        //assert_piece_list_correctness(game);
 
         if (from_index_bitboard & Bitboard(File::E, rear_rank<colour>())) {
             // moving from origin square
 
             if (to_index_bitboard & Bitboard(File::C, rear_rank<colour>())) {
                 // castling queenside
+                //assert_piece_list_correctness(game);
                 *get_friendly_rooks<colour>(game) &= ~Bitboard(File::A, rear_rank<colour>());
+                remove_piece<colour>(&game->piece_list, Bitboard::Index(File::A, rear_rank<colour>()));
+                //assert_piece_list_correctness(game);
                 *get_friendly_rooks<colour>(game) |= Bitboard(File::D, rear_rank<colour>());
+                add_piece<colour>(&game->piece_list, Piece::Type::Rook, Bitboard::Index(File::D, rear_rank<colour>()));
+                //assert_piece_list_correctness(game);
             } else if (to_index_bitboard & Bitboard(File::G, rear_rank<colour>())) {
                 // castling kingside
+                //assert_piece_list_correctness(game);
                 *get_friendly_rooks<colour>(game) &= ~Bitboard(File::H, rear_rank<colour>());
+                remove_piece<colour>(&game->piece_list, Bitboard::Index(File::H, rear_rank<colour>()));
+                //assert_piece_list_correctness(game);
                 *get_friendly_rooks<colour>(game) |= Bitboard(File::F, rear_rank<colour>());
+                add_piece<colour>(&game->piece_list, Piece::Type::Rook, Bitboard::Index(File::F, rear_rank<colour>()));
+                //assert_piece_list_correctness(game);
             }
         }
 
@@ -737,13 +871,28 @@ namespace chess { namespace engine {
         }
 
         // remove friendly piece that is being moved from 'from' cell
+        //assert_piece_list_correctness(game);
         *from_bitboard &= ~from_index_bitboard;
+        remove_piece<colour>(&game->piece_list, move.from);
+        //assert_piece_list_correctness(game);
 
         // remove enemy piece that is being captured at 'to' cell
-        const Piece::Type result = remove_friendly_piece<EnemyColour<colour>::colour>(game, to_index_bitboard);
+        const Piece::Type result = remove_friendly_piece<EnemyColour<colour>::colour>(game, move.to);
 
         // add friendly piece at 'to' cell
+        //assert_piece_list_correctness(game);
         *from_bitboard |= to_index_bitboard;
+        if (from_bitboard == get_friendly_knights<colour>(game)) {
+            add_piece<colour>(&game->piece_list, Piece::Type::Knight, move.to);
+        } else if (from_bitboard == get_friendly_bishops<colour>(game)) {
+            add_piece<colour>(&game->piece_list, Piece::Type::Bishop, move.to);
+        } else if (from_bitboard == get_friendly_rooks<colour>(game)) {
+            add_piece<colour>(&game->piece_list, Piece::Type::Rook, move.to);
+        } else {
+            CHESS_ASSERT(from_bitboard == get_friendly_queens<colour>(game));
+            add_piece<colour>(&game->piece_list, Piece::Type::Queen, move.to);
+        }
+        //assert_piece_list_correctness(game);
 
         game->can_en_passant = false;
 
@@ -809,7 +958,10 @@ namespace chess { namespace engine {
         const Bitboard to_index_bitboard = Bitboard(move.to);
         Bitboard* to_bitboard = get_friendly_bitboard<colour>(game, to_index_bitboard);
         if (to_bitboard) {
+            //assert_piece_list_correctness(game);
             *to_bitboard &= ~to_index_bitboard;
+            remove_piece<colour>(&game->piece_list, move.to);
+            //assert_piece_list_correctness(game);
         } else {
             CHESS_ASSERT(false);
         }
@@ -820,15 +972,29 @@ namespace chess { namespace engine {
         if (to_bitboard == get_friendly_kings<colour>(game) && move.from == Bitboard::Index(File::E, rear_rank<colour>())) {
             if (move.to == Bitboard::Index(File::C, rear_rank<colour>())) {
                 CHESS_ASSERT(*get_friendly_rooks<colour>(game) & Bitboard(File::D, rear_rank<colour>()));
+                //assert_piece_list_correctness(game);
                 *get_friendly_rooks<colour>(game) &= ~Bitboard(File::D, rear_rank<colour>());
+                remove_piece<colour>(&game->piece_list, Bitboard::Index(File::D, rear_rank<colour>()));
+                //assert_piece_list_correctness(game);
                 *get_friendly_rooks<colour>(game) |= Bitboard(File::A, rear_rank<colour>());
+                add_piece<colour>(&game->piece_list, Piece::Type::Rook, Bitboard::Index(File::A, rear_rank<colour>()));
+                //assert_piece_list_correctness(game);
                 *to_bitboard |= Bitboard(move.from);
+                add_piece<colour>(&game->piece_list, Piece::Type::King, move.from);
+                //assert_piece_list_correctness(game);
                 return true;
             } else if (move.to == Bitboard::Index(File::G, rear_rank<colour>())) {
                 CHESS_ASSERT(*get_friendly_rooks<colour>(game) & Bitboard(File::F, rear_rank<colour>()));
+                //assert_piece_list_correctness(game);
                 *get_friendly_rooks<colour>(game) &= ~Bitboard(File::F, rear_rank<colour>());
+                remove_piece<colour>(&game->piece_list, Bitboard::Index(File::F, rear_rank<colour>()));
+                //assert_piece_list_correctness(game);
                 *get_friendly_rooks<colour>(game) |= Bitboard(File::H, rear_rank<colour>());
+                add_piece<colour>(&game->piece_list, Piece::Type::Rook, Bitboard::Index(File::H, rear_rank<colour>()));
+                //assert_piece_list_correctness(game);
                 *to_bitboard |= Bitboard(move.from);
+                add_piece<colour>(&game->piece_list, Piece::Type::King, move.from);
+                //assert_piece_list_correctness(game);
                 return true;
             }
         }
@@ -837,31 +1003,68 @@ namespace chess { namespace engine {
             if (taken_piece == Piece::Type::Pawn) {
                 if (to_bitboard == get_friendly_pawns<colour>(game) && game->can_en_passant && move.to == move_forward<colour>(game->en_passant_square)) {
                     // en passant
+                    //assert_piece_list_correctness(game);
                     *get_friendly_pawns<EnemyColour<colour>::colour>(game) |= move_forward<EnemyColour<colour>::colour>(to_index_bitboard);
+                    add_piece<EnemyColour<colour>::colour>(&game->piece_list, Piece::Type::Pawn, move_forward<EnemyColour<colour>::colour>(move.to));
+                    //assert_piece_list_correctness(game);
                 } else {
+                    //assert_piece_list_correctness(game);
                     *get_friendly_pawns<EnemyColour<colour>::colour>(game) |= to_index_bitboard;
+                    add_piece<EnemyColour<colour>::colour>(&game->piece_list, Piece::Type::Pawn, move.to);
+                    //assert_piece_list_correctness(game);
                 }
             } else if (taken_piece == Piece::Type::Knight) {
+                //assert_piece_list_correctness(game);
                 *get_friendly_knights<EnemyColour<colour>::colour>(game) |= to_index_bitboard;
+                add_piece<EnemyColour<colour>::colour>(&game->piece_list, Piece::Type::Knight, move.to);
+                //assert_piece_list_correctness(game);
             } else if (taken_piece == Piece::Type::Bishop) {
+                //assert_piece_list_correctness(game);
                 *get_friendly_bishops<EnemyColour<colour>::colour>(game) |= to_index_bitboard;
+                add_piece<EnemyColour<colour>::colour>(&game->piece_list, Piece::Type::Bishop, move.to);
+                //assert_piece_list_correctness(game);
             } else if (taken_piece == Piece::Type::Rook) {
+                //assert_piece_list_correctness(game);
                 *get_friendly_rooks<EnemyColour<colour>::colour>(game) |= to_index_bitboard;
+                add_piece<EnemyColour<colour>::colour>(&game->piece_list, Piece::Type::Rook, move.to);
+                //assert_piece_list_correctness(game);
             } else {
                 // king cannot be taken
                 CHESS_ASSERT(taken_piece == Piece::Type::Queen);
+                //assert_piece_list_correctness(game);
                 *get_friendly_queens<EnemyColour<colour>::colour>(game) |= to_index_bitboard;
+                add_piece<EnemyColour<colour>::colour>(&game->piece_list, Piece::Type::Queen, move.to);
+                //assert_piece_list_correctness(game);
             }
         }
 
         if (promotion_piece == Piece::Type::Empty) {
             if (to_bitboard) {
+                //assert_piece_list_correctness(game);
                 *to_bitboard |= Bitboard(move.from);
+                if (to_bitboard == get_friendly_pawns<colour>(game)) {
+                    add_piece<colour>(&game->piece_list, Piece::Type::Pawn, move.from);
+                } else if (to_bitboard == get_friendly_knights<colour>(game)) {
+                    add_piece<colour>(&game->piece_list, Piece::Type::Knight, move.from);
+                } else if (to_bitboard == get_friendly_bishops<colour>(game)) {
+                    add_piece<colour>(&game->piece_list, Piece::Type::Bishop, move.from);
+                } else if (to_bitboard == get_friendly_rooks<colour>(game)) {
+                    add_piece<colour>(&game->piece_list, Piece::Type::Rook, move.from);
+                } else if (to_bitboard == get_friendly_queens<colour>(game)) {
+                    add_piece<colour>(&game->piece_list, Piece::Type::Queen, move.from);
+                } else {
+                    CHESS_ASSERT(to_bitboard == get_friendly_kings<colour>(game));
+                    add_piece<colour>(&game->piece_list, Piece::Type::King, move.from);
+                }
+                //assert_piece_list_correctness(game);
             } else {
                 CHESS_ASSERT(false);
             }
         } else {
+            //assert_piece_list_correctness(game);
             *get_friendly_pawns<colour>(game) |= Bitboard(move.from);
+            add_piece<colour>(&game->piece_list, Piece::Type::Pawn, move.from);
+            //assert_piece_list_correctness(game);
         }
     }
 
@@ -923,6 +1126,81 @@ namespace chess { namespace engine {
     }
     // #endregion
 
+    // #region PieceList
+    PieceList::PieceList(const Game* game)
+        : white_size(0)
+        , black_size(0)
+    {
+        for (Bitboard::Index i; i < chess_board_size; ++i) {
+            const Piece piece = get_piece(game, Bitboard(i));
+            if (piece.type != Piece::Type::Empty) {
+                add_piece(this, piece, i);
+            }
+        }
+    }
+
+    void add_piece(PieceList* piece_list, Piece piece, Bitboard::Index index) {
+        if (piece.colour == Colour::Black) {
+            add_piece<Colour::Black>(piece_list, piece.type, index);
+        } else {
+            CHESS_ASSERT(piece.colour == Colour::White);
+            add_piece<Colour::White>(piece_list, piece.type, index);
+        }
+    }
+
+    template <Colour colour>
+    void add_piece(PieceList* piece_list, Piece::Type piece_type, Bitboard::Index index) {
+        CHESS_ASSERT(piece_type != Piece::Type::Empty);
+        if constexpr (colour == Colour::Black) {
+            piece_list->black[piece_list->black_size] = PieceTypeAndIndex{piece_type, index};
+            ++piece_list->black_size;
+            CHESS_ASSERT(piece_list->black_size <= 16);
+        } else {
+            piece_list->white[piece_list->white_size] = PieceTypeAndIndex{piece_type, index};
+            ++piece_list->white_size;
+            CHESS_ASSERT(piece_list->white_size <= 16);
+        }
+    }
+
+    template <Colour colour>
+    void remove_piece(PieceList* piece_list, Bitboard::Index index) {
+#if CHESS_DEBUG
+        bool removed = false;
+#endif
+        if constexpr (colour == Colour::Black) {
+            CHESS_ASSERT(piece_list->black_size > 0);
+            for (U8 i = 0; i < piece_list->black_size; ++i) {
+                if (piece_list->black[i].index == index) {
+                    if (i < piece_list->black_size - 1) {
+                        memcpy(&piece_list->black[i], &piece_list->black[i + 1], (piece_list->black_size - (i + 1)) * sizeof(PieceTypeAndIndex));
+                    }
+                    --piece_list->black_size;
+#if CHESS_DEBUG
+                    removed = true;
+#endif
+                    break;
+                }
+            }
+        } else {
+            CHESS_ASSERT(piece_list->white_size > 0);
+            for (U8 i = 0; i < piece_list->white_size; ++i) {
+                if (piece_list->white[i].index == index) {
+                    if (i < piece_list->white_size - 1) {
+                        memcpy(&piece_list->white[i], &piece_list->white[i + 1], (piece_list->white_size - (i + 1)) * sizeof(PieceTypeAndIndex));
+                    }
+                    --piece_list->white_size;
+#if CHESS_DEBUG
+                    removed = true;
+#endif
+                    break;
+                }
+            }
+        }
+
+        CHESS_ASSERT(removed);
+    }
+    // #endregion
+
     // #region Game
     Game::Game()
         : white_pawns(nth_bit(Bitboard::Index(File::A, Rank::Two), Bitboard::Index(File::B, Rank::Two), Bitboard::Index(File::C, Rank::Two), Bitboard::Index(File::D, Rank::Two), Bitboard::Index(File::E, Rank::Two), Bitboard::Index(File::F, Rank::Two), Bitboard::Index(File::G, Rank::Two), Bitboard::Index(File::H, Rank::Two)))
@@ -938,16 +1216,17 @@ namespace chess { namespace engine {
         , black_queens(Bitboard(File::D, Rank::Eight))
         , black_kings(Bitboard(File::E, Rank::Eight))
         , en_passant_square(0)
+        , piece_list(this)
+        , moves_allocated(256)
+        , moves_count(0)
+        , moves_index(0)
+        , moves(static_cast<Move*>(malloc(sizeof(Move) * moves_allocated)))
         , can_en_passant(0)
         , next_turn(0)
         , white_can_never_castle_short(0)
         , white_can_never_castle_long(0)
         , black_can_never_castle_short(0)
         , black_can_never_castle_long(0)
-        , moves_allocated(256)
-        , moves_count(0)
-        , moves_index(0)
-        , moves(static_cast<Move*>(malloc(sizeof(Move) * moves_allocated)))
     {}
 
     Game::~Game() {
@@ -1556,10 +1835,15 @@ namespace chess { namespace engine {
         }
     }
 
-    template <Colour colour>
+    template <Colour colour, bool divided = false>
     static U64 fast_perft(Game* game, U8 depth) {
+        //const PieceTypeAndIndex* const piece_list = get_piece_list<colour>(game);
+        PieceTypeAndIndex piece_list[16];
+        const U8 piece_list_size = get_piece_list_copy<colour>(game, piece_list);
+
         U64 result = 0;
-        for (Bitboard::Index index; index < chess_board_size; ++index) {
+        for (U8 i = 0; i < piece_list_size; ++i) {
+            const Bitboard::Index index = piece_list[i].index;
             const Bitboard moves = get_moves<colour>(game, index);
             const Bitboard index_bitboard(index);
             if (moves) {
@@ -1568,43 +1852,127 @@ namespace chess { namespace engine {
                     if (moves & move_index_bitboard) {
                         if (has_friendly_pawn<colour>(game, index_bitboard) && is_rank(move_index, front_rank<colour>())) {
                             if (depth == 1) {
+                                if constexpr (divided) {
+                                    char piece_name[6];
+
+#if CHESS_DEBUG
+                                    string_move(Move(game, index, move_index, Piece::Type::Knight), piece_name);
+                                    std::cout << piece_name << ": 1" << std::endl;
+
+                                    string_move(Move(game, index, move_index, Piece::Type::Bishop), piece_name);
+                                    std::cout << piece_name << ": 1" << std::endl;
+
+                                    string_move(Move(game, index, move_index, Piece::Type::Rook), piece_name);
+                                    std::cout << piece_name << ": 1" << std::endl;
+
+                                    string_move(Move(game, index, move_index, Piece::Type::Queen), piece_name);
+                                    std::cout << piece_name << ": 1" << std::endl;
+#endif
+                                }
                                 result += 4;
                             } else {
                                 {
                                     Move the_move(game, index, move_index, Piece::Type::Knight);
                                     move_unchecked<colour>(game, the_move);
-                                    result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+                                    if constexpr (divided) {
+#if CHESS_DEBUG
+                                        char piece_name[6];
+                                        string_move(the_move, piece_name);
+#endif
+                                        U64 temp_result = fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+#if CHESS_DEBUG
+                                        std::cout << piece_name << ": " << temp_result << std::endl;
+#endif
+                                        result += temp_result;
+                                    } else {
+                                        result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+                                    }
                                     undo(game);
                                 }
 
                                 {
                                     Move the_move(game, index, move_index, Piece::Type::Bishop);
                                     move_unchecked<colour>(game, the_move);
-                                    result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+                                    if constexpr (divided) {
+                                        char piece_name[6];
+#if CHESS_DEBUG
+                                        string_move(the_move, piece_name);
+#endif
+                                        U64 temp_result = fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+#if CHESS_DEBUG
+                                        std::cout << piece_name << ": " << temp_result << std::endl;
+#endif
+                                        result += temp_result;
+                                    } else {
+                                        result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+                                    }
                                     undo(game);
                                 }
 
                                 {
                                     Move the_move(game, index, move_index, Piece::Type::Rook);
                                     move_unchecked<colour>(game, the_move);
-                                    result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+                                    if constexpr (divided) {
+                                        char piece_name[6];
+#if CHESS_DEBUG
+                                        string_move(the_move, piece_name);
+#endif
+                                        U64 temp_result = fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+#if CHESS_DEBUG
+                                        std::cout << piece_name << ": " << temp_result << std::endl;
+#endif
+                                        result += temp_result;
+                                    } else {
+                                        result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+                                    }
                                     undo(game);
                                 }
 
                                 {
                                     Move the_move(game, index, move_index, Piece::Type::Queen);
                                     move_unchecked<colour>(game, the_move);
-                                    result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+                                    if constexpr (divided) {
+                                        char piece_name[6];
+#if CHESS_DEBUG
+                                        string_move(the_move, piece_name);
+#endif
+                                        U64 temp_result = fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+#if CHESS_DEBUG
+                                        std::cout << piece_name << ": " << temp_result << std::endl;
+#endif
+                                        result += temp_result;
+                                    } else {
+                                        result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+                                    }
                                     undo(game);
                                 }
                             }
                         } else {
                             if (depth == 1) { 
+                                if constexpr (divided) {
+#if CHESS_DEBUG
+                                    char piece_name[6];
+                                    string_move(Move(game, index, move_index), piece_name);
+                                    std::cout << piece_name << ": 1" << std::endl;
+#endif
+                                }
                                 ++result;
                             } else {
                                 Move the_move(game, index, move_index);
                                 move_unchecked<colour>(game, the_move);
-                                result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+                                if constexpr (divided) {
+#if CHESS_DEBUG
+                                    char piece_name[6];
+                                    string_move(the_move, piece_name);
+#endif
+                                    U64 temp_result = fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+#if CHESS_DEBUG
+                                    std::cout << piece_name << ": " << temp_result << std::endl;
+#endif
+                                    result += temp_result;
+                                } else {
+                                    result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+                                }
                                 undo(game);
                             }
                         }
@@ -1616,17 +1984,21 @@ namespace chess { namespace engine {
         return result;
     }
 
+    template <bool divided>
     U64 fast_perft(Game* game, U8 depth) {
         if (depth == 0) {
             return 1;
         }
 
         if (game->next_turn) {
-            return fast_perft<Colour::Black>(game, depth);
+            return fast_perft<Colour::Black, divided>(game, depth);
         }
 
-        return fast_perft<Colour::White>(game, depth);
+        return fast_perft<Colour::White, divided>(game, depth);
     }
+
+    template U64 fast_perft<false>(Game* game, U8 depth);
+    template U64 fast_perft<true>(Game* game, U8 depth);
 
     template <Colour colour, bool initial>
     static PerftResult perft(Game* game, U8 depth) {
@@ -1764,7 +2136,7 @@ namespace chess { namespace engine {
         if (promotion_piece_type == Piece::Type::Empty) {
             snprintf(buffer, 6, "%c%c%c%c", from_file, from_rank, to_file, to_rank);
         } else {
-            snprintf(buffer, 6, "%c%c%c%c", from_file, from_rank, to_file, to_rank, char_promotion_piece_type(promotion_piece_type));
+            snprintf(buffer, 6, "%c%c%c%c%c", from_file, from_rank, to_file, to_rank, char_promotion_piece_type(promotion_piece_type));
         }
     }
 
