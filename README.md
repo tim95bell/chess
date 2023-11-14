@@ -10,21 +10,25 @@ https://upload.wikimedia.org/wikipedia/commons/e/e5/ChessPiecesArray.png
 `./scripts/build_raylib.sh`
 
 #### Generate Build:
-`cmake -GXcode -Bbuild/chess`
+`cmake -GXcode -Bbuild/chess/{debug|release}`
 
 #### Build:
-`cmake --build build/chess`
+`cmake --build build/chess/{debug|release}`
 
 #### Test:
-`./build/chess/modules/engine/test/{Debug|Release}/chess_engine_tests`
+`./build/chess/{debug|release}/modules/engine/test/{Debug|Release}/chess_engine_tests`
 
 #### Run:
-`./build/chess/modules/app/{Debug|Release}/chess`
+`./build/chess/{debug|release}/modules/app/{Debug|Release}/chess`
 
 #### Hot Reload
-- generate build with `CHESS_HOT_RELOAD` set to `TRUE`
-`cmake -GXcode -Bbuild/chess -DCHESS_HOT_RELOAD=TRUE`
 - start the app
-`./build/chess/modules/app/{Debug|Release}/chess`
+`./build/chess/{debug|release}/modules/app/{Debug|Release}/chess`
 - run hot reload script when you want to hot reload
-`./scrips/hot_reload.sh`
+`./scripts/hot_reload_{debug|release}.sh`
+
+#### Run PERFT Test
+- build
+`cmake --build build/chess/{debug|release}`
+- run perft test
+`./build/chess/{debug|release}/modules/engine/perft/{Debug|Release}/chess_engine_perft`

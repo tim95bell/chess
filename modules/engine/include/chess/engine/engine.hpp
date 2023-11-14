@@ -6,10 +6,6 @@
 #include <chess/engine/base.hpp>
 #include <chess/engine/Bitboard.hpp>
 
-#if CHESS_DEBUG
-#include <string>
-#endif
-
 /*
 
 rnbqkbnr
@@ -231,7 +227,7 @@ namespace chess { namespace engine {
     extern PerftResult perft(Game* game, U8 depth);
     extern U64 fast_perft(Game* game, U8 depth);
 #if CHESS_DEBUG
-    extern std::string string_move(Move move);
+    extern void string_move(Move move, char* buffer);
     extern void print_board(const Game* game);
 #endif
     // #endregion

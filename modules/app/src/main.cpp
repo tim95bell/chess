@@ -27,7 +27,11 @@ namespace chess { namespace app {
     };
 
     static AppLib app_lib;
-    static const constexpr char* APP_LIB_DLL_PATH = "build/chess/modules/app/Debug/libchess.dylib.copy";
+#if CHESS_DEBUG
+    static const constexpr char* APP_LIB_DLL_PATH = "build/chess/debug/modules/app/Debug/libchess.dylib.copy";
+#else
+    static const constexpr char* APP_LIB_DLL_PATH = "build/chess/release/modules/app/Release/libchess.dylib.copy";
+#endif
 
     INIT_FUNCTION(init_stub) { return true; }
     DEINIT_FUNCTION(deinit_stub) {}

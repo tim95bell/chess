@@ -38,6 +38,10 @@ if(APPLE)
     set_target_properties("${PROJECT_NAME}" PROPERTIES XCODE_ATTRIBUTE_ONLY_ACTIVE_ARCH[variant=Debug] YES)
 endif()
 
+if(CHESS_PERFT)
+    add_subdirectory(perft)
+endif()
+
 if(CHESS_UNIT_TEST)
     add_subdirectory(test)
 endif()

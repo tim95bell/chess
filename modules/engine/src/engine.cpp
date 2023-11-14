@@ -3,10 +3,9 @@
 #include <chess/common/assert.hpp>
 #include <stdlib.h>
 #include <utility>
-#if CHESS_DEBUG
+#include <cstdio>
+// TODO(TB): remove this
 #include <iostream>
-#include <string>
-#endif
 
 namespace chess { namespace engine {
     // #region internal
@@ -961,35 +960,57 @@ namespace chess { namespace engine {
             || has_friendly_king<colour>(game, bitboard);
     }
 
+    template bool has_friendly_piece<Colour::Black>(const Game* game, Bitboard bitboard);
+    template bool has_friendly_piece<Colour::White>(const Game* game, Bitboard bitboard);
+
     template <Colour colour>
     bool has_friendly_pawn(const Game* game, Bitboard bitboard) {
         return *get_friendly_pawns<colour>(game) & bitboard;
     }
+
+    // TODO(TB): remove this
+    template bool has_friendly_pawn<Colour::Black>(const Game* game, Bitboard bitboard);
+    template bool has_friendly_pawn<Colour::White>(const Game* game, Bitboard bitboard);
 
     template <Colour colour>
     bool has_friendly_knight(const Game* game, Bitboard bitboard) {
         return *get_friendly_knights<colour>(game) & bitboard;
     }
 
+    template bool has_friendly_knight<Colour::Black>(const Game* game, Bitboard bitboard);
+    template bool has_friendly_knight<Colour::White>(const Game* game, Bitboard bitboard);
+
     template <Colour colour>
     bool has_friendly_bishop(const Game* game, Bitboard bitboard) {
         return *get_friendly_bishops<colour>(game) & bitboard;
     }
+
+    template bool has_friendly_bishop<Colour::Black>(const Game* game, Bitboard bitboard);
+    template bool has_friendly_bishop<Colour::White>(const Game* game, Bitboard bitboard);
 
     template <Colour colour>
     bool has_friendly_rook(const Game* game, Bitboard bitboard) {
         return *get_friendly_rooks<colour>(game) & bitboard;
     }
 
+    template bool has_friendly_rook<Colour::Black>(const Game* game, Bitboard bitboard);
+    template bool has_friendly_rook<Colour::White>(const Game* game, Bitboard bitboard);
+
     template <Colour colour>
     bool has_friendly_queen(const Game* game, Bitboard bitboard) {
         return *get_friendly_queens<colour>(game) & bitboard;
     }
 
+    template bool has_friendly_queen<Colour::Black>(const Game* game, Bitboard bitboard);
+    template bool has_friendly_queen<Colour::White>(const Game* game, Bitboard bitboard);
+
     template <Colour colour>
     bool has_friendly_king(const Game* game, Bitboard bitboard) {
         return *get_friendly_kings<colour>(game) & bitboard;
     }
+
+    template bool has_friendly_king<Colour::Black>(const Game* game, Bitboard bitboard);
+    template bool has_friendly_king<Colour::White>(const Game* game, Bitboard bitboard);
 
     template <Colour colour>
     bool is_empty(const Game* game, Bitboard bitboard) {
@@ -1533,6 +1554,7 @@ namespace chess { namespace engine {
 
     template <Colour colour>
     static U64 fast_perft(Game* game, U8 depth) {
+        // TODO(TB): replace move with peform_move and undo with unperform_move
         U64 result = 0;
         for (Bitboard::Index index; index < chess_board_size; ++index) {
             const Bitboard moves = get_moves<colour>(game, index);
@@ -1630,9 +1652,13 @@ namespace chess { namespace engine {
                             Move the_move(game, index, move_index, Piece::Type::Knight);
                             move<colour>(game, the_move);
                             PerftResult this_result = perft<EnemyColour<colour>::colour, false>(game, depth - 1);
+#if CHESS_DEBUG
                             if constexpr (initial) {
-                                std::cout << string_move(the_move) << ": " << this_result.nodes << std::endl;
+                                char move_name[6];
+                                string_move(the_move, move_name);
+                                std::cout << move_name << ": " << this_result.nodes << std::endl;
                             }
+#endif
                             result = result + this_result;
                             undo(game);
                         }
@@ -1641,9 +1667,13 @@ namespace chess { namespace engine {
                             Move the_move(game, index, move_index, Piece::Type::Bishop);
                             move<colour>(game, the_move);
                             PerftResult this_result = perft<EnemyColour<colour>::colour, false>(game, depth - 1);
+#if CHESS_DEBUG
                             if constexpr (initial) {
-                                std::cout << string_move(the_move) << ": " << this_result.nodes << std::endl;
+                                char move_name[6];
+                                string_move(the_move, move_name);
+                                std::cout << move_name << ": " << this_result.nodes << std::endl;
                             }
+#endif
                             result = result + this_result;
                             undo(game);
                         }
@@ -1652,9 +1682,13 @@ namespace chess { namespace engine {
                             Move the_move(game, index, move_index, Piece::Type::Rook);
                             move<colour>(game, the_move);
                             PerftResult this_result = perft<EnemyColour<colour>::colour, false>(game, depth - 1);
+#if CHESS_DEBUG
                             if constexpr (initial) {
-                                std::cout << string_move(the_move) << ": " << this_result.nodes << std::endl;
+                                char move_name[6];
+                                string_move(the_move, move_name);
+                                std::cout << move_name << ": " << this_result.nodes << std::endl;
                             }
+#endif
                             result = result + this_result;
                             undo(game);
                         }
@@ -1663,9 +1697,13 @@ namespace chess { namespace engine {
                             Move the_move(game, index, move_index, Piece::Type::Queen);
                             move<colour>(game, the_move);
                             PerftResult this_result = perft<EnemyColour<colour>::colour, false>(game, depth - 1);
+#if CHESS_DEBUG
                             if constexpr (initial) {
-                                std::cout << string_move(the_move) << ": " << this_result.nodes << std::endl;
+                                char move_name[6];
+                                string_move(the_move, move_name);
+                                std::cout << move_name << ": " << this_result.nodes << std::endl;
                             }
+#endif
                             result = result + this_result;
                             undo(game);
                         }
@@ -1674,9 +1712,13 @@ namespace chess { namespace engine {
                             Move the_move(game, index, move_index);
                             move<colour>(game, the_move);
                             PerftResult this_result = perft<EnemyColour<colour>::colour, false>(game, depth - 1);
+#if CHESS_DEBUG
                             if constexpr (initial) {
-                                std::cout << string_move(the_move) << ": " << this_result.nodes << std::endl;
+                                char move_name[6];
+                                string_move(the_move, move_name);
+                                std::cout << move_name << ": " << this_result.nodes << std::endl;
                             }
+#endif
                             result = result + this_result;
                             undo(game);
                         }
@@ -1697,25 +1739,30 @@ namespace chess { namespace engine {
     }
     // #endregion
 
-    static std::string string_promotion_piece_type(Piece::Type x) {
+    static char char_promotion_piece_type(Piece::Type x) {
         if (x == Piece::Type::Knight) {
-            return "n";
+            return 'n';
         } else if (x == Piece::Type::Bishop) {
-            return "b";
+            return 'b';
         } else if (x == Piece::Type::Rook) {
-            return "r";
+            return 'r';
         } else {
-            return "q";
+            return 'q';
         }
     }
 
-    std::string string_move(Move move) {
+#if CHESS_DEBUG
+    void string_move(Move move, char* buffer) {
         char from_rank = '1' + (U8(move.from) / chess_board_edge_size);
-        char from_file = 'A' + (U8(move.from) % chess_board_edge_size);
+        char from_file = 'a' + (U8(move.from) % chess_board_edge_size);
         char to_rank = '1' + (U8(move.to) / chess_board_edge_size);
-        char to_file = 'A' + (U8(move.to) % chess_board_edge_size);
+        char to_file = 'a' + (U8(move.to) % chess_board_edge_size);
         const Piece::Type promotion_piece_type = get_promotion_piece_type(move.compressed_taken_and_promotion_piece_type);
-        return std::string("") + from_file + from_rank + to_file + to_rank + (promotion_piece_type == Piece::Type::Empty ? "" : string_promotion_piece_type(promotion_piece_type));
+        if (promotion_piece_type == Piece::Type::Empty) {
+            snprintf(buffer, 6, "%c%c%c%c", from_file, from_rank, to_file, to_rank);
+        } else {
+            snprintf(buffer, 6, "%c%c%c%c", from_file, from_rank, to_file, to_rank, char_promotion_piece_type(promotion_piece_type));
+        }
     }
 
     void print_board(const Game* game) {
@@ -1755,4 +1802,5 @@ namespace chess { namespace engine {
         }
         std::cout << std::endl << "-----------" << std::endl;
     }
+#endif
 }}
