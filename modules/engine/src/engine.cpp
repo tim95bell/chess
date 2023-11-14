@@ -1561,52 +1561,52 @@ namespace chess { namespace engine {
         U64 result = 0;
         for (Bitboard::Index index; index < chess_board_size; ++index) {
             const Bitboard moves = get_moves<colour>(game, index);
-            for (Bitboard::Index move_index; move_index < chess_board_size; ++move_index) {
-                if (moves & Bitboard(move_index)) {
-                    if (has_friendly_pawn<colour>(game, Bitboard(index)) && is_rank(move_index, front_rank<colour>())) {
-                        if (depth == 1) { 
-                            ++result;
-                        } else {
-                            Move the_move(game, index, move_index, Piece::Type::Knight);
-                            move_unchecked<colour>(game, the_move);
-                            result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
-                            undo(game);
-                        }
+            const Bitboard index_bitboard(index);
+            if (moves) {
+                for (Bitboard::Index move_index; move_index < chess_board_size; ++move_index) {
+                    const Bitboard move_index_bitboard(move_index);
+                    if (moves & move_index_bitboard) {
+                        if (has_friendly_pawn<colour>(game, index_bitboard) && is_rank(move_index, front_rank<colour>())) {
+                            if (depth == 1) {
+                                result += 4;
+                            } else {
+                                {
+                                    Move the_move(game, index, move_index, Piece::Type::Knight);
+                                    move_unchecked<colour>(game, the_move);
+                                    result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+                                    undo(game);
+                                }
 
-                        if (depth == 1) { 
-                            ++result;
-                        } else {
-                            Move the_move(game, index, move_index, Piece::Type::Bishop);
-                            move_unchecked<colour>(game, the_move);
-                            result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
-                            undo(game);
-                        }
+                                {
+                                    Move the_move(game, index, move_index, Piece::Type::Bishop);
+                                    move_unchecked<colour>(game, the_move);
+                                    result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+                                    undo(game);
+                                }
 
-                        if (depth == 1) { 
-                            ++result;
-                        } else {
-                            Move the_move(game, index, move_index, Piece::Type::Rook);
-                            move_unchecked<colour>(game, the_move);
-                            result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
-                            undo(game);
-                        }
+                                {
+                                    Move the_move(game, index, move_index, Piece::Type::Rook);
+                                    move_unchecked<colour>(game, the_move);
+                                    result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+                                    undo(game);
+                                }
 
-                        if (depth == 1) { 
-                            ++result;
+                                {
+                                    Move the_move(game, index, move_index, Piece::Type::Queen);
+                                    move_unchecked<colour>(game, the_move);
+                                    result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+                                    undo(game);
+                                }
+                            }
                         } else {
-                            Move the_move(game, index, move_index, Piece::Type::Queen);
-                            move_unchecked<colour>(game, the_move);
-                            result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
-                            undo(game);
-                        }
-                    } else {
-                        if (depth == 1) { 
-                            ++result;
-                        } else {
-                            Move the_move(game, index, move_index);
-                            move_unchecked<colour>(game, the_move);
-                            result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
-                            undo(game);
+                            if (depth == 1) { 
+                                ++result;
+                            } else {
+                                Move the_move(game, index, move_index);
+                                move_unchecked<colour>(game, the_move);
+                                result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+                                undo(game);
+                            }
                         }
                     }
                 }
