@@ -227,7 +227,9 @@ namespace chess { namespace engine {
     extern bool can_redo(const Game* game);
     extern bool undo(Game* game);
     extern bool redo(Game* game);
+    extern bool load_fen(Game* game, const char* fen);
     extern PerftResult perft(Game* game, U8 depth);
+    extern U64 fast_perft(Game* game, U8 depth);
 #if CHESS_DEBUG
     extern std::string string_move(Move move);
     extern void print_board(const Game* game);

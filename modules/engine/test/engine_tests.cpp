@@ -872,7 +872,7 @@ namespace chess { namespace engine {
         }
     }
 
-    TEST_CASE("perft", "[engine]") {
+    TEST_CASE("perft", "[perft]") {
         Game game;
 
         SECTION("initial position, depth 1") {
@@ -895,5 +895,296 @@ namespace chess { namespace engine {
             CHECK(result.captures == 34);
             CHECK(result.checks == 12);
         }
+
+        SECTION("initial position, depth 4") {
+            PerftResult result = perft(&game, 4);
+            CHECK(result.nodes == 197281);
+            CHECK(result.captures == 1576);
+            CHECK(result.checks == 469);
+        }
+
+#if 0
+        SECTION("initial position, depth 5") {
+            PerftResult result = perft(&game, 5);
+            CHECK(result.nodes == 4865609);
+            CHECK(result.captures == 82719);
+            CHECK(result.checks == 27351);
+        }
+
+        SECTION("initial position, depth 6") {
+            PerftResult result = perft(&game, 6);
+            CHECK(result.nodes == 119060324);
+            CHECK(result.captures == 2812008);
+            CHECK(result.checks == 809099);
+        }
+
+        SECTION("initial position, depth 7") {
+            PerftResult result = perft(&game, 7);
+            CHECK(result.nodes == 3195901860);
+            CHECK(result.captures == 108329926);
+            CHECK(result.checks == 33103848);
+        }
+
+        SECTION("initial position, depth 8") {
+            PerftResult result = perft(&game, 8);
+            CHECK(result.nodes == 84998978956);
+            CHECK(result.captures == 3523740106);
+            CHECK(result.checks == 968981593);
+        }
+
+        SECTION("initial position, depth 9") {
+            PerftResult result = perft(&game, 9);
+            CHECK(result.nodes == 2439530234167);
+            CHECK(result.captures == 125208536153);
+            CHECK(result.checks == 36095901903);
+        }
+
+        SECTION("initial position, depth 10") {
+            PerftResult result = perft(&game, 10);
+            CHECK(result.nodes == 69352859712417);
+        }
+
+        SECTION("initial position, depth 11") {
+            PerftResult result = perft(&game, 11);
+            CHECK(result.nodes == 2097651003696806);
+        }
+
+        SECTION("initial position, depth 12") {
+            PerftResult result = perft(&game, 12);
+            CHECK(result.nodes == 62854969236701747);
+        }
+
+        SECTION("initial position, depth 13") {
+            PerftResult result = perft(&game, 13);
+            CHECK(result.nodes == 1981066775000396239);
+        }
+#endif
+
+        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - , depth 1") {
+            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
+            PerftResult result = perft(&game, 1);
+            CHECK(result.nodes == 48);
+            CHECK(result.captures == 8);
+            CHECK(result.checks == 0);
+        }
+
+        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - , depth 2") {
+            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
+            PerftResult result = perft(&game, 2);
+            CHECK(result.nodes == 2039);
+            CHECK(result.captures == 351);
+            CHECK(result.checks == 3);
+        }
+
+        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - , depth 3") {
+            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
+            PerftResult result = perft(&game, 3);
+            CHECK(result.nodes == 97862);
+            CHECK(result.captures == 17102);
+            CHECK(result.checks == 993);
+        }
+
+        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - , depth 4") {
+            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
+            PerftResult result = perft(&game, 4);
+            CHECK(result.nodes == 4085603);
+            CHECK(result.captures == 757163);
+            CHECK(result.checks == 25523);
+        }
+
+#if 0
+        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ,  moves c3b1 h3h2 f3a3 h2g1q, depth 1") {
+            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
+            CHECK(move(&game, Bitboard::Index(File::C, Rank::Three), Bitboard::Index(File::B, Rank::One)));
+            CHECK(move(&game, Bitboard::Index(File::H, Rank::Three), Bitboard::Index(File::G, Rank::Two)));
+            CHECK(move(&game, Bitboard::Index(File::F, Rank::Three), Bitboard::Index(File::A, Rank::Three)));
+            CHECK(move_and_promote(&game, Bitboard::Index(File::G, Rank::Two), Bitboard::Index(File::G, Rank::One), Piece::Type::Queen));
+            PerftResult result = perft(&game, 1);
+            CHECK(result.nodes == 2);
+        }
+
+        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - , moves c3b1 h3h2 f3a3, depth 2") {
+            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
+            CHECK(move(&game, Bitboard::Index(File::C, Rank::Three), Bitboard::Index(File::B, Rank::One)));
+            CHECK(move(&game, Bitboard::Index(File::H, Rank::Three), Bitboard::Index(File::G, Rank::Two)));
+            CHECK(move(&game, Bitboard::Index(File::F, Rank::Three), Bitboard::Index(File::A, Rank::Three)));
+            PerftResult result = perft(&game, 2);
+            CHECK(result.nodes == 2273);
+        }
+
+        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - , moves c3b1 h3h2, depth 3") {
+            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
+            CHECK(move(&game, Bitboard::Index(File::C, Rank::Three), Bitboard::Index(File::B, Rank::One)));
+            CHECK(move(&game, Bitboard::Index(File::H, Rank::Three), Bitboard::Index(File::G, Rank::Two)));
+            PerftResult result = perft(&game, 3);
+            CHECK(result.nodes == 101809);
+        }
+
+        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - , moves c3b1, depth 4") {
+            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
+            CHECK(move(&game, Bitboard::Index(File::C, Rank::Three), Bitboard::Index(File::B, Rank::One)));
+            PerftResult result = perft(&game, 4);
+            CHECK(result.nodes == 3996171);
+        }
+
+        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - , depth 5") {
+            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
+            PerftResult result = perft(&game, 5);
+            CHECK(result.nodes == 193690690);
+            CHECK(result.captures == 35043416);
+            CHECK(result.checks == 3309887);
+        }
+
+        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - , depth 6") {
+            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
+            PerftResult result = perft(&game, 6);
+            CHECK(result.nodes == 8031647685);
+            CHECK(result.captures == 1558445089);
+            CHECK(result.checks == 92238050);
+        }
+#endif
+    }
+
+    TEST_CASE("perft", "[fast_perft]") {
+        Game game;
+
+        SECTION("initial position, depth 1") {
+            const U64 result = fast_perft(&game, 1);
+            CHECK(result == 20);
+        }
+
+        SECTION("initial position, depth 2") {
+            const U64 result = fast_perft(&game, 2);
+            CHECK(result == 400);
+        }
+
+        SECTION("initial position, depth 3") {
+            const U64 result = fast_perft(&game, 3);
+            CHECK(result == 8902);
+        }
+
+        SECTION("initial position, depth 4") {
+            const U64 result = fast_perft(&game, 4);
+            CHECK(result == 197281);
+        }
+
+#if 0
+        SECTION("initial position, depth 5") {
+            const U64 result = fast_perft(&game, 5);
+            CHECK(result == 4865609);
+        }
+
+        SECTION("initial position, depth 6") {
+            const U64 result = fast_perft(&game, 6);
+            CHECK(result == 119060324);
+        }
+
+        SECTION("initial position, depth 7") {
+            const U64 result = fast_perft(&game, 7);
+            CHECK(result == 3195901860);
+        }
+
+        SECTION("initial position, depth 8") {
+            const U64 result = fast_perft(&game, 8);
+            CHECK(result == 84998978956);
+        }
+
+        SECTION("initial position, depth 9") {
+            const U64 result = fast_perft(&game, 9);
+            CHECK(result == 2439530234167);
+        }
+
+        SECTION("initial position, depth 10") {
+            const U64 result = fast_perft(&game, 10);
+            CHECK(result == 69352859712417);
+        }
+
+        SECTION("initial position, depth 11") {
+            const U64 result = fast_perft(&game, 11);
+            CHECK(result == 2097651003696806);
+        }
+
+        SECTION("initial position, depth 12") {
+            const U64 result = fast_perft(&game, 12);
+            CHECK(result == 62854969236701747);
+        }
+
+        SECTION("initial position, depth 13") {
+            const U64 result = fast_perft(&game, 13);
+            CHECK(result == 1981066775000396239);
+        }
+#endif
+
+        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - , depth 1") {
+            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
+            const U64 result = fast_perft(&game, 1);
+            CHECK(result == 48);
+        }
+
+        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - , depth 2") {
+            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
+            const U64 result = fast_perft(&game, 2);
+            CHECK(result == 2039);
+        }
+
+        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - , depth 3") {
+            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
+            const U64 result = fast_perft(&game, 3);
+            CHECK(result == 97862);
+        }
+
+        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - , depth 4") {
+            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
+            const U64 result = fast_perft(&game, 4);
+            CHECK(result == 4085603);
+        }
+
+#if 0
+        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ,  moves c3b1 h3h2 f3a3 h2g1q, depth 1") {
+            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
+            CHECK(move(&game, Bitboard::Index(File::C, Rank::Three), Bitboard::Index(File::B, Rank::One)));
+            CHECK(move(&game, Bitboard::Index(File::H, Rank::Three), Bitboard::Index(File::G, Rank::Two)));
+            CHECK(move(&game, Bitboard::Index(File::F, Rank::Three), Bitboard::Index(File::A, Rank::Three)));
+            CHECK(move_and_promote(&game, Bitboard::Index(File::G, Rank::Two), Bitboard::Index(File::G, Rank::One), Piece::Type::Queen));
+            const U64 result = fast_perft(&game, 1);
+            CHECK(result == 2);
+        }
+
+        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - , moves c3b1 h3h2 f3a3, depth 2") {
+            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
+            CHECK(move(&game, Bitboard::Index(File::C, Rank::Three), Bitboard::Index(File::B, Rank::One)));
+            CHECK(move(&game, Bitboard::Index(File::H, Rank::Three), Bitboard::Index(File::G, Rank::Two)));
+            CHECK(move(&game, Bitboard::Index(File::F, Rank::Three), Bitboard::Index(File::A, Rank::Three)));
+            const U64 result = fast_perft(&game, 2);
+            CHECK(result == 2273);
+        }
+
+        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - , moves c3b1 h3h2, depth 3") {
+            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
+            CHECK(move(&game, Bitboard::Index(File::C, Rank::Three), Bitboard::Index(File::B, Rank::One)));
+            CHECK(move(&game, Bitboard::Index(File::H, Rank::Three), Bitboard::Index(File::G, Rank::Two)));
+            const U64 result = fast_perft(&game, 3);
+            CHECK(result == 101809);
+        }
+
+        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - , moves c3b1, depth 4") {
+            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
+            CHECK(move(&game, Bitboard::Index(File::C, Rank::Three), Bitboard::Index(File::B, Rank::One)));
+            const U64 result = fast_perft(&game, 4);
+            CHECK(result == 3996171);
+        }
+
+        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - , depth 5") {
+            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
+            const U64 result = fast_perft(&game, 5);
+            CHECK(result == 193690690);
+        }
+
+        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - , depth 6") {
+            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
+            const U64 result = fast_perft(&game, 6);
+            CHECK(result == 8031647685);
+        }
+#endif
     }
 }}

@@ -117,7 +117,7 @@ namespace chess { namespace engine {
         const Bitboard friendly_pieces = get_friendly_pieces<colour>(game);
         const Bitboard enemy_pieces = get_friendly_pieces<EnemyColour<colour>::colour>(game);
         const Bitboard friendly_pieces_and_file_a_complement = ~(friendly_pieces | bitboard_file[U8(File::A)]);
-        const Bitboard friendly_pieces_and_file_h_complement = ~(friendly_pieces | bitboard_file[U8(File::A)]);
+        const Bitboard friendly_pieces_and_file_h_complement = ~(friendly_pieces | bitboard_file[U8(File::H)]);
         Bitboard result;
         Bitboard temp_result;
 
@@ -384,47 +384,47 @@ namespace chess { namespace engine {
         Bitboard moves = get_bishop_moves<colour>(game, index_bitboard);
 
         Bitboard::Index move_index = move_north_east(index);
-        Bitboard move = move_north_east(index_bitboard) & moves;
+        Bitboard move = (move_north_east(index_bitboard) & ~bitboard_file[U8(File::A)]) & moves;
         while (move) {
             if (test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
                 moves &= ~move;
             }
 
             move_index = move_north_east(move_index);
-            move = move_north_east(move) & moves;
+            move = (move_north_east(move) & ~bitboard_file[U8(File::A)]) & moves;
         }
 
         move_index = move_south_east(index);
-        move = move_south_east(index_bitboard) & moves;
+        move = (move_south_east(index_bitboard) & ~bitboard_file[U8(File::A)]) & moves;
         while (move) {
             if (test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
                 moves &= ~move;
             }
 
             move_index = move_south_east(move_index);
-            move = move_south_east(move) & moves;
+            move = (move_south_east(move) & ~bitboard_file[U8(File::A)]) & moves;
         }
 
         move_index = move_south_west(index);
-        move = move_south_west(index_bitboard) & moves;
+        move = (move_south_west(index_bitboard) & ~bitboard_file[U8(File::H)]) & moves;
         while (move) {
             if (test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
                 moves &= ~move;
             }
 
             move_index = move_south_west(move_index);
-            move = move_south_west(move) & moves;
+            move = (move_south_west(move) & ~bitboard_file[U8(File::H)]) & moves;
         }
 
         move_index = move_north_west(index);
-        move = move_north_west(index_bitboard) & moves;
+        move = (move_north_west(index_bitboard) & ~bitboard_file[U8(File::H)]) & moves;
         while (move) {
             if (test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
                 moves &= ~move;
             }
 
             move_index = move_north_west(move_index);
-            move = move_north_west(move) & moves;
+            move = (move_north_west(move) & ~bitboard_file[U8(File::H)]) & moves;
         }
 
         return moves;
@@ -436,14 +436,14 @@ namespace chess { namespace engine {
         Bitboard moves = get_rook_moves<colour>(game, Bitboard(index));
 
         Bitboard::Index move_index = move_east(index);
-        Bitboard move = move_east(index_bitboard) & moves;
+        Bitboard move = (move_east(index_bitboard) & ~bitboard_file[U8(File::A)]) & moves;
         while (move) {
             if (test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
                 moves &= ~move;
             }
 
             move_index = move_east(move_index);
-            move = move_east(move) & moves;
+            move = (move_east(move) & ~bitboard_file[U8(File::A)]) & moves;
         }
 
         move_index = move_south(index);
@@ -458,14 +458,14 @@ namespace chess { namespace engine {
         }
 
         move_index = move_west(index);
-        move = move_west(index_bitboard) & moves;
+        move = (move_west(index_bitboard) & ~bitboard_file[U8(File::H)]) & moves;
         while (move) {
             if (test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
                 moves &= ~move;
             }
 
             move_index = move_west(move_index);
-            move = move_west(move) & moves;
+            move = (move_west(move) & ~bitboard_file[U8(File::H)]) & moves;
         }
 
         move_index = move_north(index);
@@ -577,6 +577,8 @@ namespace chess { namespace engine {
         }
 
         if (!can_never_castle_long<colour>(game)
+            // TODO(TB): should do it like this, or should set xcolour_can_never_castle_long to true when that rook is taken?
+            && has_friendly_rook<colour>(game, Bitboard(File::A, rear_rank<colour>()))
             && is_empty(game, Bitboard(File::B, rear_rank<colour>()))
             && is_empty(game, Bitboard(File::C, rear_rank<colour>()))
             && is_empty(game, Bitboard(File::D, rear_rank<colour>()))
@@ -588,6 +590,7 @@ namespace chess { namespace engine {
         }
 
         if (!can_never_castle_short<colour>(game)
+            && has_friendly_rook<colour>(game, Bitboard(File::H, rear_rank<colour>()))
             && is_empty(game, Bitboard(File::F, rear_rank<colour>()))
             && is_empty(game, Bitboard(File::G, rear_rank<colour>()))
             && !(get_attack_cells<EnemyColour<colour>::colour>(game) & (Bitboard(File::F, rear_rank<colour>()) | Bitboard(File::G, rear_rank<colour>()) | index_bitboard)))
@@ -1347,7 +1350,260 @@ namespace chess { namespace engine {
         return false;
     }
 
+    bool load_fen(Game* game, const char* fen) {
+        U8 section = 0;
+        File file = File::A;
+        Rank rank = Rank::Eight;
+        U8 index = 0;
+        bool section_two_had_something = false;
+        game->white_pawns = Bitboard();
+        game->white_knights = Bitboard();
+        game->white_bishops = Bitboard();
+        game->white_rooks = Bitboard();
+        game->white_queens = Bitboard();
+        game->white_kings = Bitboard();
+        game->black_pawns = Bitboard();
+        game->black_knights = Bitboard();
+        game->black_bishops = Bitboard();
+        game->black_rooks = Bitboard();
+        game->black_queens = Bitboard();
+        game->black_kings = Bitboard();
+        game->black_can_never_castle_long = true;
+        game->black_can_never_castle_short = true;
+        game->white_can_never_castle_long = true;
+        game->white_can_never_castle_short = true;
+
+        while (true) {
+            const char c = fen[index];
+            ++index;
+
+            if (section == 0) {
+                if (c == '/') {
+                    if (file != File::H + 1) {
+                        return false;
+                    }
+
+                    file = File::A;
+                    rank = rank - 1;
+                    if (rank > Rank::Eight) {
+                        return false;
+                    }
+                } else if (c == ' ') {
+                    if (file == File::H + 1 && rank == Rank::One) {
+                        ++section;
+                    }
+                } else {
+                    if (file > File::H) {
+                        return false;
+                    }
+
+                    if (c == 'p') {
+                        game->black_pawns |= Bitboard(Bitboard::Index(file, rank));
+                        file = file + 1;
+                    } else if (c == 'n') {
+                        game->black_knights |= Bitboard(file, rank);
+                        file = file + 1;
+                    } else if (c == 'b') {
+                        game->black_bishops |= Bitboard(file, rank);
+                        file = file + 1;
+                    } else if (c == 'r') {
+                        game->black_rooks |= Bitboard(file, rank);
+                        file = file + 1;
+                    } else if (c == 'q') {
+                        game->black_queens |= Bitboard(file, rank);
+                        file = file + 1;
+                    } else if (c == 'k') {
+                        game->black_kings |= Bitboard(file, rank);
+                        file = file + 1;
+                    } else if (c == 'P') {
+                        game->white_pawns |= Bitboard(file, rank);
+                        file = file + 1;
+                    } else if (c == 'N') {
+                        game->white_knights |= Bitboard(file, rank);
+                        file = file + 1;
+                    } else if (c == 'B') {
+                        game->white_bishops |= Bitboard(file, rank);
+                        file = file + 1;
+                    } else if (c == 'R') {
+                        game->white_rooks |= Bitboard(file, rank);
+                        file = file + 1;
+                    } else if (c == 'Q') {
+                        game->white_queens |= Bitboard(file, rank);
+                        file = file + 1;
+                    } else if (c == 'K') {
+                        game->white_kings |= Bitboard(file, rank);
+                        file = file + 1;
+                    } else if (c == '1') {
+                        file = file + 1;
+                    } else if (c == '2') {
+                        file = file + 2;
+                    } else if (c == '3') {
+                        file = file + 3;
+                    } else if (c == '4') {
+                        file = file + 4;
+                    } else if (c == '5') {
+                        file = file + 5;
+                    } else if (c == '6') {
+                        file = file + 6;
+                    } else if (c == '7') {
+                        file = file + 7;
+                    } else if (c == '8') {
+                        file = file + 8;
+                    } else {
+                        return false;
+                    }
+                }
+            } else if (section == 1) {
+                if (c == 'w') {
+                    game->next_turn = false;
+                    if (fen[index] == ' ') {
+                        ++index;
+                        ++section;
+                    }
+                } else if (c == 'b') {
+                    game->next_turn = true;
+                    if (fen[index] == ' ') {
+                        ++index;
+                        ++section;
+                    }
+                } else {
+                    return false;
+                }
+            } else if (section == 2) {
+                if (c == 'k') {
+                    game->black_can_never_castle_short = false;
+                    section_two_had_something = true;
+                } else if (c == 'K') {
+                    game->white_can_never_castle_short = false;
+                    section_two_had_something = true;
+                } else if (c == 'q') {
+                    game->black_can_never_castle_long = false;
+                    section_two_had_something = true;
+                } else if (c == 'Q') {
+                    game->white_can_never_castle_long = false;
+                    section_two_had_something = true;
+                } else if (c == '-') {
+                    section_two_had_something = true;
+                } else if (c == ' ') {
+                    if (section_two_had_something) {
+                        ++section;
+                    } else {
+                        return false;
+                    }
+                }
+            } else if (section == 3) {
+                if (c == '-') {
+                    game->can_en_passant = false;
+                    if (fen[index] == ' ') {
+                        ++index;
+                        ++section;
+                    } else {
+                        return false;
+                    }
+                } else if (c == 'a' || c == 'b' || c == 'c' || c == 'd' || c == 'e' || c == 'f' || c == 'g' || c == 'h') {
+                    const char r = fen[index];
+                    if (r == '1' || r == '2' || r == '3' || r == '4' || r == '5' || r == '6' || r == '7' || r == '8')  {
+                        const File file = File(U8(File::A) + (c - 'a'));
+                        const Rank rank = Rank(U8(Rank::One) + (r - '1'));
+                        game->can_en_passant = true;
+                        game->en_passant_square = Bitboard::Index(file, rank);
+
+                        ++index;
+                        if (fen[index] == ' ') {
+                            ++index;
+                            ++section;
+                        } else {
+                            return false;
+                        }
+                    } else {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            } else if (section == 4) {
+                if (c == '\0') {
+                    return true;
+                }
+
+                return false;
+            }
+        }
+    }
+
     template <Colour colour>
+    static U64 fast_perft(Game* game, U8 depth) {
+        U64 result = 0;
+        for (Bitboard::Index index; index < chess_board_size; ++index) {
+            const Bitboard moves = get_moves<colour>(game, index);
+            for (Bitboard::Index move_index; move_index < chess_board_size; ++move_index) {
+                if (moves & Bitboard(move_index)) {
+                    if (has_friendly_pawn<colour>(game, Bitboard(index)) && is_rank(move_index, front_rank<colour>())) {
+                        if (depth == 1) { 
+                            ++result;
+                        } else {
+                            Move the_move(game, index, move_index, Piece::Type::Knight);
+                            move<colour>(game, the_move);
+                            result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+                            undo(game);
+                        }
+
+                        if (depth == 1) { 
+                            ++result;
+                        } else {
+                            Move the_move(game, index, move_index, Piece::Type::Bishop);
+                            move<colour>(game, the_move);
+                            result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+                            undo(game);
+                        }
+
+                        if (depth == 1) { 
+                            ++result;
+                        } else {
+                            Move the_move(game, index, move_index, Piece::Type::Rook);
+                            move<colour>(game, the_move);
+                            result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+                            undo(game);
+                        }
+
+                        if (depth == 1) { 
+                            ++result;
+                        } else {
+                            Move the_move(game, index, move_index, Piece::Type::Queen);
+                            move<colour>(game, the_move);
+                            result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+                            undo(game);
+                        }
+                    } else {
+                        if (depth == 1) { 
+                            ++result;
+                        } else {
+                            Move the_move(game, index, move_index);
+                            move<colour>(game, the_move);
+                            result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+                            undo(game);
+                        }
+                    }
+                }
+            }
+        }
+
+        return result;
+    }
+
+    U64 fast_perft(Game* game, U8 depth) {
+        if (depth == 0) {
+            return 1;
+        }
+
+        if (game->next_turn) {
+            return fast_perft<Colour::Black>(game, depth);
+        }
+
+        return fast_perft<Colour::White>(game, depth);
+    }
+
+    template <Colour colour, bool initial>
     static PerftResult perft(Game* game, U8 depth) {
         if (depth == 0) {
             return PerftResult{
@@ -1373,35 +1629,55 @@ namespace chess { namespace engine {
                         {
                             Move the_move(game, index, move_index, Piece::Type::Knight);
                             move<colour>(game, the_move);
-                            result = result + perft<EnemyColour<colour>::colour>(game, depth - 1);
+                            PerftResult this_result = perft<EnemyColour<colour>::colour, false>(game, depth - 1);
+                            if constexpr (initial) {
+                                std::cout << string_move(the_move) << ": " << this_result.nodes << std::endl;
+                            }
+                            result = result + this_result;
                             undo(game);
                         }
 
                         {
                             Move the_move(game, index, move_index, Piece::Type::Bishop);
                             move<colour>(game, the_move);
-                            result = result + perft<EnemyColour<colour>::colour>(game, depth - 1);
+                            PerftResult this_result = perft<EnemyColour<colour>::colour, false>(game, depth - 1);
+                            if constexpr (initial) {
+                                std::cout << string_move(the_move) << ": " << this_result.nodes << std::endl;
+                            }
+                            result = result + this_result;
                             undo(game);
                         }
 
                         {
                             Move the_move(game, index, move_index, Piece::Type::Rook);
                             move<colour>(game, the_move);
-                            result = result + perft<EnemyColour<colour>::colour>(game, depth - 1);
+                            PerftResult this_result = perft<EnemyColour<colour>::colour, false>(game, depth - 1);
+                            if constexpr (initial) {
+                                std::cout << string_move(the_move) << ": " << this_result.nodes << std::endl;
+                            }
+                            result = result + this_result;
                             undo(game);
                         }
 
                         {
                             Move the_move(game, index, move_index, Piece::Type::Queen);
                             move<colour>(game, the_move);
-                            result = result + perft<EnemyColour<colour>::colour>(game, depth - 1);
+                            PerftResult this_result = perft<EnemyColour<colour>::colour, false>(game, depth - 1);
+                            if constexpr (initial) {
+                                std::cout << string_move(the_move) << ": " << this_result.nodes << std::endl;
+                            }
+                            result = result + this_result;
                             undo(game);
                         }
                     } else {
                         {
                             Move the_move(game, index, move_index);
                             move<colour>(game, the_move);
-                            result = result + perft<EnemyColour<colour>::colour>(game, depth - 1);
+                            PerftResult this_result = perft<EnemyColour<colour>::colour, false>(game, depth - 1);
+                            if constexpr (initial) {
+                                std::cout << string_move(the_move) << ": " << this_result.nodes << std::endl;
+                            }
+                            result = result + this_result;
                             undo(game);
                         }
                     }
@@ -1414,19 +1690,32 @@ namespace chess { namespace engine {
 
     PerftResult perft(Game* game, U8 depth) {
         if (game->next_turn) {
-            return perft<Colour::Black>(game, depth);
+            return perft<Colour::Black, true>(game, depth);
         }
 
-        return perft<Colour::White>(game, depth);
+        return perft<Colour::White, true>(game, depth);
     }
     // #endregion
+
+    static std::string string_promotion_piece_type(Piece::Type x) {
+        if (x == Piece::Type::Knight) {
+            return "n";
+        } else if (x == Piece::Type::Bishop) {
+            return "b";
+        } else if (x == Piece::Type::Rook) {
+            return "r";
+        } else {
+            return "q";
+        }
+    }
 
     std::string string_move(Move move) {
         char from_rank = '1' + (U8(move.from) / chess_board_edge_size);
         char from_file = 'A' + (U8(move.from) % chess_board_edge_size);
         char to_rank = '1' + (U8(move.to) / chess_board_edge_size);
         char to_file = 'A' + (U8(move.to) % chess_board_edge_size);
-        return std::string("Move ") + from_file + from_rank + " to " + to_file + to_rank;
+        const Piece::Type promotion_piece_type = get_promotion_piece_type(move.compressed_taken_and_promotion_piece_type);
+        return std::string("") + from_file + from_rank + to_file + to_rank + (promotion_piece_type == Piece::Type::Empty ? "" : string_promotion_piece_type(promotion_piece_type));
     }
 
     void print_board(const Game* game) {
