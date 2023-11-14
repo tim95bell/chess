@@ -1837,7 +1837,6 @@ namespace chess { namespace engine {
 
     template <Colour colour, bool divided = false>
     static U64 fast_perft(Game* game, U8 depth) {
-        //const PieceTypeAndIndex* const piece_list = get_piece_list<colour>(game);
         PieceTypeAndIndex piece_list[16];
         const U8 piece_list_size = get_piece_list_copy<colour>(game, piece_list);
 
@@ -1847,7 +1846,8 @@ namespace chess { namespace engine {
             const Bitboard moves = get_moves<colour>(game, index);
             const Bitboard index_bitboard(index);
             if (moves) {
-                for (Bitboard::Index move_index; move_index < chess_board_size; ++move_index) {
+                for (U8 index_plus_one = __builtin_ffsll(moves.data); index_plus_one != 0; index_plus_one = __builtin_ffsll(moves.data)) {
+                    const Bitboard::Index move_index(index_plus_one - 1);
                     const Bitboard move_index_bitboard(move_index);
                     if (moves & move_index_bitboard) {
                         if (has_friendly_pawn<colour>(game, index_bitboard) && is_rank(move_index, front_rank<colour>())) {
