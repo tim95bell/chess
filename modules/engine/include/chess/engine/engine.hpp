@@ -225,9 +225,10 @@ namespace chess { namespace engine {
     extern bool redo(Game* game);
     extern bool load_fen(Game* game, const char* fen);
     extern PerftResult perft(Game* game, U8 depth);
+    template <bool divided = false>
     extern U64 fast_perft(Game* game, U8 depth);
-#if CHESS_DEBUG
     extern void string_move(Move move, char* buffer);
+#if CHESS_DEBUG
     extern void print_board(const Game* game);
 #endif
 

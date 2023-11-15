@@ -199,7 +199,9 @@ namespace chess { namespace engine {
     static inline Bitboard get_king_moves(const Game* game, Bitboard bitboard) {
         Bitboard result = get_king_attack_moves<colour>(game, bitboard);
 
+        // TODO(TB): make this branchless?
         if (!can_never_castle_long<colour>(game)
+            && has_friendly_rook<colour>(game, Bitboard(File::A, rear_rank<colour>()))
             && is_empty(game, Bitboard(File::B, rear_rank<colour>()))
             && is_empty(game, Bitboard(File::C, rear_rank<colour>()))
             && is_empty(game, Bitboard(File::D, rear_rank<colour>()))
@@ -209,6 +211,7 @@ namespace chess { namespace engine {
         }
 
         if (!can_never_castle_short<colour>(game)
+            && has_friendly_rook<colour>(game, Bitboard(File::H, rear_rank<colour>()))
             && is_empty(game, Bitboard(File::F, rear_rank<colour>()))
             && is_empty(game, Bitboard(File::G, rear_rank<colour>()))
             && !(get_attack_cells<EnemyColour<colour>::colour>(game) & (Bitboard(File::F, rear_rank<colour>()) | Bitboard(File::G, rear_rank<colour>()) | bitboard)))
@@ -221,7 +224,7 @@ namespace chess { namespace engine {
 
     template <Colour colour>
     static inline bool test_for_check(const Game* game) {
-        return get_attack_cells_excluding_king<EnemyColour<colour>::colour>(game) & *get_friendly_kings<colour>(game);
+        const Bitboard result = get_attack_cells_excluding_king<EnemyColour<colour>::colour>(game) & *get_friendly_kings<colour>(game);
     }
 
     template <Colour colour>
@@ -515,86 +518,11 @@ namespace chess { namespace engine {
     template <Colour colour>
     static Bitboard get_king_legal_moves(Game* game, Bitboard::Index index) {
         CHESS_ASSERT(has_friendly_king<colour>(game, Bitboard(index)));
-        const Bitboard friendly_pieces = get_friendly_pieces<colour>(game);
-        const Bitboard friendly_pieces_complement = ~friendly_pieces;
-        const Bitboard friendly_pieces_and_file_a_complement = ~(friendly_pieces | bitboard_file[U8(File::A)]);
-        const Bitboard friendly_pieces_and_file_h_complement = ~(friendly_pieces | bitboard_file[U8(File::H)]);
-        const Bitboard index_bitboard(index);
-        Bitboard result;
-
-        Bitboard::Index move_index = move_north_east(index);
-        Bitboard move_bitboard = move_north_east(index_bitboard) & friendly_pieces_and_file_a_complement;
-        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-            result |= move_bitboard;
-        }
-
-        move_index = move_east(index);
-        move_bitboard = move_east(index_bitboard) & friendly_pieces_and_file_a_complement;
-        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-            result |= move_bitboard;
-        }
-
-        move_index = move_south_east(index);
-        move_bitboard = move_south_east(index_bitboard) & friendly_pieces_and_file_a_complement;
-        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-            result |= move_bitboard;
-        }
-
-        move_index = move_south(index);
-        move_bitboard = move_south(index_bitboard) & friendly_pieces_complement;
-        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-            result |= move_bitboard;
-        }
-
-        move_index = move_south_west(index);
-        move_bitboard = move_south_west(index_bitboard) & friendly_pieces_and_file_h_complement;
-        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-            result |= move_bitboard;
-        }
-
-        move_index = move_west(index);
-        move_bitboard = move_west(index_bitboard) & friendly_pieces_and_file_h_complement;
-        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-            result |= move_bitboard;
-        }
-
-        move_index = move_north_west(index);
-        move_bitboard = move_north_west(index_bitboard) & friendly_pieces_and_file_h_complement;
-        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-            result |= move_bitboard;
-        }
-
-        move_index = move_north(index);
-        move_bitboard = move_north(index_bitboard) & friendly_pieces_complement;
-        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-            result |= move_bitboard;
-        }
-
-        if (!can_never_castle_long<colour>(game)
-            // TODO(TB): should do it like this, or should set xcolour_can_never_castle_long to true when that rook is taken?
-            && has_friendly_rook<colour>(game, Bitboard(File::A, rear_rank<colour>()))
-            && is_empty(game, Bitboard(File::B, rear_rank<colour>()))
-            && is_empty(game, Bitboard(File::C, rear_rank<colour>()))
-            && is_empty(game, Bitboard(File::D, rear_rank<colour>()))
-            && !(get_attack_cells<EnemyColour<colour>::colour>(game) & (Bitboard(File::C, rear_rank<colour>()) | Bitboard(File::D, rear_rank<colour>()) | index_bitboard)))
-        {
-            move_index = Bitboard::Index(File::C, rear_rank<colour>());
-            move_bitboard = Bitboard(move_index);
-            result |= move_bitboard;
-        }
-
-        if (!can_never_castle_short<colour>(game)
-            && has_friendly_rook<colour>(game, Bitboard(File::H, rear_rank<colour>()))
-            && is_empty(game, Bitboard(File::F, rear_rank<colour>()))
-            && is_empty(game, Bitboard(File::G, rear_rank<colour>()))
-            && !(get_attack_cells<EnemyColour<colour>::colour>(game) & (Bitboard(File::F, rear_rank<colour>()) | Bitboard(File::G, rear_rank<colour>()) | index_bitboard)))
-        {
-            move_index = Bitboard::Index(File::G, rear_rank<colour>());
-            move_bitboard = Bitboard(move_index);
-            result |= move_bitboard;
-        }
-
-        return result;
+        const Bitboard kings_copy = *get_friendly_kings<colour>(game);
+        *get_friendly_kings<colour>(game) = Bitboard{};
+        const Bitboard non_attacked_cells = ~get_attack_cells<EnemyColour<colour>::colour>(game);
+        *get_friendly_kings<colour>(game) = kings_copy;
+        return get_king_moves<colour>(game, Bitboard(index)) & non_attacked_cells;
     }
 
     template <Colour colour>
@@ -1443,7 +1371,7 @@ namespace chess { namespace engine {
         }
     }
 
-    template <Colour colour>
+    template <Colour colour, bool divided = false>
     static U64 fast_perft(Game* game, U8 depth) {
         U64 result = 0;
         Bitboard friendly_pieces_to_process = get_friendly_pieces<colour>(game);
@@ -1461,43 +1389,102 @@ namespace chess { namespace engine {
                     // TOOD(TB): the if statements about piece type could go outside the loop
                     if (has_friendly_pawn<colour>(game, from_index_bitboard) && is_rank(to_index, front_rank<colour>())) {
                         if (depth == 1) {
+                            if constexpr (divided) {
+                                char move_name[6];
+                                string_move(Move(game, from_index, to_index, Piece::Type::Knight), move_name);
+                                std::cout << move_name << ": 1" << std::endl;
+
+                                string_move(Move(game, from_index, to_index, Piece::Type::Bishop), move_name);
+                                std::cout << move_name << ": 1" << std::endl;
+
+                                string_move(Move(game, from_index, to_index, Piece::Type::Rook), move_name);
+                                std::cout << move_name << ": 1" << std::endl;
+
+                                string_move(Move(game, from_index, to_index, Piece::Type::Queen), move_name);
+                                std::cout << move_name << ": 1" << std::endl;
+                            }
                             result += 4;
                         } else {
                             {
                                 Move the_move(game, from_index, to_index, Piece::Type::Knight);
                                 move_unchecked<colour>(game, the_move);
-                                result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+                                if constexpr (divided) {
+                                    char move_name[6];
+                                    U64 temp_result = fast_perft<EnemyColour<colour>::colour, false>(game, depth - 1);
+                                    string_move(the_move, move_name);
+                                    std::cout << move_name << ": " << temp_result << std::endl;
+                                    result += temp_result;
+                                } else {
+                                    result += fast_perft<EnemyColour<colour>::colour, false>(game, depth - 1);
+                                }
                                 undo(game);
                             }
 
                             {
                                 Move the_move(game, from_index, to_index, Piece::Type::Bishop);
                                 move_unchecked<colour>(game, the_move);
-                                result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+                                if constexpr (divided) {
+                                    char move_name[6];
+                                    U64 temp_result = fast_perft<EnemyColour<colour>::colour, false>(game, depth - 1);
+                                    string_move(the_move, move_name);
+                                    std::cout << move_name << ": " << temp_result << std::endl;
+                                    result += temp_result;
+                                } else {
+                                    result += fast_perft<EnemyColour<colour>::colour, false>(game, depth - 1);
+                                }
                                 undo(game);
                             }
 
                             {
                                 Move the_move(game, from_index, to_index, Piece::Type::Rook);
                                 move_unchecked<colour>(game, the_move);
-                                result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+                                if constexpr (divided) {
+                                    char move_name[6];
+                                    U64 temp_result = fast_perft<EnemyColour<colour>::colour, false>(game, depth - 1);
+                                    string_move(the_move, move_name);
+                                    std::cout << move_name << ": " << temp_result << std::endl;
+                                    result += temp_result;
+                                } else {
+                                    result += fast_perft<EnemyColour<colour>::colour, false>(game, depth - 1);
+                                }
                                 undo(game);
                             }
 
                             {
                                 Move the_move(game, from_index, to_index, Piece::Type::Queen);
                                 move_unchecked<colour>(game, the_move);
-                                result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+                                if constexpr (divided) {
+                                    char move_name[6];
+                                    U64 temp_result = fast_perft<EnemyColour<colour>::colour, false>(game, depth - 1);
+                                    string_move(the_move, move_name);
+                                    std::cout << move_name << ": " << temp_result << std::endl;
+                                    result += temp_result;
+                                } else {
+                                    result += fast_perft<EnemyColour<colour>::colour, false>(game, depth - 1);
+                                }
                                 undo(game);
                             }
                         }
                     } else {
                         if (depth == 1) { 
+                            if constexpr (divided) {
+                                char move_name[6];
+                                string_move(Move(game, from_index, to_index), move_name);
+                                std::cout << move_name << ": 1" << std::endl;
+                            }
                             ++result;
                         } else {
                             Move the_move(game, from_index, to_index);
                             move_unchecked<colour>(game, the_move);
-                            result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
+                            if constexpr (divided) {
+                                char move_name[6];
+                                U64 temp_result = fast_perft<EnemyColour<colour>::colour, false>(game, depth - 1);
+                                string_move(the_move, move_name);
+                                std::cout << move_name << ": " << temp_result << std::endl;
+                                result += temp_result;
+                            } else {
+                                result += fast_perft<EnemyColour<colour>::colour, false>(game, depth - 1);
+                            }
                             undo(game);
                         }
                     }
@@ -1508,17 +1495,21 @@ namespace chess { namespace engine {
         return result;
     }
 
+    template <bool divided>
     U64 fast_perft(Game* game, U8 depth) {
         if (depth == 0) {
             return 1;
         }
 
         if (game->next_turn) {
-            return fast_perft<Colour::Black>(game, depth);
+            return fast_perft<Colour::Black, divided>(game, depth);
         }
 
-        return fast_perft<Colour::White>(game, depth);
+        return fast_perft<Colour::White, divided>(game, depth);
     }
+
+    template U64 fast_perft<false>(Game* game, U8 depth);
+    template U64 fast_perft<true>(Game* game, U8 depth);
 
     template <Colour colour, bool initial>
     static PerftResult perft(Game* game, U8 depth) {
@@ -1634,7 +1625,6 @@ namespace chess { namespace engine {
     }
     // #endregion
 
-#if CHESS_DEBUG
     void string_move(Move move, char* buffer) {
         char from_rank = '1' + (U8(move.from) / chess_board_edge_size);
         char from_file = 'a' + (U8(move.from) % chess_board_edge_size);
@@ -1648,6 +1638,7 @@ namespace chess { namespace engine {
         }
     }
 
+#if CHESS_DEBUG
     void print_board(const Game* game) {
         for (Rank rank = Rank::Eight; rank < chess_board_edge_size; --rank) {
             for (File file = File::A; file < chess_board_edge_size; ++file) {
