@@ -165,51 +165,51 @@ namespace chess { namespace engine {
     };
 
     template <Colour colour>
-    extern bool has_friendly_piece(const Game* game, Bitboard bitboard);
+    inline bool has_friendly_piece(const Game* game, Bitboard bitboard);
     template <Colour colour>
-    extern bool has_friendly_pawn(const Game* game, Bitboard bitboard);
+    inline bool has_friendly_pawn(const Game* game, Bitboard bitboard);
     template <Colour colour>
-    extern bool has_friendly_knight(const Game* game, Bitboard bitboard);
+    inline bool has_friendly_knight(const Game* game, Bitboard bitboard);
     template <Colour colour>
-    extern bool has_friendly_bishop(const Game* game, Bitboard bitboard);
+    inline bool has_friendly_bishop(const Game* game, Bitboard bitboard);
     template <Colour colour>
-    extern bool has_friendly_rook(const Game* game, Bitboard bitboard);
+    inline bool has_friendly_rook(const Game* game, Bitboard bitboard);
     template <Colour colour>
-    extern bool has_friendly_queen(const Game* game, Bitboard bitboard);
+    inline bool has_friendly_queen(const Game* game, Bitboard bitboard);
     template <Colour colour>
-    extern bool has_friendly_king(const Game* game, Bitboard bitboard);
+    inline bool has_friendly_king(const Game* game, Bitboard bitboard);
     template <Colour colour>
-    extern bool is_empty(const Game* game, Bitboard bitboard);
-    extern bool is_empty(const Game* game, Bitboard bitboard);
+    inline bool is_empty(const Game* game, Bitboard bitboard);
+    inline bool is_empty(const Game* game, Bitboard bitboard);
     extern Piece get_piece(const Game* game, Bitboard bitboard);
     template <Colour colour>
     extern Piece::Type get_friendly_piece_type(const Game* game, Bitboard bitboard);
     template <Colour colour>
-    extern const Bitboard* get_friendly_pawns(const Game* game);
+    inline const Bitboard* get_friendly_pawns(const Game* game);
     template <Colour colour>
-    extern Bitboard* get_friendly_pawns(Game* game);
+    inline Bitboard* get_friendly_pawns(Game* game);
     template <Colour colour>
-    extern const Bitboard* get_friendly_knights(const Game* game);
+    inline const Bitboard* get_friendly_knights(const Game* game);
     template <Colour colour>
-    extern Bitboard* get_friendly_knights(Game* game);
+    inline Bitboard* get_friendly_knights(Game* game);
     template <Colour colour>
-    extern const Bitboard* get_friendly_bishops(const Game* game);
+    inline const Bitboard* get_friendly_bishops(const Game* game);
     template <Colour colour>
-    extern Bitboard* get_friendly_bishops(Game* game);
+    inline Bitboard* get_friendly_bishops(Game* game);
     template <Colour colour>
-    extern const Bitboard* get_friendly_rooks(const Game* game);
+    inline const Bitboard* get_friendly_rooks(const Game* game);
     template <Colour colour>
-    extern Bitboard* get_friendly_rooks(Game* game);
+    inline Bitboard* get_friendly_rooks(Game* game);
     template <Colour colour>
-    extern const Bitboard* get_friendly_queens(const Game* game);
+    inline const Bitboard* get_friendly_queens(const Game* game);
     template <Colour colour>
-    extern Bitboard* get_friendly_queens(Game* game);
+    inline Bitboard* get_friendly_queens(Game* game);
     template <Colour colour>
-    extern const Bitboard* get_friendly_kings(const Game* game);
+    inline const Bitboard* get_friendly_kings(const Game* game);
     template <Colour colour>
-    extern Bitboard* get_friendly_kings(Game* game);
+    inline Bitboard* get_friendly_kings(Game* game);
     template <Colour colour>
-    extern Bitboard get_friendly_pieces(const Game* game);
+    inline Bitboard get_friendly_pieces(const Game* game);
     extern Bitboard get_cells_moved_from(const Game* game);
     extern Bitboard get_cells_moved_to(const Game* game);
     template <Colour colour>
@@ -219,8 +219,8 @@ namespace chess { namespace engine {
     extern Bitboard get_moves(Game* game, Bitboard::Index index);
     extern bool move(Game* game, Bitboard::Index from, Bitboard::Index to);
     extern bool move_and_promote(Game* game, Bitboard::Index from, Bitboard::Index to, Piece::Type promotion_piece);
-    extern bool can_undo(const Game* game);
-    extern bool can_redo(const Game* game);
+    inline bool can_undo(const Game* game);
+    inline bool can_redo(const Game* game);
     extern bool undo(Game* game);
     extern bool redo(Game* game);
     extern bool load_fen(Game* game, const char* fen);
@@ -230,5 +230,153 @@ namespace chess { namespace engine {
     extern void string_move(Move move, char* buffer);
     extern void print_board(const Game* game);
 #endif
+
+    template <Colour colour>
+    inline bool has_friendly_piece(const Game* game, Bitboard bitboard) {
+        return has_friendly_pawn<colour>(game, bitboard)
+            || has_friendly_knight<colour>(game, bitboard)
+            || has_friendly_bishop<colour>(game, bitboard)
+            || has_friendly_rook<colour>(game, bitboard)
+            || has_friendly_queen<colour>(game, bitboard)
+            || has_friendly_king<colour>(game, bitboard);
+    }
+
+    template <Colour colour>
+    inline bool has_friendly_pawn(const Game* game, Bitboard bitboard) {
+        return *get_friendly_pawns<colour>(game) & bitboard;
+    }
+
+    template <Colour colour>
+    inline bool has_friendly_knight(const Game* game, Bitboard bitboard) {
+        return *get_friendly_knights<colour>(game) & bitboard;
+    }
+
+    template <Colour colour>
+    inline bool has_friendly_bishop(const Game* game, Bitboard bitboard) {
+        return *get_friendly_bishops<colour>(game) & bitboard;
+    }
+
+    template <Colour colour>
+    inline bool has_friendly_rook(const Game* game, Bitboard bitboard) {
+        return *get_friendly_rooks<colour>(game) & bitboard;
+    }
+
+    template <Colour colour>
+    inline bool has_friendly_queen(const Game* game, Bitboard bitboard) {
+        return *get_friendly_queens<colour>(game) & bitboard;
+    }
+
+    template <Colour colour>
+    inline bool has_friendly_king(const Game* game, Bitboard bitboard) {
+        return *get_friendly_kings<colour>(game) & bitboard;
+    }
+
+    template <Colour colour>
+    inline bool is_empty(const Game* game, Bitboard bitboard) {
+        return !has_friendly_piece<colour>(game, bitboard);
+    }
+
+    inline bool is_empty(const Game* game, Bitboard bitboard) {
+        return is_empty<Colour::Black>(game, bitboard) && is_empty<Colour::White>(game, bitboard);
+    }
+
+    template <Colour colour>
+    inline const Bitboard* get_friendly_pawns(const Game* game) {
+        if constexpr (colour == Colour::Black) {
+            return &game->black_pawns;
+        } else {
+            return &game->white_pawns;
+        }
+    }
+
+    template <Colour colour>
+    inline Bitboard* get_friendly_pawns(Game* game) {
+        return const_cast<Bitboard*>(get_friendly_pawns<colour>(static_cast<const Game*>(game)));
+    }
+
+    template <Colour colour>
+    inline const Bitboard* get_friendly_knights(const Game* game) {
+        if constexpr (colour == Colour::Black) {
+            return &game->black_knights;
+        } else {
+            return &game->white_knights;
+        }
+    }
+
+    template <Colour colour>
+    inline Bitboard* get_friendly_knights(Game* game) {
+        return const_cast<Bitboard*>(get_friendly_knights<colour>(static_cast<const Game*>(game)));
+    }
+
+    template <Colour colour>
+    inline const Bitboard* get_friendly_bishops(const Game* game) {
+        if constexpr (colour == Colour::Black) {
+            return &game->black_bishops;
+        } else {
+            return &game->white_bishops;
+        }
+    }
+
+    template <Colour colour>
+    inline Bitboard* get_friendly_bishops(Game* game) {
+        return const_cast<Bitboard*>(get_friendly_bishops<colour>(static_cast<const Game*>(game)));
+    }
+
+    template <Colour colour>
+    inline const Bitboard* get_friendly_rooks(const Game* game) {
+        if constexpr (colour == Colour::Black) {
+            return &game->black_rooks;
+        } else {
+            return &game->white_rooks;
+        }
+    }
+
+    template <Colour colour>
+    inline Bitboard* get_friendly_rooks(Game* game) {
+        return const_cast<Bitboard*>(get_friendly_rooks<colour>(static_cast<const Game*>(game)));
+    }
+
+    template <Colour colour>
+    inline const Bitboard* get_friendly_queens(const Game* game) {
+        if constexpr (colour == Colour::Black) {
+            return &game->black_queens;
+        } else {
+            return &game->white_queens;
+        }
+    }
+
+    template <Colour colour>
+    inline Bitboard* get_friendly_queens(Game* game) {
+        return const_cast<Bitboard*>(get_friendly_queens<colour>(static_cast<const Game*>(game)));
+    }
+
+    template <Colour colour>
+    inline const Bitboard* get_friendly_kings(const Game* game) {
+        if constexpr (colour == Colour::Black) {
+            return &game->black_kings;
+        } else {
+            return &game->white_kings;
+        }
+    }
+
+    template <Colour colour>
+    inline Bitboard* get_friendly_kings(Game* game) {
+        return const_cast<Bitboard*>(get_friendly_kings<colour>(static_cast<const Game*>(game)));
+    }
+
+    template <Colour colour>
+    inline Bitboard get_friendly_pieces(const Game* game) {
+        return *get_friendly_pawns<colour>(game) | *get_friendly_knights<colour>(game)
+            | *get_friendly_bishops<colour>(game) | *get_friendly_rooks<colour>(game)
+            | *get_friendly_queens<colour>(game) | *get_friendly_kings<colour>(game);
+    }
+
+    inline bool can_undo(const Game* game) {
+        return game->moves_index != 0;
+    }
+
+    inline bool can_redo(const Game* game) {
+        return game->moves_index < game->moves_count;
+    }
     // #endregion
 }}

@@ -22,27 +22,6 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static inline Bitboard* get_friendly_knights_or_bishops_or_rooks_or_queens(Game* game, Bitboard index_bitboard) {
-        if (has_friendly_knight<colour>(game, index_bitboard)) {
-            return get_friendly_knights<colour>(game);
-        }
-        
-        if (has_friendly_bishop<colour>(game, index_bitboard)) {
-            return get_friendly_bishops<colour>(game);
-        }
-
-        if (has_friendly_rook<colour>(game, index_bitboard)) {
-            return get_friendly_rooks<colour>(game);
-        }
-        
-        if (has_friendly_queen<colour>(game, index_bitboard)) {
-            return get_friendly_queens<colour>(game);
-        }
-
-        return nullptr;
-    }
-
-    template <Colour colour>
     static inline Piece::Type remove_friendly_piece(Game* game, Bitboard index_bitboard) {
         if (has_friendly_pawn<colour>(game, index_bitboard)) {
             *get_friendly_pawns<colour>(game) &= ~index_bitboard;
@@ -242,7 +221,7 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static inline bool test_for_check_after_move(Game* game, Move the_move) {
+    static bool test_for_check_after_move(Game* game, Move the_move) {
         set_taken_piece_type(&the_move.compressed_taken_and_promotion_piece_type, perform_move<colour>(game, the_move));
         const bool result = test_for_check<colour>(game);
         unperform_move<colour>(game, the_move);
@@ -250,7 +229,7 @@ namespace chess { namespace engine {
     }
  
     template <Colour colour>
-    static inline Bitboard get_pawn_legal_moves(Game* game, Bitboard::Index index) {
+    static Bitboard get_pawn_legal_moves(Game* game, Bitboard::Index index) {
         const Bitboard index_bitboard(index);
         CHESS_ASSERT(has_friendly_pawn<colour>(game, index_bitboard));
         CHESS_ASSERT(!is_rank(index, rear_rank<colour>()) && !is_rank(index, front_rank<colour>()));;
@@ -313,7 +292,7 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static inline Bitboard get_knight_legal_moves(Game* game, Bitboard::Index index) {
+    static Bitboard get_knight_legal_moves(Game* game, Bitboard::Index index) {
         const Bitboard index_bitboard(index);
 
         CHESS_ASSERT(has_friendly_knight<colour>(game, index_bitboard));
@@ -377,7 +356,7 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static inline Bitboard get_bishop_legal_moves(Game* game, Bitboard::Index index) {
+    static Bitboard get_bishop_legal_moves(Game* game, Bitboard::Index index) {
         const Bitboard index_bitboard(index);
         Bitboard moves = get_bishop_moves<colour>(game, index_bitboard);
 
@@ -429,7 +408,7 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static inline Bitboard get_rook_legal_moves(Game* game, Bitboard::Index index) {
+    static Bitboard get_rook_legal_moves(Game* game, Bitboard::Index index) {
         const Bitboard index_bitboard(index);
         Bitboard moves = get_rook_moves<colour>(game, Bitboard(index));
 
@@ -517,7 +496,7 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static inline Bitboard get_king_legal_moves(Game* game, Bitboard::Index index) {
+    static Bitboard get_king_legal_moves(Game* game, Bitboard::Index index) {
         CHESS_ASSERT(has_friendly_king<colour>(game, Bitboard(index)));
         const Bitboard friendly_pieces = get_friendly_pieces<colour>(game);
         const Bitboard friendly_pieces_complement = ~friendly_pieces;
@@ -602,7 +581,7 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static inline Bitboard get_moves(Game* game, Bitboard::Index index) {
+    static Bitboard get_moves(Game* game, Bitboard::Index index) {
         // non templated get_moves should only call this if there is no cache entry
         Bitboard index_bitboard(index);
         CHESS_ASSERT(!(game->cache.possible_moves_calculated & index_bitboard));
@@ -635,7 +614,7 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static inline Piece::Type perform_pawn_move(Game* game, Move move, Bitboard from_index_bitboard, Bitboard to_index_bitboard) {
+    static Piece::Type perform_pawn_move(Game* game, Move move, Bitboard from_index_bitboard, Bitboard to_index_bitboard) {
         Piece::Type result = Piece::Type::Empty;
 
         // remove pawn that is being moved from 'from' cell
@@ -685,7 +664,7 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static inline Piece::Type perfrom_king_move(Game* game, Move move, Bitboard from_index_bitboard, Bitboard to_index_bitboard) {
+    static Piece::Type perfrom_king_move(Game* game, Move move, Bitboard from_index_bitboard, Bitboard to_index_bitboard) {
         CHESS_ASSERT(get_promotion_piece_type(move.compressed_taken_and_promotion_piece_type) == Piece::Type::Empty);
 
         // remove friendly king that is being moved from 'from' cell
@@ -720,10 +699,47 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static inline Piece::Type perform_knight_or_bishop_or_rook_or_queen_move(Game* game, Move move, Bitboard from_index_bitboard, Bitboard to_index_bitboard) {
+    static Piece::Type perform_knight_move(Game* game, Move move, Bitboard from_index_bitboard, Bitboard to_index_bitboard) {
         CHESS_ASSERT(get_promotion_piece_type(move.compressed_taken_and_promotion_piece_type) == Piece::Type::Empty);
-        Bitboard* from_bitboard = get_friendly_knights_or_bishops_or_rooks_or_queens<colour>(game, from_index_bitboard);
-        CHESS_ASSERT(from_bitboard);
+        Bitboard* from_bitboard = get_friendly_knights<colour>(game);
+
+        // remove friendly piece that is being moved from 'from' cell
+        *from_bitboard &= ~from_index_bitboard;
+
+        // remove enemy piece that is being captured at 'to' cell
+        const Piece::Type result = remove_friendly_piece<EnemyColour<colour>::colour>(game, to_index_bitboard);
+
+        // add friendly piece at 'to' cell
+        *from_bitboard |= to_index_bitboard;
+
+        game->can_en_passant = false;
+
+        return result;
+    }
+
+    template <Colour colour>
+    static Piece::Type perform_bishop_move(Game* game, Move move, Bitboard from_index_bitboard, Bitboard to_index_bitboard) {
+        CHESS_ASSERT(get_promotion_piece_type(move.compressed_taken_and_promotion_piece_type) == Piece::Type::Empty);
+        Bitboard* from_bitboard = get_friendly_bishops<colour>(game);
+
+        // remove friendly piece that is being moved from 'from' cell
+        *from_bitboard &= ~from_index_bitboard;
+
+        // remove enemy piece that is being captured at 'to' cell
+        const Piece::Type result = remove_friendly_piece<EnemyColour<colour>::colour>(game, to_index_bitboard);
+
+        // add friendly piece at 'to' cell
+        *from_bitboard |= to_index_bitboard;
+
+        game->can_en_passant = false;
+
+        return result;
+    }
+
+    template <Colour colour>
+    static Piece::Type perform_rook_move(Game* game, Move move, Bitboard from_index_bitboard, Bitboard to_index_bitboard) {
+        CHESS_ASSERT(get_promotion_piece_type(move.compressed_taken_and_promotion_piece_type) == Piece::Type::Empty);
+        Bitboard* from_bitboard = get_friendly_rooks<colour>(game);
 
         if (from_bitboard == get_friendly_rooks<colour>(game)) {
             if (from_index_bitboard & Bitboard(File::A, rear_rank<colour>())
@@ -750,18 +766,43 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static inline Piece::Type perform_move(Game* game, Move move) {
+    static Piece::Type perform_queen_move(Game* game, Move move, Bitboard from_index_bitboard, Bitboard to_index_bitboard) {
+        CHESS_ASSERT(get_promotion_piece_type(move.compressed_taken_and_promotion_piece_type) == Piece::Type::Empty);
+        Bitboard* from_bitboard = get_friendly_queens<colour>(game);
+
+        // remove friendly piece that is being moved from 'from' cell
+        *from_bitboard &= ~from_index_bitboard;
+
+        // remove enemy piece that is being captured at 'to' cell
+        const Piece::Type result = remove_friendly_piece<EnemyColour<colour>::colour>(game, to_index_bitboard);
+
+        // add friendly piece at 'to' cell
+        *from_bitboard |= to_index_bitboard;
+
+        game->can_en_passant = false;
+
+        return result;
+    }
+
+    template <Colour colour>
+    static Piece::Type perform_move(Game* game, Move move) {
         const Bitboard from_index_bitboard = Bitboard(move.from);
         const Bitboard to_index_bitboard = Bitboard(move.to);
         Piece::Type result = Piece::Type::Empty;
 
         if (has_friendly_pawn<colour>(game, from_index_bitboard)) {
             result = perform_pawn_move<colour>(game, move, from_index_bitboard, to_index_bitboard);
-        } else if (has_friendly_king<colour>(game, from_index_bitboard)) {
-            result = perfrom_king_move<colour>(game, move, from_index_bitboard, to_index_bitboard);
+        } else if (has_friendly_knight<colour>(game, from_index_bitboard)) {
+            result = perform_knight_move<colour>(game, move, from_index_bitboard, to_index_bitboard);
+        } else if (has_friendly_bishop<colour>(game, from_index_bitboard)) {
+            result = perform_bishop_move<colour>(game, move, from_index_bitboard, to_index_bitboard);
+        } else if (has_friendly_rook<colour>(game, from_index_bitboard)) {
+            result = perform_rook_move<colour>(game, move, from_index_bitboard, to_index_bitboard);
+        } else if (has_friendly_queen<colour>(game, from_index_bitboard)) {
+            result = perform_queen_move<colour>(game, move, from_index_bitboard, to_index_bitboard);
         } else {
-            // TOOD(TB): need to remove castling rights when king or rook moves
-            result = perform_knight_or_bishop_or_rook_or_queen_move<colour>(game, move, from_index_bitboard, to_index_bitboard);
+            CHESS_ASSERT(has_friendly_king<colour>(game, from_index_bitboard));
+            result = perfrom_king_move<colour>(game, move, from_index_bitboard, to_index_bitboard);
         }
 
         game->next_turn = !game->next_turn;
@@ -791,7 +832,7 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static inline void unperform_move(Game* game, Move move) {
+    static void unperform_move(Game* game, Move move) {
         game->cache.possible_moves_calculated = Bitboard();
         game->white_can_never_castle_short = move.white_can_never_castle_short;
         game->white_can_never_castle_long = move.white_can_never_castle_long;
@@ -884,7 +925,7 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static inline Bitboard get_cells_moved_from(const Game* game) {
+    static Bitboard get_cells_moved_from(const Game* game) {
         if (game->moves_index != 0) {
             const Move* move = &game->moves[game->moves_index - 1];
             const Bitboard to_bitboard = Bitboard(move->to);
@@ -903,7 +944,7 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static inline Bitboard get_cells_moved_to(const Game* game) {
+    static Bitboard get_cells_moved_to(const Game* game) {
         if (game->moves_index != 0) {
             const Move* move = &game->moves[game->moves_index - 1];
             const Bitboard to_bitboard = Bitboard(move->to);
@@ -951,77 +992,6 @@ namespace chess { namespace engine {
 
     Game::~Game() {
         free(moves);
-    }
-
-    template <Colour colour>
-    bool has_friendly_piece(const Game* game, Bitboard bitboard) {
-        return has_friendly_pawn<colour>(game, bitboard)
-            || has_friendly_knight<colour>(game, bitboard)
-            || has_friendly_bishop<colour>(game, bitboard)
-            || has_friendly_rook<colour>(game, bitboard)
-            || has_friendly_queen<colour>(game, bitboard)
-            || has_friendly_king<colour>(game, bitboard);
-    }
-
-    template bool has_friendly_piece<Colour::Black>(const Game* game, Bitboard bitboard);
-    template bool has_friendly_piece<Colour::White>(const Game* game, Bitboard bitboard);
-
-    template <Colour colour>
-    bool has_friendly_pawn(const Game* game, Bitboard bitboard) {
-        return *get_friendly_pawns<colour>(game) & bitboard;
-    }
-
-    // TODO(TB): remove this
-    template bool has_friendly_pawn<Colour::Black>(const Game* game, Bitboard bitboard);
-    template bool has_friendly_pawn<Colour::White>(const Game* game, Bitboard bitboard);
-
-    template <Colour colour>
-    bool has_friendly_knight(const Game* game, Bitboard bitboard) {
-        return *get_friendly_knights<colour>(game) & bitboard;
-    }
-
-    template bool has_friendly_knight<Colour::Black>(const Game* game, Bitboard bitboard);
-    template bool has_friendly_knight<Colour::White>(const Game* game, Bitboard bitboard);
-
-    template <Colour colour>
-    bool has_friendly_bishop(const Game* game, Bitboard bitboard) {
-        return *get_friendly_bishops<colour>(game) & bitboard;
-    }
-
-    template bool has_friendly_bishop<Colour::Black>(const Game* game, Bitboard bitboard);
-    template bool has_friendly_bishop<Colour::White>(const Game* game, Bitboard bitboard);
-
-    template <Colour colour>
-    bool has_friendly_rook(const Game* game, Bitboard bitboard) {
-        return *get_friendly_rooks<colour>(game) & bitboard;
-    }
-
-    template bool has_friendly_rook<Colour::Black>(const Game* game, Bitboard bitboard);
-    template bool has_friendly_rook<Colour::White>(const Game* game, Bitboard bitboard);
-
-    template <Colour colour>
-    bool has_friendly_queen(const Game* game, Bitboard bitboard) {
-        return *get_friendly_queens<colour>(game) & bitboard;
-    }
-
-    template bool has_friendly_queen<Colour::Black>(const Game* game, Bitboard bitboard);
-    template bool has_friendly_queen<Colour::White>(const Game* game, Bitboard bitboard);
-
-    template <Colour colour>
-    bool has_friendly_king(const Game* game, Bitboard bitboard) {
-        return *get_friendly_kings<colour>(game) & bitboard;
-    }
-
-    template bool has_friendly_king<Colour::Black>(const Game* game, Bitboard bitboard);
-    template bool has_friendly_king<Colour::White>(const Game* game, Bitboard bitboard);
-
-    template <Colour colour>
-    bool is_empty(const Game* game, Bitboard bitboard) {
-        return !has_friendly_piece<colour>(game, bitboard);
-    }
-
-    bool is_empty(const Game* game, Bitboard bitboard) {
-        return is_empty<Colour::Black>(game, bitboard) && is_empty<Colour::White>(game, bitboard);
     }
 
     Piece get_piece(const Game* game, Bitboard bitboard) {
@@ -1103,97 +1073,6 @@ namespace chess { namespace engine {
         }
 
         return Piece::Type::Empty;
-    }
-
-    template <Colour colour>
-    const Bitboard* get_friendly_pawns(const Game* game) {
-        if constexpr (colour == Colour::Black) {
-            return &game->black_pawns;
-        } else {
-            return &game->white_pawns;
-        }
-    }
-
-    template <Colour colour>
-    Bitboard* get_friendly_pawns(Game* game) {
-        return const_cast<Bitboard*>(get_friendly_pawns<colour>(static_cast<const Game*>(game)));
-    }
-
-    template <Colour colour>
-    const Bitboard* get_friendly_knights(const Game* game) {
-        if constexpr (colour == Colour::Black) {
-            return &game->black_knights;
-        } else {
-            return &game->white_knights;
-        }
-    }
-
-    template <Colour colour>
-    Bitboard* get_friendly_knights(Game* game) {
-        return const_cast<Bitboard*>(get_friendly_knights<colour>(static_cast<const Game*>(game)));
-    }
-
-    template <Colour colour>
-    const Bitboard* get_friendly_bishops(const Game* game) {
-        if constexpr (colour == Colour::Black) {
-            return &game->black_bishops;
-        } else {
-            return &game->white_bishops;
-        }
-    }
-
-    template <Colour colour>
-    Bitboard* get_friendly_bishops(Game* game) {
-        return const_cast<Bitboard*>(get_friendly_bishops<colour>(static_cast<const Game*>(game)));
-    }
-
-    template <Colour colour>
-    const Bitboard* get_friendly_rooks(const Game* game) {
-        if constexpr (colour == Colour::Black) {
-            return &game->black_rooks;
-        } else {
-            return &game->white_rooks;
-        }
-    }
-
-    template <Colour colour>
-    Bitboard* get_friendly_rooks(Game* game) {
-        return const_cast<Bitboard*>(get_friendly_rooks<colour>(static_cast<const Game*>(game)));
-    }
-
-    template <Colour colour>
-    const Bitboard* get_friendly_queens(const Game* game) {
-        if constexpr (colour == Colour::Black) {
-            return &game->black_queens;
-        } else {
-            return &game->white_queens;
-        }
-    }
-
-    template <Colour colour>
-    Bitboard* get_friendly_queens(Game* game) {
-        return const_cast<Bitboard*>(get_friendly_queens<colour>(static_cast<const Game*>(game)));
-    }
-
-    template <Colour colour>
-    const Bitboard* get_friendly_kings(const Game* game) {
-        if constexpr (colour == Colour::Black) {
-            return &game->black_kings;
-        } else {
-            return &game->white_kings;
-        }
-    }
-
-    template <Colour colour>
-    Bitboard* get_friendly_kings(Game* game) {
-        return const_cast<Bitboard*>(get_friendly_kings<colour>(static_cast<const Game*>(game)));
-    }
-
-    template <Colour colour>
-    Bitboard get_friendly_pieces(const Game* game) {
-        return *get_friendly_pawns<colour>(game) | *get_friendly_knights<colour>(game)
-            | *get_friendly_bishops<colour>(game) | *get_friendly_rooks<colour>(game)
-            | *get_friendly_queens<colour>(game) | *get_friendly_kings<colour>(game);
     }
 
     Bitboard get_cells_moved_from(const Game* game) {
@@ -1306,14 +1185,6 @@ namespace chess { namespace engine {
         }
 
         return move(game, Move(game, from, to, promotion_piece));
-    }
-
-    bool can_undo(const Game* game) {
-        return game->moves_index != 0;
-    }
-
-    bool can_redo(const Game* game) {
-        return game->moves_index < game->moves_count;
     }
 
     bool undo(Game* game) {
@@ -1745,18 +1616,6 @@ namespace chess { namespace engine {
         return perft<Colour::White, true>(game, depth);
     }
     // #endregion
-
-    static char char_promotion_piece_type(Piece::Type x) {
-        if (x == Piece::Type::Knight) {
-            return 'n';
-        } else if (x == Piece::Type::Bishop) {
-            return 'b';
-        } else if (x == Piece::Type::Rook) {
-            return 'r';
-        } else {
-            return 'q';
-        }
-    }
 
 #if CHESS_DEBUG
     void string_move(Move move, char* buffer) {

@@ -128,6 +128,18 @@ namespace chess { namespace engine {
         {}
     };
 
+    inline constexpr char char_promotion_piece_type(Piece::Type x) {
+        if (x == Piece::Type::Knight) {
+            return 'n';
+        } else if (x == Piece::Type::Bishop) {
+            return 'b';
+        } else if (x == Piece::Type::Rook) {
+            return 'r';
+        } else {
+            return 'q';
+        }
+    }
+
     inline constexpr bool is_light_cell(File file, Rank rank) {
         return U8(file) % 2 == 0 ? U8(rank) % 2 == 0 : U8(rank) % 2 != 0;
     }
