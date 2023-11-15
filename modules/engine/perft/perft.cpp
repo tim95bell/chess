@@ -37,9 +37,9 @@ namespace chess {
 }
 
 int main() {
-    //chess::perft(5, 4865609);
+    chess::perft(5, 4865609);
     //chess::perft(4, 197281);
     //chess::perft(6, 119060324);
     //chess::perft(7, 3195901860);
-    chess::perft(8, 84998978956);
+    //chess::perft(8, 84998978956);
 }

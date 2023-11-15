@@ -9,11 +9,10 @@
 
 namespace chess { namespace engine {
     // #region internal
-    // TODO(TB): bitboard_rank and bitboard_file will make it hard to inline functions using these in different compilation units?
     static void add_move(Game* game, Move move) {
         if (game->moves_index >= game->moves_allocated) {
             game->moves_allocated = game->moves_allocated * 2;
-            realloc(game->moves, sizeof(Move) * game->moves_allocated);
+            game->moves = static_cast<Move*>(realloc(game->moves, sizeof(Move) * game->moves_allocated));
         }
 
         CHESS_ASSERT(game->moves_index < game->moves_allocated);
@@ -1769,7 +1768,7 @@ namespace chess { namespace engine {
         if (promotion_piece_type == Piece::Type::Empty) {
             snprintf(buffer, 6, "%c%c%c%c", from_file, from_rank, to_file, to_rank);
         } else {
-            snprintf(buffer, 6, "%c%c%c%c", from_file, from_rank, to_file, to_rank, char_promotion_piece_type(promotion_piece_type));
+            snprintf(buffer, 6, "%c%c%c%c%c", from_file, from_rank, to_file, to_rank, char_promotion_piece_type(promotion_piece_type));
         }
     }
 
