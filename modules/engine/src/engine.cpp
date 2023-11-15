@@ -1559,41 +1559,46 @@ namespace chess { namespace engine {
     template <Colour colour>
     static U64 fast_perft(Game* game, U8 depth) {
         U64 result = 0;
-        for (Bitboard::Index index; index < chess_board_size; ++index) {
-            Bitboard moves = get_moves<colour>(game, index);
-            const Bitboard index_bitboard(index);
-            if (moves) {
-                for (U8 index_plus_one = __builtin_ffsll(moves.data); index_plus_one != 0; index_plus_one = __builtin_ffsll(moves.data)) {
-                    const Bitboard::Index move_index(index_plus_one - 1);
-                    const Bitboard move_index_bitboard(move_index);
-                    moves &= ~move_index_bitboard;
-                    if (has_friendly_pawn<colour>(game, index_bitboard) && is_rank(move_index, front_rank<colour>())) {
+        Bitboard friendly_pieces_to_process = get_friendly_pieces<colour>(game);
+        Bitboard moves_to_process;
+        for (U8 from_index_plus_one = __builtin_ffsll(friendly_pieces_to_process.data); from_index_plus_one; from_index_plus_one = __builtin_ffsll(friendly_pieces_to_process.data)) {
+            const Bitboard::Index from_index(from_index_plus_one - 1);
+            moves_to_process = get_moves<colour>(game, from_index);
+            const Bitboard from_index_bitboard(from_index);
+            friendly_pieces_to_process &= ~from_index_bitboard;
+            if (moves_to_process) {
+                for (U8 to_index_plus_one = __builtin_ffsll(moves_to_process.data); to_index_plus_one; to_index_plus_one = __builtin_ffsll(moves_to_process.data)) {
+                    const Bitboard::Index to_index(to_index_plus_one - 1);
+                    const Bitboard to_index_bitboard(to_index);
+                    moves_to_process &= ~to_index_bitboard;
+                    // TOOD(TB): the if statements about piece type could go outside the loop
+                    if (has_friendly_pawn<colour>(game, from_index_bitboard) && is_rank(to_index, front_rank<colour>())) {
                         if (depth == 1) {
                             result += 4;
                         } else {
                             {
-                                Move the_move(game, index, move_index, Piece::Type::Knight);
+                                Move the_move(game, from_index, to_index, Piece::Type::Knight);
                                 move_unchecked<colour>(game, the_move);
                                 result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
                                 undo(game);
                             }
 
                             {
-                                Move the_move(game, index, move_index, Piece::Type::Bishop);
+                                Move the_move(game, from_index, to_index, Piece::Type::Bishop);
                                 move_unchecked<colour>(game, the_move);
                                 result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
                                 undo(game);
                             }
 
                             {
-                                Move the_move(game, index, move_index, Piece::Type::Rook);
+                                Move the_move(game, from_index, to_index, Piece::Type::Rook);
                                 move_unchecked<colour>(game, the_move);
                                 result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
                                 undo(game);
                             }
 
                             {
-                                Move the_move(game, index, move_index, Piece::Type::Queen);
+                                Move the_move(game, from_index, to_index, Piece::Type::Queen);
                                 move_unchecked<colour>(game, the_move);
                                 result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
                                 undo(game);
@@ -1603,7 +1608,7 @@ namespace chess { namespace engine {
                         if (depth == 1) { 
                             ++result;
                         } else {
-                            Move the_move(game, index, move_index);
+                            Move the_move(game, from_index, to_index);
                             move_unchecked<colour>(game, the_move);
                             result += fast_perft<EnemyColour<colour>::colour>(game, depth - 1);
                             undo(game);
