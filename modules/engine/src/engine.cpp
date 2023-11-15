@@ -182,13 +182,17 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static inline Bitboard get_attack_cells(const Game* game) {
+    static inline Bitboard get_attack_cells_excluding_king(const Game* game) {
         return get_pawn_attack_moves<colour>(game, *get_friendly_pawns<colour>(game))
-        | get_knight_moves<colour>(game, *get_friendly_knights<colour>(game))
-        | get_bishop_moves<colour>(game, *get_friendly_bishops<colour>(game) | *get_friendly_queens<colour>(game))
-        | get_rook_moves<colour>(game, *get_friendly_rooks<colour>(game) | *get_friendly_queens<colour>(game))
-        // TODO(TB): kings checking king should be impossible, this should not be needed for check test
-        | get_king_attack_moves<colour>(game, *get_friendly_kings<colour>(game));
+            | get_knight_moves<colour>(game, *get_friendly_knights<colour>(game))
+            | get_bishop_moves<colour>(game, *get_friendly_bishops<colour>(game) | *get_friendly_queens<colour>(game))
+            | get_rook_moves<colour>(game, *get_friendly_rooks<colour>(game) | *get_friendly_queens<colour>(game));
+    }
+
+    template <Colour colour>
+    static inline Bitboard get_attack_cells(const Game* game) {
+        return get_attack_cells_excluding_king<colour>(game)
+            | get_king_attack_moves<colour>(game, *get_friendly_kings<colour>(game));
     }
 
     template <Colour colour>
@@ -217,7 +221,20 @@ namespace chess { namespace engine {
 
     template <Colour colour>
     static inline bool test_for_check(const Game* game) {
+        return get_attack_cells_excluding_king<EnemyColour<colour>::colour>(game) & *get_friendly_kings<colour>(game);
+    }
+
+    template <Colour colour>
+    static inline bool test_for_check_in_pseudo_legal_position(const Game* game) {
         return get_attack_cells<EnemyColour<colour>::colour>(game) & *get_friendly_kings<colour>(game);
+    }
+
+    template <Colour colour>
+    static bool test_for_check_after_pseudo_legal_move(Game* game, Move the_move) {
+        set_taken_piece_type(&the_move.compressed_taken_and_promotion_piece_type, perform_move<colour>(game, the_move));
+        const bool result = test_for_check_in_pseudo_legal_position<colour>(game);
+        unperform_move<colour>(game, the_move);
+        return result;
     }
 
     template <Colour colour>
@@ -241,14 +258,14 @@ namespace chess { namespace engine {
 
         Bitboard::Index move_index = move_forward<colour>(index);
         Bitboard move_bitboard = move_forward<colour>(index_bitboard) & ~all_pieces;
-        if (move_bitboard && !test_for_check_after_move<colour>(game, Move(game, index, move_index, promotion_piece_type))) {
+        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index, promotion_piece_type))) {
             result |= move_bitboard;
         }
 
         if (move_bitboard && is_rank(index, move_forward<colour>(rear_rank<colour>()))) {
             move_index = move_forward<colour>(move_index);
             move_bitboard = move_forward<colour>(move_bitboard) & ~all_pieces;
-            if (move_bitboard && !test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+            if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
                 result |= move_bitboard;
             }
         }
@@ -256,7 +273,7 @@ namespace chess { namespace engine {
         if (!is_file(index, File::A)) {
             move_index = move_forward<colour>(move_west(index));
             move_bitboard = move_forward<colour>(move_west(index_bitboard)) & all_enemy_pieces;
-            if (move_bitboard && !test_for_check_after_move<colour>(game, Move(game, index, move_index, promotion_piece_type))) {
+            if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index, promotion_piece_type))) {
                 result |= move_bitboard;
             }
         }
@@ -264,7 +281,7 @@ namespace chess { namespace engine {
         if (!is_file(index, File::H)) {
             move_index = move_forward<colour>(move_east(index));
             move_bitboard = move_forward<colour>(move_east(index_bitboard)) & all_enemy_pieces;
-            if (move_bitboard && !test_for_check_after_move<colour>(game, Move(game, index, move_index, promotion_piece_type))) {
+            if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index, promotion_piece_type))) {
                 result |= move_bitboard;
             }
         }
@@ -276,13 +293,13 @@ namespace chess { namespace engine {
             if (!is_file(index, File::H) && game->en_passant_square == move_east(index)) {
                 move_index = move_forward<colour>(move_east(index));
                 move_bitboard = move_forward<colour>(move_east(index_bitboard));
-                if (move_bitboard && !test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+                if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
                     result |= move_bitboard;
                 }
             } else if (!is_file(index, File::A) && game->en_passant_square == move_west(index)) {
                 move_index = move_forward<colour>(move_west(index));
                 move_bitboard = move_forward<colour>(move_west(index_bitboard));
-                if (move_bitboard && !test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+                if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
                     result |= move_bitboard;
                 }
             }
@@ -306,49 +323,49 @@ namespace chess { namespace engine {
 
         Bitboard::Index move_index = move_north(move_north_east(index));
         Bitboard move_bitboard = move_north(move_north_east(index_bitboard)) & file_a_and_friendly_pieces_complement;
-        if (move_bitboard && !test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
             result |= move_bitboard;
         }
 
         move_index = move_south(move_south_east(index));
         move_bitboard = move_south(move_south_east(index_bitboard)) & file_a_and_friendly_pieces_complement;
-        if (move_bitboard && !test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
             result |= move_bitboard;
         }
 
         move_index = move_east(move_north_east(index));
         move_bitboard = move_east(move_north_east(index_bitboard)) & file_a_and_file_b_and_friendly_pieces_complement;
-        if (move_bitboard && !test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
             result |= move_bitboard;
         }
 
         move_index = move_east(move_south_east(index));
         move_bitboard = move_east(move_south_east(index_bitboard)) & file_a_and_file_b_and_friendly_pieces_complement;
-        if (move_bitboard && !test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
             result |= move_bitboard;
         }
 
         move_index = move_north(move_north_west(index));
         move_bitboard = move_north(move_north_west(index_bitboard)) & file_h_and_friendly_pieces_complement;
-        if (move_bitboard && !test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
             result |= move_bitboard;
         }
 
         move_index = move_south(move_south_west(index));
         move_bitboard = move_south(move_south_west(index_bitboard)) & file_h_and_friendly_pieces_complement;
-        if (move_bitboard && !test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
             result |= move_bitboard;
         }
 
         move_index = move_west(move_north_west(index));
         move_bitboard = move_west(move_north_west(index_bitboard)) & file_h_and_file_g_and_friendly_pieces_complement;
-        if (move_bitboard && !test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
             result |= move_bitboard;
         }
 
         move_index = move_west(move_south_west(index));
         move_bitboard = move_west(move_south_west(index_bitboard)) & file_h_and_file_g_and_friendly_pieces_complement;
-        if (move_bitboard && !test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
             result |= move_bitboard;
         }
 
@@ -363,7 +380,7 @@ namespace chess { namespace engine {
         Bitboard::Index move_index = move_north_east(index);
         Bitboard move = (move_north_east(index_bitboard) & ~bitboard_file[U8(File::A)]) & moves;
         while (move) {
-            if (test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+            if (test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
                 moves &= ~move;
             }
 
@@ -374,7 +391,7 @@ namespace chess { namespace engine {
         move_index = move_south_east(index);
         move = (move_south_east(index_bitboard) & ~bitboard_file[U8(File::A)]) & moves;
         while (move) {
-            if (test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+            if (test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
                 moves &= ~move;
             }
 
@@ -385,7 +402,7 @@ namespace chess { namespace engine {
         move_index = move_south_west(index);
         move = (move_south_west(index_bitboard) & ~bitboard_file[U8(File::H)]) & moves;
         while (move) {
-            if (test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+            if (test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
                 moves &= ~move;
             }
 
@@ -396,7 +413,7 @@ namespace chess { namespace engine {
         move_index = move_north_west(index);
         move = (move_north_west(index_bitboard) & ~bitboard_file[U8(File::H)]) & moves;
         while (move) {
-            if (test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+            if (test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
                 moves &= ~move;
             }
 
@@ -415,7 +432,7 @@ namespace chess { namespace engine {
         Bitboard::Index move_index = move_east(index);
         Bitboard move = (move_east(index_bitboard) & ~bitboard_file[U8(File::A)]) & moves;
         while (move) {
-            if (test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+            if (test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
                 moves &= ~move;
             }
 
@@ -426,7 +443,7 @@ namespace chess { namespace engine {
         move_index = move_south(index);
         move = move_south(index_bitboard) & moves;
         while (move) {
-            if (test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+            if (test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
                 moves &= ~move;
             }
 
@@ -437,7 +454,7 @@ namespace chess { namespace engine {
         move_index = move_west(index);
         move = (move_west(index_bitboard) & ~bitboard_file[U8(File::H)]) & moves;
         while (move) {
-            if (test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+            if (test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
                 moves &= ~move;
             }
 
@@ -448,7 +465,7 @@ namespace chess { namespace engine {
         move_index = move_north(index);
         move = move_north(index_bitboard) & moves;
         while (move) {
-            if (test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+            if (test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
                 moves &= ~move;
             }
 
@@ -507,49 +524,49 @@ namespace chess { namespace engine {
 
         Bitboard::Index move_index = move_north_east(index);
         Bitboard move_bitboard = move_north_east(index_bitboard) & friendly_pieces_and_file_a_complement;
-        if (move_bitboard && !test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
             result |= move_bitboard;
         }
 
         move_index = move_east(index);
         move_bitboard = move_east(index_bitboard) & friendly_pieces_and_file_a_complement;
-        if (move_bitboard && !test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
             result |= move_bitboard;
         }
 
         move_index = move_south_east(index);
         move_bitboard = move_south_east(index_bitboard) & friendly_pieces_and_file_a_complement;
-        if (move_bitboard && !test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
             result |= move_bitboard;
         }
 
         move_index = move_south(index);
         move_bitboard = move_south(index_bitboard) & friendly_pieces_complement;
-        if (move_bitboard && !test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
             result |= move_bitboard;
         }
 
         move_index = move_south_west(index);
         move_bitboard = move_south_west(index_bitboard) & friendly_pieces_and_file_h_complement;
-        if (move_bitboard && !test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
             result |= move_bitboard;
         }
 
         move_index = move_west(index);
         move_bitboard = move_west(index_bitboard) & friendly_pieces_and_file_h_complement;
-        if (move_bitboard && !test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
             result |= move_bitboard;
         }
 
         move_index = move_north_west(index);
         move_bitboard = move_north_west(index_bitboard) & friendly_pieces_and_file_h_complement;
-        if (move_bitboard && !test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
             result |= move_bitboard;
         }
 
         move_index = move_north(index);
         move_bitboard = move_north(index_bitboard) & friendly_pieces_complement;
-        if (move_bitboard && !test_for_check_after_move<colour>(game, Move(game, index, move_index))) {
+        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
             result |= move_bitboard;
         }
 
