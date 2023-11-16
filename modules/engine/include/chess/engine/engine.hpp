@@ -34,11 +34,22 @@ namespace chess { namespace engine {
     struct Cache {
         constexpr Cache() noexcept
             : possible_moves{}
-            , possible_moves_calculated{0}
+            , check_resolution_bitboard(~Bitboard())
+            , check_count(0)
         {}
 
         Bitboard possible_moves[64];
         Bitboard possible_moves_calculated;
+        Bitboard north_skewer;
+        Bitboard north_east_skewer;
+        Bitboard east_skewer;
+        Bitboard south_east_skewer;
+        Bitboard south_skewer;
+        Bitboard south_west_skewer;
+        Bitboard west_skewer;
+        Bitboard north_west_skewer;
+        Bitboard check_resolution_bitboard;
+        U8 check_count;
     };
 
     // #region CompressedTakenAndPromotionPieceType

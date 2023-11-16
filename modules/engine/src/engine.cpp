@@ -54,22 +54,19 @@ namespace chess { namespace engine {
         CHESS_ASSERT((bitboard & *get_friendly_pawns<colour>(game)) == bitboard);
         CHESS_ASSERT(!is_rank(bitboard, rear_rank<colour>()) && !is_rank(bitboard, front_rank<colour>()));;
         CHESS_ASSERT(game->next_turn ? colour == Colour::Black : colour == Colour::White);
-        Bitboard result = move_forward<colour>(bitboard);
         const Bitboard enemy_pieces = get_friendly_pieces<EnemyColour<colour>::colour>(game);
         const Bitboard all_pieces_complement = ~(get_friendly_pieces<colour>(game) | enemy_pieces);
-        result = result & all_pieces_complement;
+        Bitboard result = move_forward<colour>(bitboard) & all_pieces_complement;
         result |= move_forward<colour>(result) & bitboard_rank[U8(move_forward<colour>(move_forward<colour>(move_forward<colour>(rear_rank<colour>()))))] & all_pieces_complement;
 
         Bitboard en_passant_square(U64(game->can_en_passant) << U8(game->en_passant_square));
-        result |= get_pawn_attack_cells<colour>(game, bitboard) & (en_passant_square | enemy_pieces);
+        result |= get_pawn_attack_cells<colour>(game, bitboard) & (move_forward<colour>(en_passant_square) | enemy_pieces);
 
         return result;
     }
 
     template <Colour colour>
     static inline Bitboard get_knight_attack_cells(const Game* game, Bitboard bitboard) {
-        CHESS_ASSERT((bitboard & *get_friendly_knights<colour>(game)) == bitboard);
-
         return (
             (
                 (move_north(move_north_east(bitboard)) | move_south(move_south_east(bitboard)))
@@ -257,6 +254,11 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
+    static inline Bitboard get_queen_moves(const Game* game, Bitboard bitboard) {
+        return get_bishop_moves<colour>(game, bitboard) | get_rook_moves<colour>(game, bitboard);
+    }
+
+    template <Colour colour>
     static inline Bitboard get_king_attack_cells(const Game* game, Bitboard bitboard) {
         CHESS_ASSERT((bitboard & *get_friendly_kings<colour>(game)) == bitboard);
 
@@ -341,233 +343,315 @@ namespace chess { namespace engine {
         unperform_move<colour>(game, the_move);
         return result;
     }
+
+    template <Colour colour>
+    static void update_cache(Game* game) {
+        game->cache.possible_moves_calculated = Bitboard();
+
+        const Bitboard kings = *get_friendly_kings<colour>(game);
+        const Bitboard enemy_pieces_complement = ~get_friendly_pieces<EnemyColour<colour>::colour>(game);
+        const Bitboard friendly_pieces = get_friendly_pieces<colour>(game);
+        const Bitboard file_a_complement = ~bitboard_file[U8(File::A)];
+        const Bitboard file_h_complement = ~bitboard_file[U8(File::H)];
+        const Bitboard friendly_rooks_and_queens = (*get_friendly_rooks<EnemyColour<colour>::colour>(game) | *get_friendly_queens<EnemyColour<colour>::colour>(game));
+        const Bitboard friendly_bishops_and_queens = (*get_friendly_bishops<EnemyColour<colour>::colour>(game) | *get_friendly_queens<EnemyColour<colour>::colour>(game));
+
+        // north
+        Bitboard result;
+        Bitboard temp_result = kings;
+        for (U8 i = 0; i < (chess_board_edge_size - 1); ++i) {
+            temp_result = move_north(temp_result);
+            result |= temp_result;
+            temp_result &= enemy_pieces_complement;
+        }
+
+        Bitboard sliding_enemy_intersection = result & friendly_rooks_and_queens;
+        for (U8 i = 0; i < (chess_board_edge_size - 2); ++i) {
+            sliding_enemy_intersection |= move_south(sliding_enemy_intersection);
+        }
+        result &= sliding_enemy_intersection;
+        game->cache.north_skewer = result;
+
+        // north east
+        result = Bitboard();
+        temp_result = kings;
+        for (U8 i = 0; i < (chess_board_edge_size - 1); ++i) {
+            temp_result = move_north_east(temp_result) & file_a_complement;
+            result |= temp_result;
+            temp_result &= enemy_pieces_complement;
+        }
+
+        sliding_enemy_intersection = result & friendly_bishops_and_queens;
+        for (U8 i = 0; i < (chess_board_edge_size - 2); ++i) {
+            sliding_enemy_intersection |= move_south_west(sliding_enemy_intersection);
+        }
+        result &= sliding_enemy_intersection;
+        game->cache.north_east_skewer = result;
+
+        // east
+        result = Bitboard();
+        temp_result = kings;
+        for (U8 i = 0; i < (chess_board_edge_size - 1); ++i) {
+            temp_result = move_east(temp_result) & file_a_complement;
+            result |= temp_result;
+            temp_result &= enemy_pieces_complement;
+        }
+
+        sliding_enemy_intersection = result & friendly_rooks_and_queens;
+        for (U8 i = 0; i < (chess_board_edge_size - 2); ++i) {
+            sliding_enemy_intersection |= move_west(sliding_enemy_intersection);
+        }
+        result &= sliding_enemy_intersection;
+        game->cache.east_skewer = result;
+
+        // south east
+        result = Bitboard();
+        temp_result = kings;
+        for (U8 i = 0; i < (chess_board_edge_size - 1); ++i) {
+            temp_result = move_south_east(temp_result) & file_a_complement;
+            result |= temp_result;
+            temp_result &= enemy_pieces_complement;
+        }
+
+        sliding_enemy_intersection = result & friendly_bishops_and_queens;
+        for (U8 i = 0; i < (chess_board_edge_size - 2); ++i) {
+            sliding_enemy_intersection |= move_north_west(sliding_enemy_intersection);
+        }
+        result &= sliding_enemy_intersection;
+        game->cache.south_east_skewer = result;
+
+        // south
+        result = Bitboard();
+        temp_result = kings;
+        for (U8 i = 0; i < (chess_board_edge_size - 1); ++i) {
+            temp_result = move_south(temp_result);
+            result |= temp_result;
+            temp_result &= enemy_pieces_complement;
+        }
+
+        sliding_enemy_intersection = result & friendly_rooks_and_queens;
+        for (U8 i = 0; i < (chess_board_edge_size - 2); ++i) {
+            sliding_enemy_intersection |= move_north(sliding_enemy_intersection);
+        }
+        result &= sliding_enemy_intersection;
+        game->cache.south_skewer = result;
+
+        // south west
+        result = Bitboard();
+        temp_result = kings;
+        for (U8 i = 0; i < (chess_board_edge_size - 1); ++i) {
+            temp_result = move_south_west(temp_result) & file_h_complement;
+            result |= temp_result;
+            temp_result &= enemy_pieces_complement;
+        }
+
+        sliding_enemy_intersection = result & friendly_bishops_and_queens;
+        for (U8 i = 0; i < (chess_board_edge_size - 2); ++i) {
+            sliding_enemy_intersection |= move_north_east(sliding_enemy_intersection);
+        }
+        result &= sliding_enemy_intersection;
+        game->cache.south_west_skewer = result;
+
+        // west
+        result = Bitboard();
+        temp_result = kings;
+        for (U8 i = 0; i < (chess_board_edge_size - 1); ++i) {
+            temp_result = move_west(temp_result) & file_h_complement;
+            result |= temp_result;
+            temp_result &= enemy_pieces_complement;
+        }
+
+        sliding_enemy_intersection = result & friendly_rooks_and_queens;
+        for (U8 i = 0; i < (chess_board_edge_size - 2); ++i) {
+            sliding_enemy_intersection |= move_east(sliding_enemy_intersection);
+        }
+        result &= sliding_enemy_intersection;
+        game->cache.west_skewer = result;
+
+        // north west
+        result = Bitboard();
+        temp_result = kings;
+        for (U8 i = 0; i < (chess_board_edge_size - 1); ++i) {
+            temp_result = move_north_west(temp_result) & file_h_complement;
+            result |= temp_result;
+            temp_result &= enemy_pieces_complement;
+        }
+
+        sliding_enemy_intersection = result & friendly_bishops_and_queens;
+        for (U8 i = 0; i < (chess_board_edge_size - 2); ++i) {
+            sliding_enemy_intersection |= move_south_east(sliding_enemy_intersection);
+        }
+        result &= sliding_enemy_intersection;
+        game->cache.north_west_skewer = result;
+
+        // check resolution bitboard
+        game->cache.check_count = 0;
+
+        if (game->cache.north_skewer && !(game->cache.north_skewer & friendly_pieces)) {
+            ++game->cache.check_count;
+            game->cache.check_resolution_bitboard = game->cache.north_skewer;
+        }
+
+        if (game->cache.north_east_skewer && !(game->cache.north_east_skewer & friendly_pieces)) {
+            ++game->cache.check_count;
+            if (game->cache.check_count == 1) {
+                game->cache.check_resolution_bitboard = game->cache.north_east_skewer;
+            } else {
+                game->cache.check_resolution_bitboard = Bitboard();
+                return;
+            }
+        }
+
+        if (game->cache.east_skewer && !(game->cache.east_skewer & friendly_pieces)) {
+            ++game->cache.check_count;
+            if (game->cache.check_count == 1) {
+                game->cache.check_resolution_bitboard = game->cache.east_skewer;
+            } else {
+                game->cache.check_resolution_bitboard = Bitboard();
+                return;
+            }
+        }
+
+        if (game->cache.south_east_skewer && !(game->cache.south_east_skewer & friendly_pieces)) {
+            ++game->cache.check_count;
+            if (game->cache.check_count == 1) {
+                game->cache.check_resolution_bitboard = game->cache.south_east_skewer;
+            } else {
+                game->cache.check_resolution_bitboard = Bitboard();
+                return;
+            }
+        }
+
+        if (game->cache.south_skewer && !(game->cache.south_skewer & friendly_pieces)) {
+            ++game->cache.check_count;
+            if (game->cache.check_count == 1) {
+                game->cache.check_resolution_bitboard = game->cache.south_skewer;
+            } else {
+                game->cache.check_resolution_bitboard = Bitboard();
+                return;
+            }
+        }
+
+        if (game->cache.south_west_skewer && !(game->cache.south_west_skewer & friendly_pieces)) {
+            ++game->cache.check_count;
+            if (game->cache.check_count == 1) {
+                game->cache.check_resolution_bitboard = game->cache.south_west_skewer;
+            } else {
+                game->cache.check_resolution_bitboard = Bitboard();
+                return;
+            }
+        }
+
+        if (game->cache.west_skewer && !(game->cache.west_skewer & friendly_pieces)) {
+            ++game->cache.check_count;
+            if (game->cache.check_count == 1) {
+                game->cache.check_resolution_bitboard = game->cache.west_skewer;
+            } else {
+                game->cache.check_resolution_bitboard = Bitboard();
+                return;
+            }
+        }
+
+        if (game->cache.north_west_skewer && !(game->cache.north_west_skewer & friendly_pieces)) {
+            ++game->cache.check_count;
+            if (game->cache.check_count == 1) {
+                game->cache.check_resolution_bitboard = game->cache.north_west_skewer;
+            } else {
+                game->cache.check_resolution_bitboard = Bitboard();
+                return;
+            }
+        }
+
+        if (Bitboard checking_knight = get_knight_attack_cells<colour>(game, kings) & *get_friendly_knights<EnemyColour<colour>::colour>(game)) {
+            ++game->cache.check_count;
+            if (game->cache.check_count == 1) {
+                game->cache.check_resolution_bitboard = checking_knight;
+            } else {
+                game->cache.check_resolution_bitboard = Bitboard();
+                return;
+            }
+        }
+
+        if (Bitboard checking_pawn = get_pawn_attack_cells<colour>(game, kings) & *get_friendly_pawns<EnemyColour<colour>::colour>(game)) {
+            ++game->cache.check_count;
+            if (game->cache.check_count == 1) {
+                game->cache.check_resolution_bitboard = checking_pawn;
+            } else {
+                game->cache.check_resolution_bitboard = Bitboard();
+                return;
+            }
+        }
+
+        if (game->cache.check_count == 0) {
+            game->cache.check_resolution_bitboard = ~Bitboard();
+        }
+    }
  
     template <Colour colour>
     static Bitboard get_pawn_legal_moves(Game* game, Bitboard::Index index) {
         const Bitboard index_bitboard(index);
-        CHESS_ASSERT(has_friendly_pawn<colour>(game, index_bitboard));
-        CHESS_ASSERT(!is_rank(index, rear_rank<colour>()) && !is_rank(index, front_rank<colour>()));;
-        const Bitboard all_friendly_pieces = get_friendly_pieces<colour>(game);
-        const Bitboard all_enemy_pieces = get_friendly_pieces<EnemyColour<colour>::colour>(game);
-        const Bitboard all_pieces = all_friendly_pieces | all_enemy_pieces;
-        const Piece::Type promotion_piece_type = is_rank(index, move_backward<colour>(front_rank<colour>())) ? Piece::Type::Queen : Piece::Type::Empty;
-        Bitboard result;
-
-        Bitboard::Index move_index = move_forward<colour>(index);
-        Bitboard move_bitboard = move_forward<colour>(index_bitboard) & ~all_pieces;
-        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index, promotion_piece_type))) {
-            result |= move_bitboard;
-        }
-
-        if (move_bitboard && is_rank(index, move_forward<colour>(rear_rank<colour>()))) {
-            move_index = move_forward<colour>(move_index);
-            move_bitboard = move_forward<colour>(move_bitboard) & ~all_pieces;
-            if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-                result |= move_bitboard;
-            }
-        }
-
-        if (!is_file(index, File::A)) {
-            move_index = move_forward<colour>(move_west(index));
-            move_bitboard = move_forward<colour>(move_west(index_bitboard)) & all_enemy_pieces;
-            if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index, promotion_piece_type))) {
-                result |= move_bitboard;
-            }
-        }
-
-        if (!is_file(index, File::H)) {
-            move_index = move_forward<colour>(move_east(index));
-            move_bitboard = move_forward<colour>(move_east(index_bitboard)) & all_enemy_pieces;
-            if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index, promotion_piece_type))) {
-                result |= move_bitboard;
-            }
-        }
-
-        if (game->can_en_passant) {
-            CHESS_ASSERT(get_piece(game, Bitboard(move_backward<EnemyColour<colour>::colour>(game->en_passant_square))).type == Piece::Type::Empty);
-            CHESS_ASSERT(get_piece(game, Bitboard(game->en_passant_square)).type == Piece::Type::Pawn);
-            CHESS_ASSERT(get_piece(game, Bitboard(game->en_passant_square)).colour == EnemyColour<colour>::colour);
-            if (!is_file(index, File::H) && game->en_passant_square == move_east(index)) {
-                move_index = move_forward<colour>(move_east(index));
-                move_bitboard = move_forward<colour>(move_east(index_bitboard));
-                if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-                    result |= move_bitboard;
-                }
-            } else if (!is_file(index, File::A) && game->en_passant_square == move_west(index)) {
-                move_index = move_forward<colour>(move_west(index));
-                move_bitboard = move_forward<colour>(move_west(index_bitboard));
-                if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-                    result |= move_bitboard;
-                }
-            }
-        }
-
-        return result;
+        return apply_check_evasion_and_prevention<colour>(game, index_bitboard, get_pawn_moves<colour>(game, index_bitboard));
     }
 
     template <Colour colour>
     static Bitboard get_knight_legal_moves(Game* game, Bitboard::Index index) {
         const Bitboard index_bitboard(index);
-
-        CHESS_ASSERT(has_friendly_knight<colour>(game, index_bitboard));
-        const Bitboard friendly_pieces = get_friendly_pieces<colour>(game);
-        const Bitboard file_a_and_friendly_pieces_complement = ~(bitboard_file[U8(File::A)] | friendly_pieces);
-        const Bitboard file_a_and_file_b_and_friendly_pieces_complement = ~(bitboard_file[U8(File::A)] | bitboard_file[U8(File::B)] | friendly_pieces);
-        const Bitboard file_h_and_friendly_pieces_complement = ~(bitboard_file[U8(File::H)] | friendly_pieces);
-        const Bitboard file_h_and_file_g_and_friendly_pieces_complement = ~(bitboard_file[U8(File::H)] | bitboard_file[U8(File::G)] | friendly_pieces);
-
-        Bitboard result;
-
-        Bitboard::Index move_index = move_north(move_north_east(index));
-        Bitboard move_bitboard = move_north(move_north_east(index_bitboard)) & file_a_and_friendly_pieces_complement;
-        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-            result |= move_bitboard;
-        }
-
-        move_index = move_south(move_south_east(index));
-        move_bitboard = move_south(move_south_east(index_bitboard)) & file_a_and_friendly_pieces_complement;
-        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-            result |= move_bitboard;
-        }
-
-        move_index = move_east(move_north_east(index));
-        move_bitboard = move_east(move_north_east(index_bitboard)) & file_a_and_file_b_and_friendly_pieces_complement;
-        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-            result |= move_bitboard;
-        }
-
-        move_index = move_east(move_south_east(index));
-        move_bitboard = move_east(move_south_east(index_bitboard)) & file_a_and_file_b_and_friendly_pieces_complement;
-        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-            result |= move_bitboard;
-        }
-
-        move_index = move_north(move_north_west(index));
-        move_bitboard = move_north(move_north_west(index_bitboard)) & file_h_and_friendly_pieces_complement;
-        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-            result |= move_bitboard;
-        }
-
-        move_index = move_south(move_south_west(index));
-        move_bitboard = move_south(move_south_west(index_bitboard)) & file_h_and_friendly_pieces_complement;
-        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-            result |= move_bitboard;
-        }
-
-        move_index = move_west(move_north_west(index));
-        move_bitboard = move_west(move_north_west(index_bitboard)) & file_h_and_file_g_and_friendly_pieces_complement;
-        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-            result |= move_bitboard;
-        }
-
-        move_index = move_west(move_south_west(index));
-        move_bitboard = move_west(move_south_west(index_bitboard)) & file_h_and_file_g_and_friendly_pieces_complement;
-        if (move_bitboard && !test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-            result |= move_bitboard;
-        }
-
-        return result;
+        return apply_check_evasion_and_prevention<colour>(game, index_bitboard, get_knight_moves<colour>(game, index_bitboard));
     }
 
     template <Colour colour>
     static Bitboard get_bishop_legal_moves(Game* game, Bitboard::Index index) {
         const Bitboard index_bitboard(index);
-        Bitboard moves = get_bishop_moves<colour>(game, index_bitboard);
-
-        Bitboard::Index move_index = move_north_east(index);
-        Bitboard move = (move_north_east(index_bitboard) & ~bitboard_file[U8(File::A)]) & moves;
-        while (move) {
-            if (test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-                moves &= ~move;
-            }
-
-            move_index = move_north_east(move_index);
-            move = (move_north_east(move) & ~bitboard_file[U8(File::A)]) & moves;
-        }
-
-        move_index = move_south_east(index);
-        move = (move_south_east(index_bitboard) & ~bitboard_file[U8(File::A)]) & moves;
-        while (move) {
-            if (test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-                moves &= ~move;
-            }
-
-            move_index = move_south_east(move_index);
-            move = (move_south_east(move) & ~bitboard_file[U8(File::A)]) & moves;
-        }
-
-        move_index = move_south_west(index);
-        move = (move_south_west(index_bitboard) & ~bitboard_file[U8(File::H)]) & moves;
-        while (move) {
-            if (test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-                moves &= ~move;
-            }
-
-            move_index = move_south_west(move_index);
-            move = (move_south_west(move) & ~bitboard_file[U8(File::H)]) & moves;
-        }
-
-        move_index = move_north_west(index);
-        move = (move_north_west(index_bitboard) & ~bitboard_file[U8(File::H)]) & moves;
-        while (move) {
-            if (test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-                moves &= ~move;
-            }
-
-            move_index = move_north_west(move_index);
-            move = (move_north_west(move) & ~bitboard_file[U8(File::H)]) & moves;
-        }
-
-        return moves;
+        return apply_check_evasion_and_prevention<colour>(game, index_bitboard, get_bishop_moves<colour>(game, index_bitboard));
     }
 
     template <Colour colour>
     static Bitboard get_rook_legal_moves(Game* game, Bitboard::Index index) {
         const Bitboard index_bitboard(index);
-        Bitboard moves = get_rook_moves<colour>(game, Bitboard(index));
+        return apply_check_evasion_and_prevention<colour>(game, index_bitboard, get_rook_moves<colour>(game, index_bitboard));
+    }
 
-        Bitboard::Index move_index = move_east(index);
-        Bitboard move = (move_east(index_bitboard) & ~bitboard_file[U8(File::A)]) & moves;
-        while (move) {
-            if (test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-                moves &= ~move;
-            }
+    template <Colour colour>
+    static Bitboard get_queen_legal_moves(Game* game, Bitboard::Index index) {
+        const Bitboard index_bitboard(index);
+        return apply_check_evasion_and_prevention<colour>(game, index_bitboard, get_queen_moves<colour>(game, index_bitboard));
+    }
 
-            move_index = move_east(move_index);
-            move = (move_east(move) & ~bitboard_file[U8(File::A)]) & moves;
+    template <Colour colour>
+    static Bitboard apply_check_evasion_and_prevention(const Game* game, Bitboard index_bitboard, Bitboard moves) {
+        const Bitboard other_friendly_pieces = get_friendly_pieces<colour>(game) & ~index_bitboard;
+        moves &= game->cache.check_resolution_bitboard;
+
+        if (index_bitboard & game->cache.north_skewer && !(other_friendly_pieces & game->cache.north_skewer)) {
+            return moves & game->cache.north_skewer;
         }
 
-        move_index = move_south(index);
-        move = move_south(index_bitboard) & moves;
-        while (move) {
-            if (test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-                moves &= ~move;
-            }
-
-            move_index = move_south(move_index);
-            move = move_south(move) & moves;
+        if (index_bitboard & game->cache.north_east_skewer && !(other_friendly_pieces & game->cache.north_east_skewer)) {
+            return moves & game->cache.north_east_skewer;
         }
 
-        move_index = move_west(index);
-        move = (move_west(index_bitboard) & ~bitboard_file[U8(File::H)]) & moves;
-        while (move) {
-            if (test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-                moves &= ~move;
-            }
-
-            move_index = move_west(move_index);
-            move = (move_west(move) & ~bitboard_file[U8(File::H)]) & moves;
+        if (index_bitboard & game->cache.east_skewer && !(other_friendly_pieces & game->cache.east_skewer)) {
+            return moves & game->cache.east_skewer;
         }
 
-        move_index = move_north(index);
-        move = move_north(index_bitboard) & moves;
-        while (move) {
-            if (test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_index))) {
-                moves &= ~move;
-            }
+        if (index_bitboard & game->cache.south_east_skewer && !(other_friendly_pieces & game->cache.south_east_skewer)) {
+            return moves & game->cache.south_east_skewer;
+        }
 
-            move_index = move_north(move_index);
-            move = move_north(move) & moves;
+        if (index_bitboard & game->cache.south_skewer && !(other_friendly_pieces & game->cache.south_skewer)) {
+            return moves & game->cache.south_skewer;
+        }
+
+        if (index_bitboard & game->cache.south_west_skewer && !(other_friendly_pieces & game->cache.south_west_skewer)) {
+            return moves & game->cache.south_west_skewer;
+        }
+
+        if (index_bitboard & game->cache.west_skewer && !(other_friendly_pieces & game->cache.west_skewer)) {
+            return moves & game->cache.west_skewer;
+        }
+
+        if (index_bitboard & game->cache.north_west_skewer && !(other_friendly_pieces & game->cache.north_west_skewer)) {
+            return moves & game->cache.north_west_skewer;
         }
 
         return moves;
@@ -611,6 +695,7 @@ namespace chess { namespace engine {
 
     template <Colour colour>
     static Bitboard get_king_legal_moves(Game* game, Bitboard::Index index) {
+        // TODO(TB): rewrite this without removing and adding king, just reimplement get_attack_cells so it ignores this colours kings
         CHESS_ASSERT(has_friendly_king<colour>(game, Bitboard(index)));
         const Bitboard kings_copy = *get_friendly_kings<colour>(game);
         *get_friendly_kings<colour>(game) = Bitboard{};
@@ -845,7 +930,7 @@ namespace chess { namespace engine {
         }
 
         game->next_turn = !game->next_turn;
-        game->cache.possible_moves_calculated = Bitboard();
+        update_cache<EnemyColour<colour>::colour>(game);
 
         return result;
     }
@@ -942,6 +1027,8 @@ namespace chess { namespace engine {
         } else {
             *get_friendly_pawns<colour>(game) |= Bitboard(move.from);
         }
+
+        update_cache<colour>(game);
     }
 
     template <Colour colour>
@@ -1253,18 +1340,39 @@ namespace chess { namespace engine {
         return false;
     }
 
+    template <Colour colour>
     static bool last_move_was_en_passant(const Game* game) {
-        // TODO(TB):
+        if (game->moves_index > 0) {
+            const Move move = game->moves[U8(game->moves_index - 1)];
+            const Bitboard to_index_bitboard = Bitboard(move.to);
+            if (move.can_en_passant) {
+                CHESS_ASSERT(game->moves_index > 1);
+                Bitboard::Index en_passant_square = game->moves[game->moves_index - 2].to;
+                if (has_friendly_pawn<colour>(game, to_index_bitboard) && move.to == move_forward<colour>(en_passant_square)) {
+                    return true;
+                }
+            }
+        }
         return false;
     }
 
+    template <Colour colour>
     static bool last_move_was_castles(const Game* game) {
-        // TODO(TB):
+        if (game->moves_index > 0) {
+            const Move move = game->moves[U8(game->moves_index - 1)];
+            return has_friendly_king<colour>(game, Bitboard(move.to))
+                && move.from == Bitboard::Index(File::E, rear_rank<colour>())
+                && (move.to == Bitboard::Index(File::C, rear_rank<colour>())
+                    || move.to == Bitboard::Index(File::G, rear_rank<colour>()));
+        }
         return false;
     }
 
     static bool last_move_was_promotion(const Game* game) {
-        // TODO(TB):
+        if (game->moves_index > 0) {
+            const Move move = game->moves[U8(game->moves_index - 1)];
+            return get_promotion_piece_type(move.compressed_taken_and_promotion_piece_type) != Piece::Type::Empty;
+        }
         return false;
     }
 
@@ -1273,9 +1381,12 @@ namespace chess { namespace engine {
         return false;
     }
 
+    static bool last_move_was_check(const Game* game) {
+        return game->cache.check_count != 0;
+    }
+
     static bool last_move_was_double_check(const Game* game) {
-        // TODO(TB):
-        return false;
+        return game->cache.check_count == 2;
     }
 
     template <Colour colour>
@@ -1457,6 +1568,12 @@ namespace chess { namespace engine {
                 }
             } else if (section == 4) {
                 if (c == '\0') {
+
+                    if (game->next_turn) {
+                        update_cache<Colour::Black>(game);
+                    } else {
+                        update_cache<Colour::White>(game);
+                    }
                     return true;
                 }
 
@@ -1611,11 +1728,11 @@ namespace chess { namespace engine {
             return PerftResult{
                 1,
                 last_move_was_capture(game) ? 1ULL : 0ULL,
-                last_move_was_en_passant(game) ? 1ULL : 0ULL,
-                last_move_was_castles(game) ? 1ULL : 0ULL,
+                last_move_was_en_passant<EnemyColour<colour>::colour>(game) ? 1ULL : 0ULL,
+                last_move_was_castles<EnemyColour<colour>::colour>(game) ? 1ULL : 0ULL,
                 last_move_was_promotion(game) ? 1ULL : 0ULL,
-                test_for_check<colour>(game) ? 1ULL : 0ULL,
-                last_move_was_discovered_check(game) ? 1 : 0ULL,
+                last_move_was_check(game) ? 1ULL : 0ULL,
+                last_move_was_discovered_check(game) ? 1ULL : 0ULL,
                 last_move_was_double_check(game) ? 1ULL : 0ULL,
                 test_for_check_mate<colour>(game) ? 1ULL : 0ULL
             };
