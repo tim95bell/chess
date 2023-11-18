@@ -239,6 +239,7 @@ namespace chess { namespace engine {
     template <bool divided = false>
     extern U64 fast_perft(Game* game, U8 depth);
     extern void string_move(Move move, char* buffer);
+    extern bool make_moves(Game* game, const char* moves);
 #if CHESS_DEBUG
     extern void print_board(const Game* game);
 #endif

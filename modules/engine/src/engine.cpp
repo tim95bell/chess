@@ -50,19 +50,21 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static inline Bitboard get_pawn_moves(const Game* game, Bitboard bitboard) {
+    static inline Bitboard get_pawn_non_attack_moves_excluding_en_passant(const Game* game, Bitboard bitboard) {
+        const Bitboard all_pieces_complement = ~(get_friendly_pieces<colour>(game) | get_friendly_pieces<EnemyColour<colour>::colour>(game));
+        Bitboard result = move_forward<colour>(bitboard) & all_pieces_complement;
+        result |= move_forward<colour>(result) & bitboard_rank[U8(move_forward<colour>(move_forward<colour>(move_forward<colour>(rear_rank<colour>()))))] & all_pieces_complement;
+        return result;
+    }
+
+    template <Colour colour>
+    static inline Bitboard get_pawn_moves_excluding_en_passant(const Game* game, Bitboard bitboard) {
         CHESS_ASSERT((bitboard & *get_friendly_pawns<colour>(game)) == bitboard);
         CHESS_ASSERT(!is_rank(bitboard, rear_rank<colour>()) && !is_rank(bitboard, front_rank<colour>()));;
         CHESS_ASSERT(game->next_turn ? colour == Colour::Black : colour == Colour::White);
-        const Bitboard enemy_pieces = get_friendly_pieces<EnemyColour<colour>::colour>(game);
-        const Bitboard all_pieces_complement = ~(get_friendly_pieces<colour>(game) | enemy_pieces);
-        Bitboard result = move_forward<colour>(bitboard) & all_pieces_complement;
-        result |= move_forward<colour>(result) & bitboard_rank[U8(move_forward<colour>(move_forward<colour>(move_forward<colour>(rear_rank<colour>()))))] & all_pieces_complement;
 
-        Bitboard en_passant_square(U64(game->can_en_passant) << U8(game->en_passant_square));
-        result |= get_pawn_attack_cells<colour>(game, bitboard) & (move_forward<colour>(en_passant_square) | enemy_pieces);
-
-        return result;
+        return (get_pawn_attack_cells<colour>(game, bitboard) & get_friendly_pieces<EnemyColour<colour>::colour>(game))
+            | get_pawn_non_attack_moves_excluding_en_passant<colour>(game, bitboard);
     }
 
     template <Colour colour>
@@ -590,7 +592,30 @@ namespace chess { namespace engine {
     template <Colour colour>
     static Bitboard get_pawn_legal_moves(Game* game, Bitboard::Index index) {
         const Bitboard index_bitboard(index);
-        return apply_check_evasion_and_prevention<colour>(game, index_bitboard, get_pawn_moves<colour>(game, index_bitboard));
+        if (game->can_en_passant) {
+            const Bitboard en_passant_move_square(move_forward<colour>(game->en_passant_square));
+            const Bitboard attack_cells = get_pawn_attack_cells<colour>(game, index_bitboard);
+            if (en_passant_move_square & attack_cells) {
+                Bitboard moves = apply_check_evasion_and_prevention<colour>(
+                    game,
+                    index_bitboard,
+                    (attack_cells & get_friendly_pieces<EnemyColour<colour>::colour>(game)) | get_pawn_non_attack_moves_excluding_en_passant<colour>(game, index_bitboard));
+
+                if (test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_forward<colour>(game->en_passant_square)))) {
+                    moves &= ~en_passant_move_square;
+                } else {
+                    moves |= en_passant_move_square;
+                }
+                return moves;
+            }
+            
+            return apply_check_evasion_and_prevention<colour>(
+                game,
+                index_bitboard, 
+                get_pawn_non_attack_moves_excluding_en_passant<colour>(game, index_bitboard) | (attack_cells & get_friendly_pieces<EnemyColour<colour>::colour>(game)));
+        }
+
+        return apply_check_evasion_and_prevention<colour>(game, index_bitboard, get_pawn_moves_excluding_en_passant<colour>(game, index_bitboard));
     }
 
     template <Colour colour>
@@ -1847,6 +1872,132 @@ namespace chess { namespace engine {
         } else {
             snprintf(buffer, 6, "%c%c%c%c%c", from_file, from_rank, to_file, to_rank, char_promotion_piece_type(promotion_piece_type));
         }
+    }
+
+    static void dispose_spaces(const char* moves, U8* index) {
+        while (moves[*index] == ' ') {
+            ++(*index);
+        }
+    }
+
+    static bool get_file(char c, File* result) {
+        if (c == 'a') {
+            *result = File::A;
+        } else if (c == 'b') {
+            *result = File::B;
+        } else if (c == 'c') {
+            *result = File::C;
+        } else if (c == 'd') {
+            *result = File::D;
+        } else if (c == 'e') {
+            *result = File::E;
+        } else if (c == 'f') {
+            *result = File::F;
+        } else if (c == 'G') {
+            *result = File::G;
+        } else if (c == 'h') {
+            *result = File::H;
+        } else {
+            return false;
+        }
+
+        return true;
+    }
+
+    static bool get_rank(char c, Rank* result) {
+        if (c == '1') {
+            *result = Rank::One;
+        } else if (c == '2') {
+            *result = Rank::Two;
+        } else if (c == '3') {
+            *result = Rank::Three;
+        } else if (c == '4') {
+            *result = Rank::Four;
+        } else if (c == '5') {
+            *result = Rank::Five;
+        } else if (c == '6') {
+            *result = Rank::Six;
+        } else if (c == '7') {
+            *result = Rank::Seven;
+        } else if (c == '8') {
+            *result = Rank::Eight;
+        } else {
+            return false;
+        }
+
+        return true;
+    }
+
+    static bool get_promotion_piece_type(char c, Piece::Type* result) {
+        if (c == 'n') {
+            *result = Piece::Type::Knight;
+        } else if (c == 'b') {
+            *result = Piece::Type::Bishop;
+        } else if (c == 'r') {
+            *result = Piece::Type::Rook;
+        } else if (c == 'q') {
+            *result = Piece::Type::Queen;
+        } else {
+            return false;
+        }
+
+        return true;
+    }
+
+    bool make_moves(Game* game, const char* moves) {
+        U8 index = 0;
+        File file_1;
+        Rank rank_1;
+        File file_2;
+        Rank rank_2;
+        Piece::Type promotion_piece = Piece::Type::Empty;
+        while (true) {
+            dispose_spaces(moves, &index);
+            if (moves[index] == '\0') {
+                break;
+            }
+
+            if (!get_file(moves[index], &file_1)) {
+                return false;
+            }
+            ++index;
+
+            if (!get_rank(moves[index], &rank_1)) {
+                return false;
+            }
+            ++index;
+
+            if (!get_file(moves[index], &file_2)) {
+                return false;
+            }
+            ++index;
+
+            if (!get_rank(moves[index], &rank_2)) {
+                return false;
+            }
+            ++index;
+
+            if (moves[index] == ' ' || moves[index] == '\0') {
+                if (!move(game, Bitboard::Index(file_1, rank_1), Bitboard::Index(file_2, rank_2))) {
+                    return false;
+                }
+            } else {
+                if (!get_promotion_piece_type(moves[index], &promotion_piece)) {
+                    return false;
+                }
+                ++index;
+
+                if (moves[index] == ' ' || moves[index] == '\0') {
+                    if (!move_and_promote(game, Bitboard::Index(file_1, rank_1), Bitboard::Index(file_2, rank_2), promotion_piece)) {
+                        return false;
+                    }
+                } else {
+                    return false;
+                }
+            }
+        }
+
+        return true;
     }
 
 #if CHESS_DEBUG
