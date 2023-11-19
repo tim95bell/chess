@@ -235,6 +235,7 @@ namespace chess { namespace engine {
     extern bool undo(Game* game);
     extern bool redo(Game* game);
     extern bool load_fen(Game* game, const char* fen);
+    template <bool divided = false>
     extern PerftResult perft(Game* game, U8 depth);
     template <bool divided = false>
     extern U64 fast_perft(Game* game, U8 depth);

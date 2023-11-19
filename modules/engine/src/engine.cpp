@@ -1747,7 +1747,7 @@ namespace chess { namespace engine {
     template U64 fast_perft<false>(Game* game, U8 depth);
     template U64 fast_perft<true>(Game* game, U8 depth);
 
-    template <Colour colour, bool initial>
+    template <Colour colour, bool divided = false>
     static PerftResult perft(Game* game, U8 depth) {
         if (depth == 0) {
             return PerftResult{
@@ -1765,83 +1765,91 @@ namespace chess { namespace engine {
 
         PerftResult result{};
 
-        for (Bitboard::Index index; index < chess_board_size; ++index) {
-            const Bitboard moves = get_moves<colour>(game, index);
-            for (Bitboard::Index move_index; move_index < chess_board_size; ++move_index) {
-                if (moves & Bitboard(move_index)) {
-                    if (has_friendly_pawn<colour>(game, Bitboard(index)) && is_rank(move_index, front_rank<colour>())) {
+        Bitboard friendly_pieces_to_process = get_friendly_pieces<colour>(game);
+        Bitboard moves_to_process;
+        for (U8 from_index_plus_one = __builtin_ffsll(friendly_pieces_to_process.data); from_index_plus_one; from_index_plus_one = __builtin_ffsll(friendly_pieces_to_process.data)) {
+            const Bitboard::Index from_index(from_index_plus_one - 1);
+            moves_to_process = get_moves<colour>(game, from_index);
+            const Bitboard from_index_bitboard(from_index);
+            friendly_pieces_to_process &= ~from_index_bitboard;
+            if (moves_to_process) {
+                for (U8 to_index_plus_one = __builtin_ffsll(moves_to_process.data); to_index_plus_one; to_index_plus_one = __builtin_ffsll(moves_to_process.data)) {
+                    const Bitboard::Index to_index(to_index_plus_one - 1);
+                    const Bitboard to_index_bitboard(to_index);
+                    moves_to_process &= ~to_index_bitboard;
+                    if (has_friendly_pawn<colour>(game, from_index_bitboard) && is_rank(to_index, front_rank<colour>())) {
                         {
-                            Move the_move(game, index, move_index, Piece::Type::Knight);
-                            move<colour>(game, the_move);
-                            PerftResult this_result = perft<EnemyColour<colour>::colour, false>(game, depth - 1);
-#if CHESS_DEBUG
-                            if constexpr (initial) {
+                            Move the_move(game, from_index, to_index, Piece::Type::Knight);
+                            move_unchecked<colour>(game, the_move);
+                            if constexpr (divided) {
                                 char move_name[6];
+                                PerftResult this_result = perft<EnemyColour<colour>::colour, false>(game, depth - 1);
                                 string_move(the_move, move_name);
                                 std::cout << move_name << ": " << this_result.nodes << std::endl;
+                                result = result + this_result;
+                            } else {
+                                result = result + perft<EnemyColour<colour>::colour, false>(game, depth - 1);
                             }
-#endif
-                            result = result + this_result;
                             undo(game);
                         }
 
                         {
-                            Move the_move(game, index, move_index, Piece::Type::Bishop);
-                            move<colour>(game, the_move);
-                            PerftResult this_result = perft<EnemyColour<colour>::colour, false>(game, depth - 1);
-#if CHESS_DEBUG
-                            if constexpr (initial) {
+                            Move the_move(game, from_index, to_index, Piece::Type::Bishop);
+                            move_unchecked<colour>(game, the_move);
+                            if constexpr (divided) {
                                 char move_name[6];
+                                PerftResult this_result = perft<EnemyColour<colour>::colour, false>(game, depth - 1);
                                 string_move(the_move, move_name);
                                 std::cout << move_name << ": " << this_result.nodes << std::endl;
+                                result = result + this_result;
+                            } else {
+                                result = result + perft<EnemyColour<colour>::colour, false>(game, depth - 1);
                             }
-#endif
-                            result = result + this_result;
                             undo(game);
                         }
 
                         {
-                            Move the_move(game, index, move_index, Piece::Type::Rook);
-                            move<colour>(game, the_move);
-                            PerftResult this_result = perft<EnemyColour<colour>::colour, false>(game, depth - 1);
-#if CHESS_DEBUG
-                            if constexpr (initial) {
+                            Move the_move(game, from_index, to_index, Piece::Type::Rook);
+                            move_unchecked<colour>(game, the_move);
+                            if constexpr (divided) {
                                 char move_name[6];
+                                PerftResult this_result = perft<EnemyColour<colour>::colour, false>(game, depth - 1);
                                 string_move(the_move, move_name);
                                 std::cout << move_name << ": " << this_result.nodes << std::endl;
+                                result = result + this_result;
+                            } else {
+                                result = result + perft<EnemyColour<colour>::colour, false>(game, depth - 1);
                             }
-#endif
-                            result = result + this_result;
                             undo(game);
                         }
 
                         {
-                            Move the_move(game, index, move_index, Piece::Type::Queen);
-                            move<colour>(game, the_move);
-                            PerftResult this_result = perft<EnemyColour<colour>::colour, false>(game, depth - 1);
-#if CHESS_DEBUG
-                            if constexpr (initial) {
+                            Move the_move(game, from_index, to_index, Piece::Type::Queen);
+                            move_unchecked<colour>(game, the_move);
+                            if constexpr (divided) {
                                 char move_name[6];
+                                PerftResult this_result = perft<EnemyColour<colour>::colour, false>(game, depth - 1);
                                 string_move(the_move, move_name);
                                 std::cout << move_name << ": " << this_result.nodes << std::endl;
+                                result = result + this_result;
+                            } else {
+                                result = result + perft<EnemyColour<colour>::colour, false>(game, depth - 1);
                             }
-#endif
-                            result = result + this_result;
                             undo(game);
                         }
                     } else {
                         {
-                            Move the_move(game, index, move_index);
-                            move<colour>(game, the_move);
-                            PerftResult this_result = perft<EnemyColour<colour>::colour, false>(game, depth - 1);
-#if CHESS_DEBUG
-                            if constexpr (initial) {
+                            Move the_move(game, from_index, to_index);
+                            move_unchecked<colour>(game, the_move);
+                            if constexpr (divided) {
                                 char move_name[6];
+                                PerftResult this_result = perft<EnemyColour<colour>::colour, false>(game, depth - 1);
                                 string_move(the_move, move_name);
                                 std::cout << move_name << ": " << this_result.nodes << std::endl;
+                                result = result + this_result;
+                            } else {
+                                result = result + perft<EnemyColour<colour>::colour, false>(game, depth - 1);
                             }
-#endif
-                            result = result + this_result;
                             undo(game);
                         }
                     }
@@ -1852,13 +1860,17 @@ namespace chess { namespace engine {
         return result;
     }
 
+    template <bool divided>
     PerftResult perft(Game* game, U8 depth) {
         if (game->next_turn) {
-            return perft<Colour::Black, true>(game, depth);
+            return perft<Colour::Black, divided>(game, depth);
         }
 
-        return perft<Colour::White, true>(game, depth);
+        return perft<Colour::White, divided>(game, depth);
     }
+
+    template PerftResult perft<false>(Game* game, U8 depth);
+    template PerftResult perft<true>(Game* game, U8 depth);
     // #endregion
 
     void string_move(Move move, char* buffer) {
