@@ -345,8 +345,8 @@ namespace chess { namespace engine {
         const Bitboard friendly_pieces = get_friendly_pieces<colour>(game);
         const Bitboard file_a_complement = ~bitboard_file[U8(File::A)];
         const Bitboard file_h_complement = ~bitboard_file[U8(File::H)];
-        const Bitboard friendly_rooks_and_queens = (*get_friendly_rooks<EnemyColour<colour>::colour>(game) | *get_friendly_queens<EnemyColour<colour>::colour>(game));
-        const Bitboard friendly_bishops_and_queens = (*get_friendly_bishops<EnemyColour<colour>::colour>(game) | *get_friendly_queens<EnemyColour<colour>::colour>(game));
+        const Bitboard enemy_rooks_and_queens = (*get_friendly_rooks<EnemyColour<colour>::colour>(game) | *get_friendly_queens<EnemyColour<colour>::colour>(game));
+        const Bitboard enemy_bishops_and_queens = (*get_friendly_bishops<EnemyColour<colour>::colour>(game) | *get_friendly_queens<EnemyColour<colour>::colour>(game));
 
         CheckData* check_data = get_check_data(game);
 
@@ -359,7 +359,7 @@ namespace chess { namespace engine {
             temp_result &= enemy_pieces_complement;
         }
 
-        Bitboard sliding_enemy_intersection = result & friendly_rooks_and_queens;
+        Bitboard sliding_enemy_intersection = result & enemy_rooks_and_queens;
         for (U8 i = 0; i < (chess_board_edge_size - 2); ++i) {
             sliding_enemy_intersection |= move_south(sliding_enemy_intersection);
         }
@@ -375,7 +375,7 @@ namespace chess { namespace engine {
             temp_result &= enemy_pieces_complement;
         }
 
-        sliding_enemy_intersection = result & friendly_bishops_and_queens;
+        sliding_enemy_intersection = result & enemy_bishops_and_queens;
         for (U8 i = 0; i < (chess_board_edge_size - 2); ++i) {
             sliding_enemy_intersection |= move_south_west(sliding_enemy_intersection);
         }
@@ -391,7 +391,7 @@ namespace chess { namespace engine {
             temp_result &= enemy_pieces_complement;
         }
 
-        sliding_enemy_intersection = result & friendly_rooks_and_queens;
+        sliding_enemy_intersection = result & enemy_rooks_and_queens;
         for (U8 i = 0; i < (chess_board_edge_size - 2); ++i) {
             sliding_enemy_intersection |= move_west(sliding_enemy_intersection);
         }
@@ -407,7 +407,7 @@ namespace chess { namespace engine {
             temp_result &= enemy_pieces_complement;
         }
 
-        sliding_enemy_intersection = result & friendly_bishops_and_queens;
+        sliding_enemy_intersection = result & enemy_bishops_and_queens;
         for (U8 i = 0; i < (chess_board_edge_size - 2); ++i) {
             sliding_enemy_intersection |= move_north_west(sliding_enemy_intersection);
         }
@@ -423,7 +423,7 @@ namespace chess { namespace engine {
             temp_result &= enemy_pieces_complement;
         }
 
-        sliding_enemy_intersection = result & friendly_rooks_and_queens;
+        sliding_enemy_intersection = result & enemy_rooks_and_queens;
         for (U8 i = 0; i < (chess_board_edge_size - 2); ++i) {
             sliding_enemy_intersection |= move_north(sliding_enemy_intersection);
         }
@@ -439,7 +439,7 @@ namespace chess { namespace engine {
             temp_result &= enemy_pieces_complement;
         }
 
-        sliding_enemy_intersection = result & friendly_bishops_and_queens;
+        sliding_enemy_intersection = result & enemy_bishops_and_queens;
         for (U8 i = 0; i < (chess_board_edge_size - 2); ++i) {
             sliding_enemy_intersection |= move_north_east(sliding_enemy_intersection);
         }
@@ -455,7 +455,7 @@ namespace chess { namespace engine {
             temp_result &= enemy_pieces_complement;
         }
 
-        sliding_enemy_intersection = result & friendly_rooks_and_queens;
+        sliding_enemy_intersection = result & enemy_rooks_and_queens;
         for (U8 i = 0; i < (chess_board_edge_size - 2); ++i) {
             sliding_enemy_intersection |= move_east(sliding_enemy_intersection);
         }
@@ -471,7 +471,7 @@ namespace chess { namespace engine {
             temp_result &= enemy_pieces_complement;
         }
 
-        sliding_enemy_intersection = result & friendly_bishops_and_queens;
+        sliding_enemy_intersection = result & enemy_bishops_and_queens;
         for (U8 i = 0; i < (chess_board_edge_size - 2); ++i) {
             sliding_enemy_intersection |= move_south_east(sliding_enemy_intersection);
         }
@@ -1446,11 +1446,6 @@ namespace chess { namespace engine {
         return false;
     }
 
-    static bool last_move_was_discovered_check(const Game* game) {
-        // TODO(TB):
-        return false;
-    }
-
     static bool last_move_was_check(const Game* game) {
         return get_check_data(game)->check_count != 0;
     }
@@ -1460,9 +1455,48 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static bool test_for_check_mate(const Game* game) {
-        // TODO(TB):
+    static bool last_move_was_discovered_check(const Game* game) {
+        if (game->moves_index > 0) {
+            if (last_move_was_double_check(game)) {
+                // NOTE(TB): they don't count it as a discovered check if it was a double check
+                return false;
+            }
+
+            const Move move = game->moves[U8(game->moves_index - 1)];
+            const CheckData* const check_data = get_check_data(game);
+            const Bitboard enemy_pieces = get_friendly_pieces<EnemyColour<colour>::colour>(game);
+            const Bitboard moved_to_bitboard(move.to);
+            return ((check_data->north_skewer && !(check_data->north_skewer & enemy_pieces) && !(check_data->north_skewer & moved_to_bitboard))
+                || (check_data->north_east_skewer && !(check_data->north_east_skewer & enemy_pieces) && !(check_data->north_east_skewer & moved_to_bitboard))
+                || (check_data->east_skewer && !(check_data->east_skewer & enemy_pieces) && !(check_data->east_skewer & moved_to_bitboard))
+                || (check_data->south_east_skewer && !(check_data->south_east_skewer & enemy_pieces) && !(check_data->south_east_skewer & moved_to_bitboard))
+                || (check_data->south_skewer && !(check_data->south_skewer & enemy_pieces) && !(check_data->south_skewer & moved_to_bitboard))
+                || (check_data->south_west_skewer && !(check_data->south_west_skewer & enemy_pieces) && !(check_data->south_west_skewer & moved_to_bitboard))
+                || (check_data->west_skewer && !(check_data->west_skewer & enemy_pieces) && !(check_data->west_skewer & moved_to_bitboard))
+                || (check_data->north_west_skewer && !(check_data->north_west_skewer & enemy_pieces) && !(check_data->north_west_skewer & moved_to_bitboard)));
+        }
         return false;
+    }
+
+    template <Colour colour>
+    static bool has_a_legal_move(Game* game) {
+        Bitboard friendly_pieces_to_process = get_friendly_pieces<colour>(game);
+        Bitboard moves_to_process;
+        for (U8 from_index_plus_one = __builtin_ffsll(friendly_pieces_to_process.data); from_index_plus_one; from_index_plus_one = __builtin_ffsll(friendly_pieces_to_process.data)) {
+            const Bitboard::Index from_index(from_index_plus_one - 1);
+            moves_to_process = get_moves<colour>(game, from_index);
+            const Bitboard from_index_bitboard(from_index);
+            friendly_pieces_to_process &= ~from_index_bitboard;
+            if (moves_to_process) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    template <Colour colour>
+    static bool test_for_check_mate(Game* game) {
+        return get_check_data(game)->check_count && !has_a_legal_move<colour>(game);
     }
 
     bool load_fen(Game* game, const char* fen) {
@@ -1804,7 +1838,7 @@ namespace chess { namespace engine {
                 last_move_was_castles<EnemyColour<colour>::colour>(game) ? 1ULL : 0ULL,
                 last_move_was_promotion(game) ? 1ULL : 0ULL,
                 last_move_was_check(game) ? 1ULL : 0ULL,
-                last_move_was_discovered_check(game) ? 1ULL : 0ULL,
+                last_move_was_discovered_check<EnemyColour<colour>::colour>(game) ? 1ULL : 0ULL,
                 last_move_was_double_check(game) ? 1ULL : 0ULL,
                 test_for_check_mate<colour>(game) ? 1ULL : 0ULL
             };

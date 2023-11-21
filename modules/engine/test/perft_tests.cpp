@@ -8,451 +8,724 @@
 #include <iostream>
 
 namespace chess { namespace engine {
-    TEST_CASE("fast_perft", "[fast_perft]") {
-        Game game;
+    static const std::array<U64, 14> start_position_nodes{
+        1,
+        20,
+        400,
+        8902,
+        197281,
+        4865609,
+        119060324,
+        3195901860,
+        84998978956,
+        2439530234167,
+        69352859712417,
+        2097651003696806,
+        62854969236701747,
+        1981066775000396239
+    };
 
-        SECTION("initial position, depth 1") {
-            const U64 result = fast_perft(&game, 1);
-            CHECK(result == 20);
-        }
+    static const std::array<U64, 10> start_position_captures{
+        0,
+        0,
+        0,
+        34,
+        1576,
+        82719,
+        2812008,
+        108329926,
+        3523740106,
+        125208536153
+    };
 
-        SECTION("initial position, depth 2") {
-            const U64 result = fast_perft(&game, 2);
-            CHECK(result == 400);
-        }
+    static const std::array<U64, 10> start_position_en_passant{
+        0,
+        0,
+        0,
+        0,
+        0,
+        258,
+        5248,
+        319617,
+        7187977,
+        319496827
+    };
 
-        SECTION("initial position, depth 3") {
-            const U64 result = fast_perft(&game, 3);
-            CHECK(result == 8902);
-        }
+    static const std::array<U64, 10> start_position_castles{
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        883453,
+        23605205,
+        1784356000
+    };
 
-        SECTION("initial position, depth 4") {
-            const U64 result = fast_perft(&game, 4);
-            CHECK(result == 197281);
-        }
+    static const std::array<U64, 10> start_position_promotions{
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        17334376
+    };
 
-        SECTION("initial position, depth 5") {
-            const U64 result = fast_perft(&game, 5);
-            CHECK(result == 4865609);
-        }
+    static const std::array<U64, 10> start_position_checks{
+        0,
+        0,
+        0,
+        12,
+        469,
+        27351,
+        809099,
+        33103848,
+        968981593,
+        36095901903
+    };
 
-#if 0
-        SECTION("initial position, depth 6") {
-            const U64 result = fast_perft(&game, 6);
-            CHECK(result == 119060324);
-        }
+    static const std::array<U64, 10> start_position_discovery_checks{
+        0,
+        0,
+        0,
+        0,
+        0,
+        6,
+        329,
+        18026,
+        847039,
+        37101713
+    };
 
-        SECTION("initial position, depth 7") {
-            const U64 result = fast_perft(&game, 7);
-            CHECK(result == 3195901860);
-        }
+    static const std::array<U64, 10> start_position_double_checks{
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        46,
+        1628,
+        147215,
+        5547231
+    };
 
-        SECTION("initial position, depth 8") {
-            const U64 result = fast_perft(&game, 8);
-            CHECK(result == 84998978956);
-        }
+    static const std::array<U64, 10> start_position_check_mates{
+        0,
+        0,
+        0,
+        0,
+        8,
+        347,
+        10828,
+        435767,
+        9852036,
+        400191963
+    };
 
-        SECTION("initial position, depth 9") {
-            const U64 result = fast_perft(&game, 9);
-            CHECK(result == 2439530234167);
-        }
+    static const char* position_2_fen = "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - ";
 
-        SECTION("initial position, depth 10") {
-            const U64 result = fast_perft(&game, 10);
-            CHECK(result == 69352859712417);
-        }
+    static const std::array<U64, 7> position_2_nodes{
+        0,
+        48,
+        2039,
+        97862,
+        4085603,
+        193690690,
+        8031647685
+    };
 
-        SECTION("initial position, depth 11") {
-            const U64 result = fast_perft(&game, 11);
-            CHECK(result == 2097651003696806);
-        }
+    static const std::array<U64, 7> position_2_captures{
+        0,
+        8,
+        351,
+        17102,
+        757163,
+        35043416,
+        1558445089
+    };
 
-        SECTION("initial position, depth 12") {
-            const U64 result = fast_perft(&game, 12);
-            CHECK(result == 62854969236701747);
-        }
+    static const std::array<U64, 7> position_2_en_passant{
+        0,
+        0,
+        1,
+        45,
+        1929,
+        73365,
+        3577504
+    };
 
-        SECTION("initial position, depth 13") {
-            const U64 result = fast_perft(&game, 13);
-            CHECK(result == 1981066775000396239);
-        }
-#endif
+    static const std::array<U64, 7> position_2_castles{
+        0,
+        2,
+        91,
+        3162,
+        128013,
+        4993637,
+        184513607
+    };
 
-        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - , depth 1") {
-            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
-            const U64 result = fast_perft(&game, 1);
-            CHECK(result == 48);
-        }
+    static const std::array<U64, 7> position_2_promotions{
+        0,
+        0,
+        0,
+        0,
+        15172,
+        8392,
+        56627920
+    };
 
-        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - , depth 2") {
-            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
-            const U64 result = fast_perft(&game, 2);
-            CHECK(result == 2039);
-        }
+    static const std::array<U64, 7> position_2_checks{
+        0,
+        0,
+        3,
+        993,
+        25523,
+        3309887,
+        92238050
+    };
 
-        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - , depth 3") {
-            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
-            const U64 result = fast_perft(&game, 3);
-            CHECK(result == 97862);
-        }
+    static const std::array<U64, 7> position_2_discovery_checks{
+        0,
+        0,
+        0,
+        0,
+        42,
+        19883,
+        568417
+    };
 
-        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - , depth 4") {
-            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
-            const U64 result = fast_perft(&game, 4);
-            CHECK(result == 4085603);
-        }
+    static const std::array<U64, 7> position_2_double_checks{
+        0,
+        0,
+        0,
+        0,
+        6,
+        2637,
+        54948
+    };
 
-        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - , depth 5") {
-            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
-            const U64 result = fast_perft(&game, 5);
-            CHECK(result == 193690690);
-        }
+    static const std::array<U64, 7> position_2_check_mates{
+        0,
+        0,
+        0,
+        1,
+        43,
+        30171,
+        360003
+    };
 
-#if 0
-        SECTION("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - , depth 6") {
-            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
-            const U64 result = fast_perft(&game, 6);
-            CHECK(result == 8031647685);
-        }
-#endif
-    }
+    static const char* position_3_fen = "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - ";
+
+    static const std::array<U64, 9> position_3_nodes{
+        0,
+        14,
+        191,
+        2812,
+        43238,
+        674624,
+        11030083,
+        178633661,
+        3009794393
+    };
+
+    static const std::array<U64, 9> position_3_captures{
+        0,
+        1,
+        14,
+        209,
+        3348,
+        52051,
+        940350,
+        14519036,
+        267586558
+    };
+
+    static const std::array<U64, 9> position_3_en_passant{
+        0,
+        0,
+        0,
+        2,
+        123,
+        1165,
+        33325,
+        294874,
+        8009239
+    };
+
+    static const std::array<U64, 9> position_3_castles{
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+    };
+
+    static const std::array<U64, 9> position_3_promotions{
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        7552,
+        140024,
+        6578076
+    };
+
+    static const std::array<U64, 9> position_3_checks{
+        0,
+        2,
+        10,
+        267,
+        1680,
+        52950,
+        452473,
+        12797406,
+        135626805
+    };
+
+    static const std::array<U64, 9> position_3_discovery_checks{
+        0,
+        0,
+        0,
+        3,
+        106,
+        1292,
+        26067,
+        370630,
+        7181487
+    };
+
+    static const std::array<U64, 9> position_3_double_checks{
+        0,
+        0,
+        0,
+        0,
+        0,
+        3,
+        0,
+        3612,
+        1630
+    };
+
+    static const std::array<U64, 9> position_3_check_mates{
+        0,
+        0,
+        0,
+        0,
+        17,
+        0,
+        2733,
+        87,
+        450410
+    };
 
     TEST_CASE("perft 1", "[perft][1]") {
         Game game;
+        const U64 depth = 1;
 
         SECTION("initial position") {
-            const PerftResult result = perft(&game, 1);
-            CHECK(result.nodes == 20);
-            CHECK(result.captures == 0);
-            CHECK(result.checks == 0);
-            CHECK(result.en_passant == 0);
-            CHECK(result.castles == 0);
-            CHECK(result.promotions == 0);
-            CHECK(result.double_checks == 0);
+            const PerftResult result = perft(&game, depth);
+            CHECK(result.nodes == start_position_nodes[depth]);
+            CHECK(result.captures == start_position_captures[depth]);
+            CHECK(result.en_passant == start_position_en_passant[depth]);
+            CHECK(result.castles == start_position_castles[depth]);
+            CHECK(result.promotions == start_position_promotions[depth]);
+            CHECK(result.checks == start_position_checks[depth]);
+            CHECK(result.discovery_checks == start_position_discovery_checks[depth]);
+            CHECK(result.double_checks == start_position_double_checks[depth]);
+            CHECK(result.checkmates == start_position_check_mates[depth]);
         }
 
         SECTION("position 2") {
-            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
-            const PerftResult result = perft(&game, 1);
-            CHECK(result.nodes == 48);
-            CHECK(result.captures == 8);
-            CHECK(result.checks == 0);
-            CHECK(result.en_passant == 0);
-            CHECK(result.castles == 2);
-            CHECK(result.promotions == 0);
-            CHECK(result.double_checks == 0);
+            CHECK(load_fen(&game, position_2_fen));
+            const PerftResult result = perft(&game, depth);
+            CHECK(result.nodes == position_2_nodes[depth]);
+            CHECK(result.captures == position_2_captures[depth]);
+            CHECK(result.en_passant == position_2_en_passant[depth]);
+            CHECK(result.castles == position_2_castles[depth]);
+            CHECK(result.promotions == position_2_promotions[depth]);
+            CHECK(result.checks == position_2_checks[depth]);
+            CHECK(result.discovery_checks == position_2_discovery_checks[depth]);
+            CHECK(result.double_checks == position_2_double_checks[depth]);
+            CHECK(result.checkmates == position_2_check_mates[depth]);
         }
 
         SECTION("position 3") {
-            CHECK(load_fen(&game, "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - "));
-            const PerftResult result = perft(&game, 1);
-            CHECK(result.nodes == 14);
-            CHECK(result.captures == 1);
-            CHECK(result.checks == 2);
-            CHECK(result.en_passant == 0);
-            CHECK(result.castles == 0);
-            CHECK(result.promotions == 0);
-            CHECK(result.double_checks == 0);
+            CHECK(load_fen(&game, position_3_fen));
+            const PerftResult result = perft(&game, depth);
+            CHECK(result.nodes == position_3_nodes[depth]);
+            CHECK(result.captures == position_3_captures[depth]);
+            CHECK(result.en_passant == position_3_en_passant[depth]);
+            CHECK(result.castles == position_3_castles[depth]);
+            CHECK(result.promotions == position_3_promotions[depth]);
+            CHECK(result.checks == position_3_checks[depth]);
+            CHECK(result.discovery_checks == position_3_discovery_checks[depth]);
+            CHECK(result.double_checks == position_3_double_checks[depth]);
+            CHECK(result.checkmates == position_3_check_mates[depth]);
         }
     }
 
     TEST_CASE("perft 2", "[perft][2]") {
         Game game;
+        const U64 depth = 2;
 
         SECTION("initial position") {
-            const PerftResult result = perft(&game, 2);
-            CHECK(result.nodes == 400);
-            CHECK(result.captures == 0);
-            CHECK(result.checks == 0);
-            CHECK(result.en_passant == 0);
-            CHECK(result.castles == 0);
-            CHECK(result.promotions == 0);
-            CHECK(result.double_checks == 0);
+            const PerftResult result = perft(&game, depth);
+            CHECK(result.nodes == start_position_nodes[depth]);
+            CHECK(result.captures == start_position_captures[depth]);
+            CHECK(result.en_passant == start_position_en_passant[depth]);
+            CHECK(result.castles == start_position_castles[depth]);
+            CHECK(result.promotions == start_position_promotions[depth]);
+            CHECK(result.checks == start_position_checks[depth]);
+            CHECK(result.discovery_checks == start_position_discovery_checks[depth]);
+            CHECK(result.double_checks == start_position_double_checks[depth]);
+            CHECK(result.checkmates == start_position_check_mates[depth]);
         }
 
         SECTION("position 2") {
-            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
-            const PerftResult result = perft(&game, 2);
-            CHECK(result.nodes == 2039);
-            CHECK(result.captures == 351);
-            CHECK(result.checks == 3);
-            CHECK(result.en_passant == 1);
-            CHECK(result.castles == 91);
-            CHECK(result.promotions == 0);
-            CHECK(result.double_checks == 0);
+            CHECK(load_fen(&game, position_2_fen));
+            const PerftResult result = perft(&game, depth);
+            CHECK(result.nodes == position_2_nodes[depth]);
+            CHECK(result.captures == position_2_captures[depth]);
+            CHECK(result.en_passant == position_2_en_passant[depth]);
+            CHECK(result.castles == position_2_castles[depth]);
+            CHECK(result.promotions == position_2_promotions[depth]);
+            CHECK(result.checks == position_2_checks[depth]);
+            CHECK(result.discovery_checks == position_2_discovery_checks[depth]);
+            CHECK(result.double_checks == position_2_double_checks[depth]);
+            CHECK(result.checkmates == position_2_check_mates[depth]);
         }
 
         SECTION("position 3") {
-            CHECK(load_fen(&game, "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - "));
-            const PerftResult result = perft(&game, 2);
-            CHECK(result.nodes == 191);
-            CHECK(result.captures == 14);
-            CHECK(result.checks == 10);
-            CHECK(result.en_passant == 0);
-            CHECK(result.castles == 0);
-            CHECK(result.promotions == 0);
-            CHECK(result.double_checks == 0);
+            CHECK(load_fen(&game, position_3_fen));
+            const PerftResult result = perft(&game, depth);
+            CHECK(result.nodes == position_3_nodes[depth]);
+            CHECK(result.captures == position_3_captures[depth]);
+            CHECK(result.en_passant == position_3_en_passant[depth]);
+            CHECK(result.castles == position_3_castles[depth]);
+            CHECK(result.promotions == position_3_promotions[depth]);
+            CHECK(result.checks == position_3_checks[depth]);
+            CHECK(result.discovery_checks == position_3_discovery_checks[depth]);
+            CHECK(result.double_checks == position_3_double_checks[depth]);
+            CHECK(result.checkmates == position_3_check_mates[depth]);
         }
     }
 
     TEST_CASE("perft 3", "[perft][3]") {
         Game game;
+        const U64 depth = 3;
 
         SECTION("initial position") {
-            const PerftResult result = perft(&game, 3);
-            CHECK(result.nodes == 8902);
-            CHECK(result.captures == 34);
-            CHECK(result.checks == 12);
-            CHECK(result.en_passant == 0);
-            CHECK(result.castles == 0);
-            CHECK(result.promotions == 0);
-            CHECK(result.double_checks == 0);
+            const PerftResult result = perft(&game, depth);
+            CHECK(result.nodes == start_position_nodes[depth]);
+            CHECK(result.captures == start_position_captures[depth]);
+            CHECK(result.en_passant == start_position_en_passant[depth]);
+            CHECK(result.castles == start_position_castles[depth]);
+            CHECK(result.promotions == start_position_promotions[depth]);
+            CHECK(result.checks == start_position_checks[depth]);
+            CHECK(result.discovery_checks == start_position_discovery_checks[depth]);
+            CHECK(result.double_checks == start_position_double_checks[depth]);
+            CHECK(result.checkmates == start_position_check_mates[depth]);
         }
 
         SECTION("position 2") {
-            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
-            const PerftResult result = perft(&game, 3);
-            CHECK(result.nodes == 97862);
-            CHECK(result.captures == 17102);
-            CHECK(result.checks == 993);
-            CHECK(result.en_passant == 45);
-            CHECK(result.castles == 3162);
-            CHECK(result.promotions == 0);
-            CHECK(result.double_checks == 0);
+            CHECK(load_fen(&game, position_2_fen));
+            const PerftResult result = perft(&game, depth);
+            CHECK(result.nodes == position_2_nodes[depth]);
+            CHECK(result.captures == position_2_captures[depth]);
+            CHECK(result.en_passant == position_2_en_passant[depth]);
+            CHECK(result.castles == position_2_castles[depth]);
+            CHECK(result.promotions == position_2_promotions[depth]);
+            CHECK(result.checks == position_2_checks[depth]);
+            CHECK(result.discovery_checks == position_2_discovery_checks[depth]);
+            CHECK(result.double_checks == position_2_double_checks[depth]);
+            CHECK(result.checkmates == position_2_check_mates[depth]);
         }
 
         SECTION("position 3") {
-            CHECK(load_fen(&game, "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - "));
-            const PerftResult result = perft(&game, 3);
-            CHECK(result.nodes == 2812);
-            CHECK(result.captures == 209);
-            CHECK(result.checks == 267);
-            CHECK(result.en_passant == 2);
-            CHECK(result.castles == 0);
-            CHECK(result.promotions == 0);
-            CHECK(result.double_checks == 0);
+            CHECK(load_fen(&game, position_3_fen));
+            const PerftResult result = perft(&game, depth);
+            CHECK(result.nodes == position_3_nodes[depth]);
+            CHECK(result.captures == position_3_captures[depth]);
+            CHECK(result.en_passant == position_3_en_passant[depth]);
+            CHECK(result.castles == position_3_castles[depth]);
+            CHECK(result.promotions == position_3_promotions[depth]);
+            CHECK(result.checks == position_3_checks[depth]);
+            CHECK(result.discovery_checks == position_3_discovery_checks[depth]);
+            CHECK(result.double_checks == position_3_double_checks[depth]);
+            CHECK(result.checkmates == position_3_check_mates[depth]);
         }
     }
 
     TEST_CASE("perft 4", "[perft][4]") {
         Game game;
+        const U64 depth = 4;
 
         SECTION("initial position") {
-            const PerftResult result = perft(&game, 4);
-            CHECK(result.nodes == 197281);
-            CHECK(result.captures == 1576);
-            CHECK(result.checks == 469);
-            CHECK(result.en_passant == 0);
-            CHECK(result.castles == 0);
-            CHECK(result.promotions == 0);
-            CHECK(result.double_checks == 0);
+            const PerftResult result = perft(&game, depth);
+            CHECK(result.nodes == start_position_nodes[depth]);
+            CHECK(result.captures == start_position_captures[depth]);
+            CHECK(result.en_passant == start_position_en_passant[depth]);
+            CHECK(result.castles == start_position_castles[depth]);
+            CHECK(result.promotions == start_position_promotions[depth]);
+            CHECK(result.checks == start_position_checks[depth]);
+            CHECK(result.discovery_checks == start_position_discovery_checks[depth]);
+            CHECK(result.double_checks == start_position_double_checks[depth]);
+            CHECK(result.checkmates == start_position_check_mates[depth]);
         }
 
         SECTION("position 2") {
-            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
-            const PerftResult result = perft(&game, 4);
-            CHECK(result.nodes == 4085603);
-            CHECK(result.captures == 757163);
-            CHECK(result.checks == 25523);
-            CHECK(result.en_passant == 1929);
-            CHECK(result.castles == 128013);
-            CHECK(result.promotions == 15172);
-            CHECK(result.double_checks == 6);
+            CHECK(load_fen(&game, position_2_fen));
+            const PerftResult result = perft(&game, depth);
+            CHECK(result.nodes == position_2_nodes[depth]);
+            CHECK(result.captures == position_2_captures[depth]);
+            CHECK(result.en_passant == position_2_en_passant[depth]);
+            CHECK(result.castles == position_2_castles[depth]);
+            CHECK(result.promotions == position_2_promotions[depth]);
+            CHECK(result.checks == position_2_checks[depth]);
+            CHECK(result.discovery_checks == position_2_discovery_checks[depth]);
+            CHECK(result.double_checks == position_2_double_checks[depth]);
+            CHECK(result.checkmates == position_2_check_mates[depth]);
         }
 
         SECTION("position 3") {
-            CHECK(load_fen(&game, "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - "));
-            const PerftResult result = perft(&game, 4);
-            CHECK(result.nodes == 43238);
-            CHECK(result.captures == 3348);
-            CHECK(result.checks == 1680);
-            CHECK(result.en_passant == 123);
-            CHECK(result.castles == 0);
-            CHECK(result.promotions == 0);
-            CHECK(result.double_checks == 0);
+            CHECK(load_fen(&game, position_3_fen));
+            const PerftResult result = perft(&game, depth);
+            CHECK(result.nodes == position_3_nodes[depth]);
+            CHECK(result.captures == position_3_captures[depth]);
+            CHECK(result.en_passant == position_3_en_passant[depth]);
+            CHECK(result.castles == position_3_castles[depth]);
+            CHECK(result.promotions == position_3_promotions[depth]);
+            CHECK(result.checks == position_3_checks[depth]);
+            CHECK(result.discovery_checks == position_3_discovery_checks[depth]);
+            CHECK(result.double_checks == position_3_double_checks[depth]);
+            CHECK(result.checkmates == position_3_check_mates[depth]);
         }
     }
 
     TEST_CASE("perft 5", "[perft][5]") {
         Game game;
+        const U64 depth = 5;
 
         SECTION("initial position") {
-            const PerftResult result = perft(&game, 5);
-            CHECK(result.nodes == 4865609);
-            CHECK(result.captures == 82719);
-            CHECK(result.checks == 27351);
-            CHECK(result.en_passant == 258);
-            CHECK(result.castles == 0);
-            CHECK(result.promotions == 0);
-            CHECK(result.double_checks == 0);
+            const PerftResult result = perft(&game, depth);
+            CHECK(result.nodes == start_position_nodes[depth]);
+            CHECK(result.captures == start_position_captures[depth]);
+            CHECK(result.en_passant == start_position_en_passant[depth]);
+            CHECK(result.castles == start_position_castles[depth]);
+            CHECK(result.promotions == start_position_promotions[depth]);
+            CHECK(result.checks == start_position_checks[depth]);
+            CHECK(result.discovery_checks == start_position_discovery_checks[depth]);
+            CHECK(result.double_checks == start_position_double_checks[depth]);
+            CHECK(result.checkmates == start_position_check_mates[depth]);
         }
 
         SECTION("position 2") {
-            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
-            const PerftResult result = perft(&game, 5);
-            CHECK(result.nodes == 193690690);
-            CHECK(result.captures == 35043416);
-            CHECK(result.checks == 3309887);
-            CHECK(result.en_passant == 73365);
-            CHECK(result.castles == 4993637);
-            CHECK(result.promotions == 8392);
-            CHECK(result.double_checks == 2645); // NOTE(TB): they say could be 2645 or 2637
+            CHECK(load_fen(&game, position_2_fen));
+            const PerftResult result = perft(&game, depth);
+            CHECK(result.nodes == position_2_nodes[depth]);
+            CHECK(result.captures == position_2_captures[depth]);
+            CHECK(result.en_passant == position_2_en_passant[depth]);
+            CHECK(result.castles == position_2_castles[depth]);
+            CHECK(result.promotions == position_2_promotions[depth]);
+            CHECK(result.checks == position_2_checks[depth]);
+            CHECK(result.discovery_checks == position_2_discovery_checks[depth]);
+            CHECK(result.double_checks == position_2_double_checks[depth]);
+            CHECK(result.checkmates == position_2_check_mates[depth]);
         }
 
         SECTION("position 3") {
-            CHECK(load_fen(&game, "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - "));
-            const PerftResult result = perft(&game, 5);
-            CHECK(result.nodes == 674624);
-            CHECK(result.captures == 52051);
-            CHECK(result.checks == 52950);
-            CHECK(result.en_passant == 1165);
-            CHECK(result.castles == 0);
-            CHECK(result.promotions == 0);
-            CHECK(result.double_checks == 3);
+            CHECK(load_fen(&game, position_3_fen));
+            const PerftResult result = perft(&game, depth);
+            CHECK(result.nodes == position_3_nodes[depth]);
+            CHECK(result.captures == position_3_captures[depth]);
+            CHECK(result.en_passant == position_3_en_passant[depth]);
+            CHECK(result.castles == position_3_castles[depth]);
+            CHECK(result.promotions == position_3_promotions[depth]);
+            CHECK(result.checks == position_3_checks[depth]);
+            CHECK(result.discovery_checks == position_3_discovery_checks[depth]);
+            CHECK(result.double_checks == position_3_double_checks[depth]);
+            CHECK(result.checkmates == position_3_check_mates[depth]);
         }
     }
 
     TEST_CASE("perft 6", "[perft][6]") {
         Game game;
+        const U64 depth = 6;
 
         SECTION("initial position") {
-            const PerftResult result = perft(&game, 6);
-            CHECK(result.nodes == 119060324);
-            CHECK(result.captures == 2812008);
-            CHECK(result.checks == 809099);
-            CHECK(result.en_passant == 5248);
-            CHECK(result.castles == 0);
-            CHECK(result.promotions == 0);
-            CHECK(result.double_checks == 46);
+            const PerftResult result = perft(&game, depth);
+            CHECK(result.nodes == start_position_nodes[depth]);
+            CHECK(result.captures == start_position_captures[depth]);
+            CHECK(result.en_passant == start_position_en_passant[depth]);
+            CHECK(result.castles == start_position_castles[depth]);
+            CHECK(result.promotions == start_position_promotions[depth]);
+            CHECK(result.checks == start_position_checks[depth]);
+            CHECK(result.discovery_checks == start_position_discovery_checks[depth]);
+            CHECK(result.double_checks == start_position_double_checks[depth]);
+            CHECK(result.checkmates == start_position_check_mates[depth]);
         }
 
         SECTION("position 2") {
-            CHECK(load_fen(&game, "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - "));
-            const PerftResult result = perft(&game, 6);
-            CHECK(result.nodes == 8031647685);
-            CHECK(result.captures == 1558445089);
-            CHECK(result.checks == 92238050);
-            CHECK(result.en_passant == 3577504);
-            CHECK(result.castles == 184513607);
-            CHECK(result.promotions == 56627920);
-            CHECK(result.double_checks == 54948);
+            CHECK(load_fen(&game, position_2_fen));
+            const PerftResult result = perft(&game, depth);
+            CHECK(result.nodes == position_2_nodes[depth]);
+            CHECK(result.captures == position_2_captures[depth]);
+            CHECK(result.en_passant == position_2_en_passant[depth]);
+            CHECK(result.castles == position_2_castles[depth]);
+            CHECK(result.promotions == position_2_promotions[depth]);
+            CHECK(result.checks == position_2_checks[depth]);
+            CHECK(result.discovery_checks == position_2_discovery_checks[depth]);
+            CHECK(result.double_checks == position_2_double_checks[depth]);
+            CHECK(result.checkmates == position_2_check_mates[depth]);
         }
 
         SECTION("position 3") {
-            CHECK(load_fen(&game, "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - "));
-            const PerftResult result = perft(&game, 6);
-            CHECK(result.nodes == 11030083);
-            CHECK(result.captures == 940350);
-            CHECK(result.checks == 452473);
-            CHECK(result.en_passant == 33325);
-            CHECK(result.castles == 0);
-            CHECK(result.promotions == 7552);
-            CHECK(result.double_checks == 0);
+            CHECK(load_fen(&game, position_3_fen));
+            const PerftResult result = perft(&game, depth);
+            CHECK(result.nodes == position_3_nodes[depth]);
+            CHECK(result.captures == position_3_captures[depth]);
+            CHECK(result.en_passant == position_3_en_passant[depth]);
+            CHECK(result.castles == position_3_castles[depth]);
+            CHECK(result.promotions == position_3_promotions[depth]);
+            CHECK(result.checks == position_3_checks[depth]);
+            CHECK(result.discovery_checks == position_3_discovery_checks[depth]);
+            CHECK(result.double_checks == position_3_double_checks[depth]);
+            CHECK(result.checkmates == position_3_check_mates[depth]);
         }
     }
 
-    TEST_CASE("perft 7", "[perft][7]") {
+    TEST_CASE("perft 7", "[perft][7][.]") {
         Game game;
+        const U64 depth = 7;
 
         SECTION("initial position") {
-            const PerftResult result = perft(&game, 7);
-            CHECK(result.nodes == 3195901860);
-            CHECK(result.captures == 108329926);
-            CHECK(result.checks == 33103848);
-            CHECK(result.en_passant == 319617);
-            CHECK(result.castles == 883453);
-            CHECK(result.promotions == 0);
-            CHECK(result.double_checks == 1628);
+            const PerftResult result = perft(&game, depth);
+            CHECK(result.nodes == start_position_nodes[depth]);
+            CHECK(result.captures == start_position_captures[depth]);
+            CHECK(result.en_passant == start_position_en_passant[depth]);
+            CHECK(result.castles == start_position_castles[depth]);
+            CHECK(result.promotions == start_position_promotions[depth]);
+            CHECK(result.checks == start_position_checks[depth]);
+            CHECK(result.discovery_checks == start_position_discovery_checks[depth]);
+            CHECK(result.double_checks == start_position_double_checks[depth]);
+            CHECK(result.checkmates == start_position_check_mates[depth]);
         }
 
         SECTION("position 3") {
-            CHECK(load_fen(&game, "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - "));
-            const PerftResult result = perft(&game, 7);
-            CHECK(result.nodes == 178633661);
-            CHECK(result.captures == 14519036);
-            CHECK(result.checks == 12797406);
-            CHECK(result.en_passant == 294874);
-            CHECK(result.castles == 0);
-            CHECK(result.promotions == 140024);
-            CHECK(result.double_checks == 3612);
+            CHECK(load_fen(&game, position_3_fen));
+            const PerftResult result = perft(&game, depth);
+            CHECK(result.nodes == position_3_nodes[depth]);
+            CHECK(result.captures == position_3_captures[depth]);
+            CHECK(result.en_passant == position_3_en_passant[depth]);
+            CHECK(result.castles == position_3_castles[depth]);
+            CHECK(result.promotions == position_3_promotions[depth]);
+            CHECK(result.checks == position_3_checks[depth]);
+            CHECK(result.discovery_checks == position_3_discovery_checks[depth]);
+            CHECK(result.double_checks == position_3_double_checks[depth]);
+            CHECK(result.checkmates == position_3_check_mates[depth]);
         }
     }
 
-    TEST_CASE("perft 8", "[perft][8]") {
+    TEST_CASE("perft 8", "[perft][8][.]") {
         Game game;
+        const U64 depth = 8;
 
         SECTION("initial position") {
-            const PerftResult result = perft(&game, 8);
-            CHECK(result.nodes == 84998978956);
-            CHECK(result.captures == 3523740106);
-            CHECK(result.checks == 968981593);
-            CHECK(result.en_passant == 7187977);
-            CHECK(result.castles == 23605205);
-            CHECK(result.promotions == 0);
-            CHECK(result.double_checks == 147215);
+            const PerftResult result = perft(&game, depth);
+            CHECK(result.nodes == start_position_nodes[depth]);
+            CHECK(result.captures == start_position_captures[depth]);
+            CHECK(result.en_passant == start_position_en_passant[depth]);
+            CHECK(result.castles == start_position_castles[depth]);
+            CHECK(result.promotions == start_position_promotions[depth]);
+            CHECK(result.checks == start_position_checks[depth]);
+            CHECK(result.discovery_checks == start_position_discovery_checks[depth]);
+            CHECK(result.double_checks == start_position_double_checks[depth]);
+            CHECK(result.checkmates == start_position_check_mates[depth]);
         }
 
         SECTION("position 3") {
-            CHECK(load_fen(&game, "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - "));
-            const PerftResult result = perft(&game, 8);
-            CHECK(result.nodes == 3009794393);
-            CHECK(result.captures == 267586558);
-            CHECK(result.checks == 135626805);
-            CHECK(result.en_passant == 8009239);
-            CHECK(result.castles == 0);
-            CHECK(result.promotions == 6578076);
-            CHECK(result.double_checks == 1630);
+            CHECK(load_fen(&game, position_3_fen));
+            const PerftResult result = perft(&game, depth);
+            CHECK(result.nodes == position_3_nodes[depth]);
+            CHECK(result.captures == position_3_captures[depth]);
+            CHECK(result.en_passant == position_3_en_passant[depth]);
+            CHECK(result.castles == position_3_castles[depth]);
+            CHECK(result.promotions == position_3_promotions[depth]);
+            CHECK(result.checks == position_3_checks[depth]);
+            CHECK(result.discovery_checks == position_3_discovery_checks[depth]);
+            CHECK(result.double_checks == position_3_double_checks[depth]);
+            CHECK(result.checkmates == position_3_check_mates[depth]);
         }
     }
 
-    TEST_CASE("perft 9", "[perft][9]") {
+    TEST_CASE("perft 9", "[perft][9][.]") {
         Game game;
+        const U64 depth = 9;
 
         SECTION("initial position") {
-            const PerftResult result = perft(&game, 9);
-            CHECK(result.nodes == 2439530234167);
-            CHECK(result.captures == 125208536153);
-            CHECK(result.checks == 36095901903);
-            CHECK(result.en_passant == 319496827);
-            CHECK(result.castles == 1784356000);
-            CHECK(result.promotions == 17334376);
-            CHECK(result.double_checks == 5547231);
+            const PerftResult result = perft(&game, depth);
+            CHECK(result.nodes == start_position_nodes[depth]);
+            CHECK(result.captures == start_position_captures[depth]);
+            CHECK(result.en_passant == start_position_en_passant[depth]);
+            CHECK(result.castles == start_position_castles[depth]);
+            CHECK(result.promotions == start_position_promotions[depth]);
+            CHECK(result.checks == start_position_checks[depth]);
+            CHECK(result.discovery_checks == start_position_discovery_checks[depth]);
+            CHECK(result.double_checks == start_position_double_checks[depth]);
+            CHECK(result.checkmates == start_position_check_mates[depth]);
         }
     }
 
-    TEST_CASE("perft 10", "[perft][10]") {
+    TEST_CASE("perft 10", "[perft][10][.]") {
         Game game;
+        const U64 depth = 10;
 
         SECTION("initial position") {
-            const U64 result = fast_perft(&game, 10);
-            CHECK(result == 69352859712417);
+            const U64 result = fast_perft(&game, depth);
+            CHECK(result == start_position_nodes[depth]);
         }
     }
 
-    TEST_CASE("perft 11", "[perft][11]") {
+    TEST_CASE("perft 11", "[perft][11][.]") {
         Game game;
+        const U64 depth = 11;
 
         SECTION("initial position") {
-            const U64 result = fast_perft(&game, 11);
-            CHECK(result == 2097651003696806);
+            const U64 result = fast_perft(&game, depth);
+            CHECK(result == start_position_nodes[depth]);
         }
     }
 
-    TEST_CASE("perft 12", "[perft][12]") {
+    TEST_CASE("perft 12", "[perft][12][.]") {
         Game game;
+        const U64 depth = 12;
 
         SECTION("initial position") {
-            const U64 result = fast_perft(&game, 12);
-            CHECK(result == 62854969236701747);
+            const U64 result = fast_perft(&game, depth);
+            CHECK(result == start_position_nodes[depth]);
         }
     }
 
-    TEST_CASE("perft 13", "[perft][13]") {
+    TEST_CASE("perft 13", "[perft][13][.]") {
         Game game;
+        const U64 depth = 13;
 
         SECTION("initial position") {
-            const U64 result = fast_perft(&game, 13);
-            CHECK(result == 1981066775000396239);
+            const U64 result = fast_perft(&game, depth);
+            CHECK(result == start_position_nodes[depth]);
         }
     }
 }}
