@@ -975,6 +975,8 @@ namespace chess { namespace engine {
 
     template <Colour colour>
     static inline bool move(Game* game, Move move) {
+        // assuming move.to and move.from are in bounds, and this could not be a redo
+
         const Bitboard possible_moves = get_moves(game, move.from);
         const Bitboard to_index_bitboard = Bitboard(move.to);
         if (!(possible_moves & to_index_bitboard)) {
@@ -1065,22 +1067,19 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
+    static inline bool undo_unchecked(Game* game) {
+        --game->moves_index;
+        unperform_move<colour>(game, game->moves[game->moves_index]);
+    }
+
+    template <Colour colour>
     static inline bool undo(Game* game) {
         if (game->moves_index == 0) {
             return false;
         }
 
-        --game->moves_index;
-        unperform_move<colour>(game, game->moves[game->moves_index]);
+        undo_unchecked<colour>(game);
         return true;
-    }
-
-    static inline bool move(Game* game, Move the_move) {
-        if (game->next_turn) {
-            return move<Colour::Black>(game, the_move);
-        }
-
-        return move<Colour::White>(game, the_move);
     }
 
     template <Colour colour>
@@ -1334,21 +1333,41 @@ namespace chess { namespace engine {
     }
 
     bool move(Game* game, Bitboard::Index from, Bitboard::Index to) {
+        if (can_redo(game)) {
+            if (game->moves[game->moves_index].from == from && game->moves[game->moves_index].to == to) {
+                return redo(game);
+            }
+        }
+
         if (from >= chess_board_size || to >= chess_board_size) {
             CHESS_ASSERT(false);
             return false;
         }
 
-        return move(game, Move(game, from, to));
+        if (game->next_turn) {
+            return move<Colour::Black>(game, Move(game, from, to));
+        }
+
+        return move<Colour::White>(game, Move(game, from, to));
     }
 
     bool move_and_promote(Game* game, Bitboard::Index from, Bitboard::Index to, Piece::Type promotion_piece) {
+        if (can_redo(game)) {
+            if (game->moves[game->moves_index].from == from && game->moves[game->moves_index].to == to && get_promotion_piece_type(game->moves[game->moves_index].compressed_taken_and_promotion_piece_type) == promotion_piece) {
+                return redo(game);
+            }
+        }
+
         if (from >= chess_board_size || to >= chess_board_size || !(promotion_piece == Piece::Type::Knight || promotion_piece == Piece::Type::Bishop || promotion_piece == Piece::Type::Rook || promotion_piece == Piece::Type::Queen)) {
             CHESS_ASSERT(false);
             return false;
         }
 
-        return move(game, Move(game, from, to, promotion_piece));
+        if (game->next_turn) {
+            return move<Colour::Black>(game, Move(game, from, to, promotion_piece));
+        }
+
+        return move<Colour::White>(game, Move(game, from, to, promotion_piece));
     }
 
     bool undo(Game* game) {
@@ -1360,14 +1379,28 @@ namespace chess { namespace engine {
         return undo<Colour::Black>(game);
     }
 
-    bool redo(Game* game) {
+    template <Colour colour>
+    static inline void redo_unchecked(Game* game) {
+        perform_move<colour>(game, game->moves[game->moves_index]);
+        ++game->moves_index;
+    }
+
+    template <Colour colour>
+    static inline bool redo(Game* game) {
         if (game->moves_index < game->moves_count) {
-            if (move(game, game->moves[game->moves_index])) {
-                ++game->moves_index;
-            }
+            redo_unchecked<colour>(game);
+            return true;
         }
 
         return false;
+    }
+
+    bool redo(Game* game) {
+        if (game->next_turn) {
+            redo<Colour::Black>(game);
+        } else {
+            redo<Colour::White>(game);
+        }
     }
 
     static bool last_move_was_capture(const Game* game) {
@@ -1668,7 +1701,7 @@ namespace chess { namespace engine {
                                 } else {
                                     result += fast_perft<EnemyColour<colour>::colour, false>(game, depth - 1);
                                 }
-                                undo(game);
+                                undo_unchecked<colour>(game);
                             }
 
                             {
@@ -1683,7 +1716,7 @@ namespace chess { namespace engine {
                                 } else {
                                     result += fast_perft<EnemyColour<colour>::colour, false>(game, depth - 1);
                                 }
-                                undo(game);
+                                undo_unchecked<colour>(game);
                             }
 
                             {
@@ -1698,7 +1731,7 @@ namespace chess { namespace engine {
                                 } else {
                                     result += fast_perft<EnemyColour<colour>::colour, false>(game, depth - 1);
                                 }
-                                undo(game);
+                                undo_unchecked<colour>(game);
                             }
 
                             {
@@ -1713,7 +1746,7 @@ namespace chess { namespace engine {
                                 } else {
                                     result += fast_perft<EnemyColour<colour>::colour, false>(game, depth - 1);
                                 }
-                                undo(game);
+                                undo_unchecked<colour>(game);
                             }
                         }
                     } else {
@@ -1736,7 +1769,7 @@ namespace chess { namespace engine {
                             } else {
                                 result += fast_perft<EnemyColour<colour>::colour, false>(game, depth - 1);
                             }
-                            undo(game);
+                            undo_unchecked<colour>(game);
                         }
                     }
                 }
