@@ -321,27 +321,19 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static inline bool test_for_check(const Game* game) {
-        return get_attack_cells_excluding_king<EnemyColour<colour>::colour>(game) & *get_friendly_kings<colour>(game);
-    }
-
-    template <Colour colour>
-    static inline bool test_for_check_in_pseudo_legal_position(const Game* game) {
-        return get_attack_cells<EnemyColour<colour>::colour>(game) & *get_friendly_kings<colour>(game);
-    }
-
-    template <Colour colour>
     static bool test_for_check_after_pseudo_legal_move(Game* game, Move the_move) {
+        // NOTE(TB): check data is not being updated here, so cannot use it to test for check
         set_taken_piece_type(&the_move.compressed_taken_and_promotion_piece_type, perform_move<colour>(game, the_move));
-        const bool result = test_for_check_in_pseudo_legal_position<colour>(game);
+        const bool result = get_attack_cells<EnemyColour<colour>::colour>(game) & *get_friendly_kings<colour>(game);
         unperform_move<colour>(game, the_move);
         return result;
     }
 
     template <Colour colour>
     static bool test_for_check_after_move(Game* game, Move the_move) {
+        // NOTE(TB): check data is not being updated here, so cannot use it to test for check
         set_taken_piece_type(&the_move.compressed_taken_and_promotion_piece_type, perform_move<colour>(game, the_move));
-        const bool result = test_for_check<colour>(game);
+        const bool result = get_attack_cells_excluding_king<EnemyColour<colour>::colour>(game) & *get_friendly_kings<colour>(game);
         unperform_move<colour>(game, the_move);
         return result;
     }
@@ -962,7 +954,6 @@ namespace chess { namespace engine {
 
         game->next_turn = !game->next_turn;
         update_cache<EnemyColour<colour>::colour>(game);
-        calculate_check_data<EnemyColour<colour>::colour>(game);
 
         return result;
     }
@@ -971,6 +962,8 @@ namespace chess { namespace engine {
     static inline void move_unchecked(Game* game, Move move) {
         set_taken_piece_type(&move.compressed_taken_and_promotion_piece_type, perform_move<colour>(game, move));
         add_move(game, move);
+        next_check_data(game);
+        calculate_check_data<EnemyColour<colour>::colour>(game);
     }
 
     template <Colour colour>
@@ -1063,13 +1056,15 @@ namespace chess { namespace engine {
         }
 
         update_cache<colour>(game);
-        calculate_check_data<colour>(game);
     }
 
     template <Colour colour>
     static inline bool undo_unchecked(Game* game) {
         --game->moves_index;
         unperform_move<colour>(game, game->moves[game->moves_index]);
+        if (!previous_check_data(game)) {
+            calculate_check_data<colour>(game);
+        }
     }
 
     template <Colour colour>
@@ -1150,6 +1145,7 @@ namespace chess { namespace engine {
         , black_can_never_castle_short(0)
         , black_can_never_castle_long(0)
     {
+        memset(&check_data[check_data_index], 0, sizeof(CheckData));
         check_data[check_data_index].check_resolution_bitboard = ~Bitboard();
     }
 
@@ -1382,6 +1378,9 @@ namespace chess { namespace engine {
     template <Colour colour>
     static inline void redo_unchecked(Game* game) {
         perform_move<colour>(game, game->moves[game->moves_index]);
+        if (!next_check_data(game)) {
+            calculate_check_data<colour>(game);
+        }
         ++game->moves_index;
     }
 

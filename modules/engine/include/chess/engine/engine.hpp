@@ -107,6 +107,8 @@ namespace chess { namespace engine {
     // #region Game
     struct Move;
 
+    inline constexpr const U8 check_data_capacity = 16;
+
     struct Game {
         Game();
         ~Game();
@@ -131,7 +133,7 @@ namespace chess { namespace engine {
         Move* moves;
         U8 check_data_head;
         U8 check_data_index;
-        CheckData check_data[16];
+        CheckData check_data[check_data_capacity];
         bool can_en_passant : 1;
         bool next_turn : 1;
         bool white_can_never_castle_short : 1;
@@ -412,23 +414,29 @@ namespace chess { namespace engine {
     }
 
     inline bool next_check_data(Game* game) {
-        game->check_data_index = (game->check_data_index + 1) % 16;
+        CHESS_ASSERT(game->check_data_index < check_data_capacity);
+        game->check_data_index = static_cast<U8>(game->check_data_index + 1) % check_data_capacity;
         if (game->check_data_index == game->check_data_head) {
-            game->check_data_head = (game->check_data_head + 1) % 16;
+            game->check_data_head = static_cast<U8>(game->check_data_head + 1) % check_data_capacity;
+            CHESS_ASSERT(game->check_data_index < check_data_capacity);
             return false;
         }
 
+        CHESS_ASSERT(game->check_data_index < check_data_capacity);
         return true;
     }
 
     inline bool previous_check_data(Game* game) {
+        CHESS_ASSERT(game->check_data_index < check_data_capacity);
         if (game->check_data_index == game->check_data_head) {
-            game->check_data_index = (game->check_data_index - 1) % 16;
-            game->check_data_head = (game->check_data_head - 1) % 16;
+            game->check_data_index = static_cast<U8>(game->check_data_index - 1) % check_data_capacity;
+            game->check_data_head = game->check_data_index;
+            CHESS_ASSERT(game->check_data_index < check_data_capacity);
             return false;
         }
 
-        game->check_data_index = (game->check_data_index - 1) % 16;
+        game->check_data_index = static_cast<U8>(game->check_data_index - 1) % check_data_capacity;
+        CHESS_ASSERT(game->check_data_index < check_data_capacity);
         return true;
     }
     // #endregion
