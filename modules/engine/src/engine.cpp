@@ -347,9 +347,7 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static void update_cache(Game* game) {
-        game->cache.possible_moves_calculated = Bitboard();
-
+    static void calculate_check_data(Game* game) {
         const Bitboard kings = *get_friendly_kings<colour>(game);
         const Bitboard enemy_pieces_complement = ~get_friendly_pieces<EnemyColour<colour>::colour>(game);
         const Bitboard friendly_pieces = get_friendly_pieces<colour>(game);
@@ -357,6 +355,8 @@ namespace chess { namespace engine {
         const Bitboard file_h_complement = ~bitboard_file[U8(File::H)];
         const Bitboard friendly_rooks_and_queens = (*get_friendly_rooks<EnemyColour<colour>::colour>(game) | *get_friendly_queens<EnemyColour<colour>::colour>(game));
         const Bitboard friendly_bishops_and_queens = (*get_friendly_bishops<EnemyColour<colour>::colour>(game) | *get_friendly_queens<EnemyColour<colour>::colour>(game));
+
+        CheckData* check_data = get_check_data(game);
 
         // north
         Bitboard result;
@@ -372,7 +372,7 @@ namespace chess { namespace engine {
             sliding_enemy_intersection |= move_south(sliding_enemy_intersection);
         }
         result &= sliding_enemy_intersection;
-        game->cache.north_skewer = result;
+        check_data->north_skewer = result;
 
         // north east
         result = Bitboard();
@@ -388,7 +388,7 @@ namespace chess { namespace engine {
             sliding_enemy_intersection |= move_south_west(sliding_enemy_intersection);
         }
         result &= sliding_enemy_intersection;
-        game->cache.north_east_skewer = result;
+        check_data->north_east_skewer = result;
 
         // east
         result = Bitboard();
@@ -404,7 +404,7 @@ namespace chess { namespace engine {
             sliding_enemy_intersection |= move_west(sliding_enemy_intersection);
         }
         result &= sliding_enemy_intersection;
-        game->cache.east_skewer = result;
+        check_data->east_skewer = result;
 
         // south east
         result = Bitboard();
@@ -420,7 +420,7 @@ namespace chess { namespace engine {
             sliding_enemy_intersection |= move_north_west(sliding_enemy_intersection);
         }
         result &= sliding_enemy_intersection;
-        game->cache.south_east_skewer = result;
+        check_data->south_east_skewer = result;
 
         // south
         result = Bitboard();
@@ -436,7 +436,7 @@ namespace chess { namespace engine {
             sliding_enemy_intersection |= move_north(sliding_enemy_intersection);
         }
         result &= sliding_enemy_intersection;
-        game->cache.south_skewer = result;
+        check_data->south_skewer = result;
 
         // south west
         result = Bitboard();
@@ -452,7 +452,7 @@ namespace chess { namespace engine {
             sliding_enemy_intersection |= move_north_east(sliding_enemy_intersection);
         }
         result &= sliding_enemy_intersection;
-        game->cache.south_west_skewer = result;
+        check_data->south_west_skewer = result;
 
         // west
         result = Bitboard();
@@ -468,7 +468,7 @@ namespace chess { namespace engine {
             sliding_enemy_intersection |= move_east(sliding_enemy_intersection);
         }
         result &= sliding_enemy_intersection;
-        game->cache.west_skewer = result;
+        check_data->west_skewer = result;
 
         // north west
         result = Bitboard();
@@ -484,109 +484,114 @@ namespace chess { namespace engine {
             sliding_enemy_intersection |= move_south_east(sliding_enemy_intersection);
         }
         result &= sliding_enemy_intersection;
-        game->cache.north_west_skewer = result;
+        check_data->north_west_skewer = result;
 
         // check resolution bitboard
-        game->cache.check_count = 0;
+        check_data->check_count = 0;
 
-        if (game->cache.north_skewer && !(game->cache.north_skewer & friendly_pieces)) {
-            ++game->cache.check_count;
-            game->cache.check_resolution_bitboard = game->cache.north_skewer;
+        if (check_data->north_skewer && !(check_data->north_skewer & friendly_pieces)) {
+            ++check_data->check_count;
+            check_data->check_resolution_bitboard = check_data->north_skewer;
         }
 
-        if (game->cache.north_east_skewer && !(game->cache.north_east_skewer & friendly_pieces)) {
-            ++game->cache.check_count;
-            if (game->cache.check_count == 1) {
-                game->cache.check_resolution_bitboard = game->cache.north_east_skewer;
+        if (check_data->north_east_skewer && !(check_data->north_east_skewer & friendly_pieces)) {
+            ++check_data->check_count;
+            if (check_data->check_count == 1) {
+                check_data->check_resolution_bitboard = check_data->north_east_skewer;
             } else {
-                game->cache.check_resolution_bitboard = Bitboard();
+                check_data->check_resolution_bitboard = Bitboard();
                 return;
             }
         }
 
-        if (game->cache.east_skewer && !(game->cache.east_skewer & friendly_pieces)) {
-            ++game->cache.check_count;
-            if (game->cache.check_count == 1) {
-                game->cache.check_resolution_bitboard = game->cache.east_skewer;
+        if (check_data->east_skewer && !(check_data->east_skewer & friendly_pieces)) {
+            ++check_data->check_count;
+            if (check_data->check_count == 1) {
+                check_data->check_resolution_bitboard = check_data->east_skewer;
             } else {
-                game->cache.check_resolution_bitboard = Bitboard();
+                check_data->check_resolution_bitboard = Bitboard();
                 return;
             }
         }
 
-        if (game->cache.south_east_skewer && !(game->cache.south_east_skewer & friendly_pieces)) {
-            ++game->cache.check_count;
-            if (game->cache.check_count == 1) {
-                game->cache.check_resolution_bitboard = game->cache.south_east_skewer;
+        if (check_data->south_east_skewer && !(check_data->south_east_skewer & friendly_pieces)) {
+            ++check_data->check_count;
+            if (check_data->check_count == 1) {
+                check_data->check_resolution_bitboard = check_data->south_east_skewer;
             } else {
-                game->cache.check_resolution_bitboard = Bitboard();
+                check_data->check_resolution_bitboard = Bitboard();
                 return;
             }
         }
 
-        if (game->cache.south_skewer && !(game->cache.south_skewer & friendly_pieces)) {
-            ++game->cache.check_count;
-            if (game->cache.check_count == 1) {
-                game->cache.check_resolution_bitboard = game->cache.south_skewer;
+        if (check_data->south_skewer && !(check_data->south_skewer & friendly_pieces)) {
+            ++check_data->check_count;
+            if (check_data->check_count == 1) {
+                check_data->check_resolution_bitboard = check_data->south_skewer;
             } else {
-                game->cache.check_resolution_bitboard = Bitboard();
+                check_data->check_resolution_bitboard = Bitboard();
                 return;
             }
         }
 
-        if (game->cache.south_west_skewer && !(game->cache.south_west_skewer & friendly_pieces)) {
-            ++game->cache.check_count;
-            if (game->cache.check_count == 1) {
-                game->cache.check_resolution_bitboard = game->cache.south_west_skewer;
+        if (check_data->south_west_skewer && !(check_data->south_west_skewer & friendly_pieces)) {
+            ++check_data->check_count;
+            if (check_data->check_count == 1) {
+                check_data->check_resolution_bitboard = check_data->south_west_skewer;
             } else {
-                game->cache.check_resolution_bitboard = Bitboard();
+                check_data->check_resolution_bitboard = Bitboard();
                 return;
             }
         }
 
-        if (game->cache.west_skewer && !(game->cache.west_skewer & friendly_pieces)) {
-            ++game->cache.check_count;
-            if (game->cache.check_count == 1) {
-                game->cache.check_resolution_bitboard = game->cache.west_skewer;
+        if (check_data->west_skewer && !(check_data->west_skewer & friendly_pieces)) {
+            ++check_data->check_count;
+            if (check_data->check_count == 1) {
+                check_data->check_resolution_bitboard = check_data->west_skewer;
             } else {
-                game->cache.check_resolution_bitboard = Bitboard();
+                check_data->check_resolution_bitboard = Bitboard();
                 return;
             }
         }
 
-        if (game->cache.north_west_skewer && !(game->cache.north_west_skewer & friendly_pieces)) {
-            ++game->cache.check_count;
-            if (game->cache.check_count == 1) {
-                game->cache.check_resolution_bitboard = game->cache.north_west_skewer;
+        if (check_data->north_west_skewer && !(check_data->north_west_skewer & friendly_pieces)) {
+            ++check_data->check_count;
+            if (check_data->check_count == 1) {
+                check_data->check_resolution_bitboard = check_data->north_west_skewer;
             } else {
-                game->cache.check_resolution_bitboard = Bitboard();
+                check_data->check_resolution_bitboard = Bitboard();
                 return;
             }
         }
 
         if (Bitboard checking_knight = get_knight_attack_cells<colour>(game, kings) & *get_friendly_knights<EnemyColour<colour>::colour>(game)) {
-            ++game->cache.check_count;
-            if (game->cache.check_count == 1) {
-                game->cache.check_resolution_bitboard = checking_knight;
+            ++check_data->check_count;
+            if (check_data->check_count == 1) {
+                check_data->check_resolution_bitboard = checking_knight;
             } else {
-                game->cache.check_resolution_bitboard = Bitboard();
+                check_data->check_resolution_bitboard = Bitboard();
                 return;
             }
         }
 
         if (Bitboard checking_pawn = get_pawn_attack_cells<colour>(game, kings) & *get_friendly_pawns<EnemyColour<colour>::colour>(game)) {
-            ++game->cache.check_count;
-            if (game->cache.check_count == 1) {
-                game->cache.check_resolution_bitboard = checking_pawn;
+            ++check_data->check_count;
+            if (check_data->check_count == 1) {
+                check_data->check_resolution_bitboard = checking_pawn;
             } else {
-                game->cache.check_resolution_bitboard = Bitboard();
+                check_data->check_resolution_bitboard = Bitboard();
                 return;
             }
         }
 
-        if (game->cache.check_count == 0) {
-            game->cache.check_resolution_bitboard = ~Bitboard();
+        if (check_data->check_count == 0) {
+            check_data->check_resolution_bitboard = ~Bitboard();
         }
+    }
+
+    template <Colour colour>
+    static void update_cache(Game* game) {
+        game->cache.possible_moves_calculated = Bitboard();
     }
  
     template <Colour colour>
@@ -645,38 +650,39 @@ namespace chess { namespace engine {
     template <Colour colour>
     static Bitboard apply_check_evasion_and_prevention(const Game* game, Bitboard index_bitboard, Bitboard moves) {
         const Bitboard other_friendly_pieces = get_friendly_pieces<colour>(game) & ~index_bitboard;
-        moves &= game->cache.check_resolution_bitboard;
+        const CheckData* check_data = get_check_data(game);
+        moves &= check_data->check_resolution_bitboard;
 
-        if (index_bitboard & game->cache.north_skewer && !(other_friendly_pieces & game->cache.north_skewer)) {
-            return moves & game->cache.north_skewer;
+        if (index_bitboard & check_data->north_skewer && !(other_friendly_pieces & check_data->north_skewer)) {
+            return moves & check_data->north_skewer;
         }
 
-        if (index_bitboard & game->cache.north_east_skewer && !(other_friendly_pieces & game->cache.north_east_skewer)) {
-            return moves & game->cache.north_east_skewer;
+        if (index_bitboard & check_data->north_east_skewer && !(other_friendly_pieces & check_data->north_east_skewer)) {
+            return moves & check_data->north_east_skewer;
         }
 
-        if (index_bitboard & game->cache.east_skewer && !(other_friendly_pieces & game->cache.east_skewer)) {
-            return moves & game->cache.east_skewer;
+        if (index_bitboard & check_data->east_skewer && !(other_friendly_pieces & check_data->east_skewer)) {
+            return moves & check_data->east_skewer;
         }
 
-        if (index_bitboard & game->cache.south_east_skewer && !(other_friendly_pieces & game->cache.south_east_skewer)) {
-            return moves & game->cache.south_east_skewer;
+        if (index_bitboard & check_data->south_east_skewer && !(other_friendly_pieces & check_data->south_east_skewer)) {
+            return moves & check_data->south_east_skewer;
         }
 
-        if (index_bitboard & game->cache.south_skewer && !(other_friendly_pieces & game->cache.south_skewer)) {
-            return moves & game->cache.south_skewer;
+        if (index_bitboard & check_data->south_skewer && !(other_friendly_pieces & check_data->south_skewer)) {
+            return moves & check_data->south_skewer;
         }
 
-        if (index_bitboard & game->cache.south_west_skewer && !(other_friendly_pieces & game->cache.south_west_skewer)) {
-            return moves & game->cache.south_west_skewer;
+        if (index_bitboard & check_data->south_west_skewer && !(other_friendly_pieces & check_data->south_west_skewer)) {
+            return moves & check_data->south_west_skewer;
         }
 
-        if (index_bitboard & game->cache.west_skewer && !(other_friendly_pieces & game->cache.west_skewer)) {
-            return moves & game->cache.west_skewer;
+        if (index_bitboard & check_data->west_skewer && !(other_friendly_pieces & check_data->west_skewer)) {
+            return moves & check_data->west_skewer;
         }
 
-        if (index_bitboard & game->cache.north_west_skewer && !(other_friendly_pieces & game->cache.north_west_skewer)) {
-            return moves & game->cache.north_west_skewer;
+        if (index_bitboard & check_data->north_west_skewer && !(other_friendly_pieces & check_data->north_west_skewer)) {
+            return moves & check_data->north_west_skewer;
         }
 
         return moves;
@@ -956,6 +962,7 @@ namespace chess { namespace engine {
 
         game->next_turn = !game->next_turn;
         update_cache<EnemyColour<colour>::colour>(game);
+        calculate_check_data<EnemyColour<colour>::colour>(game);
 
         return result;
     }
@@ -1054,6 +1061,7 @@ namespace chess { namespace engine {
         }
 
         update_cache<colour>(game);
+        calculate_check_data<colour>(game);
     }
 
     template <Colour colour>
@@ -1129,17 +1137,22 @@ namespace chess { namespace engine {
         , black_queens(Bitboard(File::D, Rank::Eight))
         , black_kings(Bitboard(File::E, Rank::Eight))
         , en_passant_square(0)
+        , moves_allocated(256)
+        , moves_count(0)
+        , moves_index(0)
+        , moves(static_cast<Move*>(malloc(sizeof(Move) * moves_allocated)))
+        , check_data_head(1)
+        , check_data_index(0)
+        , check_data{}
         , can_en_passant(0)
         , next_turn(0)
         , white_can_never_castle_short(0)
         , white_can_never_castle_long(0)
         , black_can_never_castle_short(0)
         , black_can_never_castle_long(0)
-        , moves_allocated(256)
-        , moves_count(0)
-        , moves_index(0)
-        , moves(static_cast<Move*>(malloc(sizeof(Move) * moves_allocated)))
-    {}
+    {
+        check_data[check_data_index].check_resolution_bitboard = ~Bitboard();
+    }
 
     Game::~Game() {
         free(moves);
@@ -1407,11 +1420,11 @@ namespace chess { namespace engine {
     }
 
     static bool last_move_was_check(const Game* game) {
-        return game->cache.check_count != 0;
+        return get_check_data(game)->check_count != 0;
     }
 
     static bool last_move_was_double_check(const Game* game) {
-        return game->cache.check_count == 2;
+        return get_check_data(game)->check_count == 2;
     }
 
     template <Colour colour>
@@ -1596,8 +1609,10 @@ namespace chess { namespace engine {
 
                     if (game->next_turn) {
                         update_cache<Colour::Black>(game);
+                        calculate_check_data<Colour::Black>(game);
                     } else {
                         update_cache<Colour::White>(game);
+                        calculate_check_data<Colour::White>(game);
                     }
                     return true;
                 }

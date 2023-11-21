@@ -34,12 +34,13 @@ namespace chess { namespace engine {
     struct Cache {
         constexpr Cache() noexcept
             : possible_moves{}
-            , check_resolution_bitboard(~Bitboard())
-            , check_count(0)
         {}
 
         Bitboard possible_moves[64];
         Bitboard possible_moves_calculated;
+    };
+
+    struct CheckData {
         Bitboard north_skewer;
         Bitboard north_east_skewer;
         Bitboard east_skewer;
@@ -124,16 +125,19 @@ namespace chess { namespace engine {
         Bitboard black_kings;
         mutable Cache cache;
         Bitboard::Index en_passant_square;
+        U64 moves_allocated;
+        U64 moves_count;
+        U64 moves_index;
+        Move* moves;
+        U8 check_data_head;
+        U8 check_data_index;
+        CheckData check_data[16];
         bool can_en_passant : 1;
         bool next_turn : 1;
         bool white_can_never_castle_short : 1;
         bool white_can_never_castle_long : 1;
         bool black_can_never_castle_short : 1;
         bool black_can_never_castle_long : 1;
-        U64 moves_allocated;
-        U64 moves_count;
-        U64 moves_index;
-        Move* moves;
     };
 
     struct Move {
@@ -241,6 +245,12 @@ namespace chess { namespace engine {
     extern U64 fast_perft(Game* game, U8 depth);
     extern void string_move(Move move, char* buffer);
     extern bool make_moves(Game* game, const char* moves);
+    inline const CheckData* get_check_data(const Game* game);
+    inline CheckData* get_check_data(Game* game);
+    // returns true if data is reused
+    inline bool next_check_data(Game* game);
+    // returns true if data is reused
+    inline bool previous_check_data(Game* game);
 #if CHESS_DEBUG
     extern void print_board(const Game* game);
 #endif
@@ -391,6 +401,35 @@ namespace chess { namespace engine {
 
     inline bool can_redo(const Game* game) {
         return game->moves_index < game->moves_count;
+    }
+
+    inline const CheckData* get_check_data(const Game* game) {
+        return &game->check_data[game->check_data_index];
+    }
+
+    inline CheckData* get_check_data(Game* game) {
+        return &game->check_data[game->check_data_index];
+    }
+
+    inline bool next_check_data(Game* game) {
+        game->check_data_index = (game->check_data_index + 1) % 16;
+        if (game->check_data_index == game->check_data_head) {
+            game->check_data_head = (game->check_data_head + 1) % 16;
+            return false;
+        }
+
+        return true;
+    }
+
+    inline bool previous_check_data(Game* game) {
+        if (game->check_data_index == game->check_data_head) {
+            game->check_data_index = (game->check_data_index - 1) % 16;
+            game->check_data_head = (game->check_data_head - 1) % 16;
+            return false;
+        }
+
+        game->check_data_index = (game->check_data_index - 1) % 16;
+        return true;
     }
     // #endregion
 }}
