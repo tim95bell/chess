@@ -93,11 +93,11 @@ namespace chess { namespace engine {
         return  get_knight_attack_cells<colour>(game, bitboard) & ~get_friendly_pieces<colour>(game);
     }
 
-    template <Colour colour>
+    template <Colour colour, bool exclude_enemy_king = false>
     static inline Bitboard get_bishop_attack_cells(const Game* game, Bitboard bitboard) {
         CHESS_ASSERT((bitboard & (*get_friendly_bishops<colour>(game) | *get_friendly_queens<colour>(game))) == bitboard);
 
-        const Bitboard friendly_pieces_and_enemy_pieces_complement = ~(get_friendly_pieces<colour>(game) | get_friendly_pieces<EnemyColour<colour>::colour>(game));
+        const Bitboard friendly_pieces_and_enemy_pieces_complement = ~(get_friendly_pieces<colour>(game) | get_friendly_pieces<EnemyColour<colour>::colour, exclude_enemy_king>(game));
         const Bitboard file_a_complement = ~bitboard_file[U8(File::A)];
         const Bitboard file_h_complement = ~bitboard_file[U8(File::H)];
         Bitboard result;
@@ -176,11 +176,11 @@ namespace chess { namespace engine {
         return result;
     }
 
-    template <Colour colour>
+    template <Colour colour, bool exclude_enemy_king = false>
     static inline Bitboard get_rook_attack_cells(const Game* game, Bitboard bitboard) {
         CHESS_ASSERT((bitboard & (*get_friendly_rooks<colour>(game) | *get_friendly_queens<colour>(game))) == bitboard);
 
-        const Bitboard friendly_pieces_and_enemy_pieces_complement = ~(get_friendly_pieces<colour>(game) | get_friendly_pieces<EnemyColour<colour>::colour>(game));
+        const Bitboard friendly_pieces_and_enemy_pieces_complement = ~(get_friendly_pieces<colour>(game) | get_friendly_pieces<EnemyColour<colour>::colour, exclude_enemy_king>(game));
         Bitboard result;
         Bitboard temp_result;
 
@@ -279,17 +279,17 @@ namespace chess { namespace engine {
         return get_king_attack_cells<colour>(game, bitboard) & ~get_friendly_pieces<colour>(game);
     }
 
-    template <Colour colour>
+    template <Colour colour, bool exclude_enemy_king = false>
     static inline Bitboard get_attack_cells_excluding_king(const Game* game) {
         return get_pawn_attack_cells<colour>(game, *get_friendly_pawns<colour>(game))
             | get_knight_attack_cells<colour>(game, *get_friendly_knights<colour>(game))
-            | get_bishop_attack_cells<colour>(game, *get_friendly_bishops<colour>(game) | *get_friendly_queens<colour>(game))
-            | get_rook_attack_cells<colour>(game, *get_friendly_rooks<colour>(game) | *get_friendly_queens<colour>(game));
+            | get_bishop_attack_cells<colour, exclude_enemy_king>(game, *get_friendly_bishops<colour>(game) | *get_friendly_queens<colour>(game))
+            | get_rook_attack_cells<colour, exclude_enemy_king>(game, *get_friendly_rooks<colour>(game) | *get_friendly_queens<colour>(game));
     }
 
-    template <Colour colour>
+    template <Colour colour, bool exclude_enemy_king = false>
     static inline Bitboard get_attack_cells(const Game* game) {
-        return get_attack_cells_excluding_king<colour>(game)
+        return get_attack_cells_excluding_king<colour, exclude_enemy_king>(game)
             | get_king_attack_cells<colour>(game, *get_friendly_kings<colour>(game));
     }
 
@@ -718,13 +718,8 @@ namespace chess { namespace engine {
 
     template <Colour colour>
     static Bitboard get_king_legal_moves(Game* game, Bitboard::Index index) {
-        // TODO(TB): rewrite this without removing and adding king, just reimplement get_attack_cells so it ignores this colours kings
         CHESS_ASSERT(has_friendly_king<colour>(game, Bitboard(index)));
-        const Bitboard kings_copy = *get_friendly_kings<colour>(game);
-        *get_friendly_kings<colour>(game) = Bitboard{};
-        const Bitboard non_attacked_cells = ~get_attack_cells<EnemyColour<colour>::colour>(game);
-        *get_friendly_kings<colour>(game) = kings_copy;
-        return get_king_moves<colour>(game, Bitboard(index)) & non_attacked_cells;
+        return get_king_moves<colour>(game, Bitboard(index)) & ~get_attack_cells<EnemyColour<colour>::colour, true>(game);
     }
 
     template <Colour colour>
@@ -1999,7 +1994,7 @@ namespace chess { namespace engine {
             *result = File::E;
         } else if (c == 'f') {
             *result = File::F;
-        } else if (c == 'G') {
+        } else if (c == 'g') {
             *result = File::G;
         } else if (c == 'h') {
             *result = File::H;
@@ -2106,7 +2101,6 @@ namespace chess { namespace engine {
         return true;
     }
 
-#if CHESS_DEBUG
     void print_board(const Game* game) {
         for (Rank rank = Rank::Eight; rank < chess_board_edge_size; --rank) {
             for (File file = File::A; file < chess_board_edge_size; ++file) {
@@ -2144,5 +2138,4 @@ namespace chess { namespace engine {
         }
         std::cout << std::endl << "-----------" << std::endl;
     }
-#endif
 }}

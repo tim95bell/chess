@@ -225,7 +225,7 @@ namespace chess { namespace engine {
     inline const Bitboard* get_friendly_kings(const Game* game);
     template <Colour colour>
     inline Bitboard* get_friendly_kings(Game* game);
-    template <Colour colour>
+    template <Colour colour, bool exclude_king = false>
     inline Bitboard get_friendly_pieces(const Game* game);
     extern Bitboard get_cells_moved_from(const Game* game);
     extern Bitboard get_cells_moved_to(const Game* game);
@@ -253,9 +253,7 @@ namespace chess { namespace engine {
     inline bool next_check_data(Game* game);
     // returns true if data is reused
     inline bool previous_check_data(Game* game);
-#if CHESS_DEBUG
     extern void print_board(const Game* game);
-#endif
 
     template <Colour colour>
     inline bool has_friendly_piece(const Game* game, Bitboard bitboard) {
@@ -390,11 +388,17 @@ namespace chess { namespace engine {
         return const_cast<Bitboard*>(get_friendly_kings<colour>(static_cast<const Game*>(game)));
     }
 
-    template <Colour colour>
+    template <Colour colour, bool exclude_king>
     inline Bitboard get_friendly_pieces(const Game* game) {
-        return *get_friendly_pawns<colour>(game) | *get_friendly_knights<colour>(game)
-            | *get_friendly_bishops<colour>(game) | *get_friendly_rooks<colour>(game)
-            | *get_friendly_queens<colour>(game) | *get_friendly_kings<colour>(game);
+        if constexpr (exclude_king) {
+            return *get_friendly_pawns<colour>(game) | *get_friendly_knights<colour>(game)
+                | *get_friendly_bishops<colour>(game) | *get_friendly_rooks<colour>(game)
+                | *get_friendly_queens<colour>(game);
+        } else {
+            return *get_friendly_pawns<colour>(game) | *get_friendly_knights<colour>(game)
+                | *get_friendly_bishops<colour>(game) | *get_friendly_rooks<colour>(game)
+                | *get_friendly_queens<colour>(game) | *get_friendly_kings<colour>(game);
+        }
     }
 
     inline bool can_undo(const Game* game) {
