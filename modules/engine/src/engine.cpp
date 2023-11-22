@@ -1450,15 +1450,31 @@ namespace chess { namespace engine {
         return get_check_data(game)->check_count != 0;
     }
 
-    static bool last_move_was_double_check(const Game* game) {
+    template <Colour colour>
+    static bool test_for_check_mate(Game* game) {
+        return get_check_data(game)->check_count && !has_a_legal_move<colour>(game);
+    }
+
+    template <Colour colour>
+    static bool last_move_was_double_check(Game* game) {
+        if (test_for_check_mate<EnemyColour<colour>::colour>(game)) {
+            // NOTE(TB): they don't count it as a double check if it was a check mate
+            return false;
+        }
+
         return get_check_data(game)->check_count == 2;
     }
 
     template <Colour colour>
-    static bool last_move_was_discovered_check(const Game* game) {
+    static bool last_move_was_discovered_check(Game* game) {
         if (game->moves_index > 0) {
-            if (last_move_was_double_check(game)) {
+            if (last_move_was_double_check<colour>(game)) {
                 // NOTE(TB): they don't count it as a discovered check if it was a double check
+                return false;
+            }
+
+            if (test_for_check_mate<EnemyColour<colour>::colour>(game)) {
+                // NOTE(TB): they don't count it as a discovered check if it was a check mate
                 return false;
             }
 
@@ -1466,14 +1482,16 @@ namespace chess { namespace engine {
             const CheckData* const check_data = get_check_data(game);
             const Bitboard enemy_pieces = get_friendly_pieces<EnemyColour<colour>::colour>(game);
             const Bitboard moved_to_bitboard(move.to);
-            return ((check_data->north_skewer && !(check_data->north_skewer & enemy_pieces) && !(check_data->north_skewer & moved_to_bitboard))
-                || (check_data->north_east_skewer && !(check_data->north_east_skewer & enemy_pieces) && !(check_data->north_east_skewer & moved_to_bitboard))
-                || (check_data->east_skewer && !(check_data->east_skewer & enemy_pieces) && !(check_data->east_skewer & moved_to_bitboard))
-                || (check_data->south_east_skewer && !(check_data->south_east_skewer & enemy_pieces) && !(check_data->south_east_skewer & moved_to_bitboard))
-                || (check_data->south_skewer && !(check_data->south_skewer & enemy_pieces) && !(check_data->south_skewer & moved_to_bitboard))
-                || (check_data->south_west_skewer && !(check_data->south_west_skewer & enemy_pieces) && !(check_data->south_west_skewer & moved_to_bitboard))
-                || (check_data->west_skewer && !(check_data->west_skewer & enemy_pieces) && !(check_data->west_skewer & moved_to_bitboard))
-                || (check_data->north_west_skewer && !(check_data->north_west_skewer & enemy_pieces) && !(check_data->north_west_skewer & moved_to_bitboard)));
+            const Bitboard moved_from_bitboard(move.from);
+            // NOTE(TB): checking moved from is in the skewer is necessary because of castling
+            return ((check_data->north_skewer && !(check_data->north_skewer & enemy_pieces) && !(check_data->north_skewer & moved_to_bitboard) && (check_data->north_skewer & moved_from_bitboard))
+                || (check_data->north_east_skewer && !(check_data->north_east_skewer & enemy_pieces) && !(check_data->north_east_skewer & moved_to_bitboard) && (check_data->north_east_skewer & moved_from_bitboard))
+                || (check_data->east_skewer && !(check_data->east_skewer & enemy_pieces) && !(check_data->east_skewer & moved_to_bitboard) && (check_data->east_skewer & moved_from_bitboard))
+                || (check_data->south_east_skewer && !(check_data->south_east_skewer & enemy_pieces) && !(check_data->south_east_skewer & moved_to_bitboard) && (check_data->south_east_skewer & moved_from_bitboard))
+                || (check_data->south_skewer && !(check_data->south_skewer & enemy_pieces) && !(check_data->south_skewer & moved_to_bitboard) && (check_data->south_skewer & moved_from_bitboard))
+                || (check_data->south_west_skewer && !(check_data->south_west_skewer & enemy_pieces) && !(check_data->south_west_skewer & moved_to_bitboard) && (check_data->south_west_skewer & moved_from_bitboard))
+                || (check_data->west_skewer && !(check_data->west_skewer & enemy_pieces) && !(check_data->west_skewer & moved_to_bitboard) && (check_data->west_skewer & moved_from_bitboard))
+                || (check_data->north_west_skewer && !(check_data->north_west_skewer & enemy_pieces) && !(check_data->north_west_skewer & moved_to_bitboard) && (check_data->north_west_skewer & moved_from_bitboard)));
         }
         return false;
     }
@@ -1492,11 +1510,6 @@ namespace chess { namespace engine {
             }
         }
         return false;
-    }
-
-    template <Colour colour>
-    static bool test_for_check_mate(Game* game) {
-        return get_check_data(game)->check_count && !has_a_legal_move<colour>(game);
     }
 
     bool load_fen(Game* game, const char* fen) {
@@ -1839,7 +1852,7 @@ namespace chess { namespace engine {
                 last_move_was_promotion(game) ? 1ULL : 0ULL,
                 last_move_was_check(game) ? 1ULL : 0ULL,
                 last_move_was_discovered_check<EnemyColour<colour>::colour>(game) ? 1ULL : 0ULL,
-                last_move_was_double_check(game) ? 1ULL : 0ULL,
+                last_move_was_double_check<EnemyColour<colour>::colour>(game) ? 1ULL : 0ULL,
                 test_for_check_mate<colour>(game) ? 1ULL : 0ULL
             };
         }
