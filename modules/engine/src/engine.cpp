@@ -299,7 +299,6 @@ namespace chess { namespace engine {
 
         // TODO(TB): make this branchless?
         if (!can_never_castle_long<colour>(game)
-            && has_friendly_rook<colour>(game, Bitboard(File::A, rear_rank<colour>()))
             && is_empty(game, Bitboard(File::B, rear_rank<colour>()))
             && is_empty(game, Bitboard(File::C, rear_rank<colour>()))
             && is_empty(game, Bitboard(File::D, rear_rank<colour>()))
@@ -309,7 +308,6 @@ namespace chess { namespace engine {
         }
 
         if (!can_never_castle_short<colour>(game)
-            && has_friendly_rook<colour>(game, Bitboard(File::H, rear_rank<colour>()))
             && is_empty(game, Bitboard(File::F, rear_rank<colour>()))
             && is_empty(game, Bitboard(File::G, rear_rank<colour>()))
             && !(get_attack_cells<EnemyColour<colour>::colour>(game) & (Bitboard(File::F, rear_rank<colour>()) | Bitboard(File::G, rear_rank<colour>()) | bitboard)))
@@ -945,6 +943,14 @@ namespace chess { namespace engine {
         } else {
             CHESS_ASSERT(has_friendly_king<colour>(game, from_index_bitboard));
             result = perfrom_king_move<colour>(game, move, from_index_bitboard, to_index_bitboard);
+        }
+
+        if (result == Piece::Type::Rook) {
+            if (move.to == Bitboard::Index(File::A, rear_rank<EnemyColour<colour>::colour>())) {
+                set_can_never_castle_long<EnemyColour<colour>::colour>(game, true);
+            } else if (move.to == Bitboard::Index(File::H, rear_rank<EnemyColour<colour>::colour>())) {
+                set_can_never_castle_short<EnemyColour<colour>::colour>(game, true);
+            }
         }
 
         game->next_turn = !game->next_turn;
