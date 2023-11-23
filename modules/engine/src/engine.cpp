@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <utility>
 #include <cstdio>
+#include <future>
 // TODO(TB): remove this
 #include <iostream>
 
@@ -1826,6 +1827,72 @@ namespace chess { namespace engine {
         return result;
     }
 
+    template <Colour colour, bool divided>
+    static inline U64 fast_perft_thread_fn(Game* game, U8 depth, Move move) {
+        move_unchecked<colour>(game, move);
+        const U64 result = fast_perft<EnemyColour<colour>::colour, false>(game, depth - 1);
+        if constexpr (divided) {
+            char move_name[6];
+            string_move(move, move_name);
+            std::cout << move_name << ": " << result << std::endl;
+        }
+        free(game);
+        return result;
+    }
+
+    template <Colour colour, bool divided>
+    static inline U64 fast_perft_multi_threaded(Game* game, U8 depth) {
+        if (depth <= 3) {
+            return fast_perft<colour, divided>(game, depth);
+        }
+
+        std::vector<std::future<U64>> futures;
+
+        Bitboard friendly_pieces_to_process = get_friendly_pieces<colour>(game);
+        Bitboard moves_to_process;
+        for (U8 from_index_plus_one = __builtin_ffsll(friendly_pieces_to_process.data); from_index_plus_one; from_index_plus_one = __builtin_ffsll(friendly_pieces_to_process.data)) {
+            const Bitboard::Index from_index(from_index_plus_one - 1);
+            moves_to_process = get_moves<colour>(game, from_index);
+            const Bitboard from_index_bitboard(from_index);
+            friendly_pieces_to_process &= ~from_index_bitboard;
+            if (moves_to_process) {
+                for (U8 to_index_plus_one = __builtin_ffsll(moves_to_process.data); to_index_plus_one; to_index_plus_one = __builtin_ffsll(moves_to_process.data)) {
+                    const Bitboard::Index to_index(to_index_plus_one - 1);
+                    const Bitboard to_index_bitboard(to_index);
+                    moves_to_process &= ~to_index_bitboard;
+                    if (has_friendly_pawn<colour>(game, from_index_bitboard) && is_rank(to_index, front_rank<colour>())) {
+                        futures.push_back(std::async(std::launch::async, fast_perft_thread_fn<colour, divided>, copy(game), depth, Move(game, from_index, to_index, Piece::Type::Knight)));
+                        futures.push_back(std::async(std::launch::async, fast_perft_thread_fn<colour, divided>, copy(game), depth, Move(game, from_index, to_index, Piece::Type::Bishop)));
+                        futures.push_back(std::async(std::launch::async, fast_perft_thread_fn<colour, divided>, copy(game), depth, Move(game, from_index, to_index, Piece::Type::Rook)));
+                        futures.push_back(std::async(std::launch::async, fast_perft_thread_fn<colour, divided>, copy(game), depth, Move(game, from_index, to_index, Piece::Type::Queen)));
+                    } else {
+                        futures.push_back(std::async(std::launch::async, fast_perft_thread_fn<colour, divided>, copy(game), depth, Move(game, from_index, to_index)));
+                    }
+                }
+            }
+        }
+
+        U64 result = 0;
+
+        for (U8 i = 0; i < futures.size(); ++i) {
+            result += futures[i].get();
+        }
+
+        return result;
+    }
+
+    template <bool divided>
+    U64 fast_perft_multi_threaded(Game* game, U8 depth) {
+        if (game->next_turn) {
+            return fast_perft_multi_threaded<Colour::Black, divided>(game, depth);
+        }
+
+        return fast_perft_multi_threaded<Colour::White, divided>(game, depth);
+    }
+
+    template U64 fast_perft_multi_threaded<false>(Game* game, U8 depth);
+    template U64 fast_perft_multi_threaded<true>(Game* game, U8 depth);
+
     template <bool divided>
     U64 fast_perft(Game* game, U8 depth) {
         if (depth == 0) {
@@ -2143,5 +2210,14 @@ namespace chess { namespace engine {
             std::cout << std::endl;
         }
         std::cout << std::endl << "-----------" << std::endl;
+    }
+
+    Game* copy(Game* game) {
+        Game* result = static_cast<Game*>(malloc(sizeof(Game)));
+        memcpy(result, game, sizeof(Game));
+        result->moves = static_cast<Move*>(malloc(sizeof(Move) * result->moves_allocated));
+        result->moves_count = 0;
+        result->moves_index = 0;
+        return result;
     }
 }}

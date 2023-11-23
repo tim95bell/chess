@@ -245,6 +245,8 @@ namespace chess { namespace engine {
     extern PerftResult perft(Game* game, U8 depth);
     template <bool divided = false>
     extern U64 fast_perft(Game* game, U8 depth);
+    template <bool divided = false>
+    extern U64 fast_perft_multi_threaded(Game* game, U8 depth);
     extern void string_move(Move move, char* buffer);
     extern bool make_moves(Game* game, const char* moves);
     inline const CheckData* get_check_data(const Game* game);
@@ -254,6 +256,7 @@ namespace chess { namespace engine {
     // returns true if data is reused
     inline bool previous_check_data(Game* game);
     extern void print_board(const Game* game);
+    extern Game* copy(Game* game);
 
     template <Colour colour>
     inline bool has_friendly_piece(const Game* game, Bitboard bitboard) {
