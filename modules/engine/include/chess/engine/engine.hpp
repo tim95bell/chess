@@ -53,6 +53,10 @@ namespace chess { namespace engine {
         U8 check_count;
     };
 
+    enum class CastleDirection {
+        Short, Long
+    };
+
     // #region CompressedTakenAndPromotionPieceType
     struct CompressedTakenAndPromotionPieceType {
         constexpr CompressedTakenAndPromotionPieceType() noexcept : data(0) {}
@@ -109,6 +113,20 @@ namespace chess { namespace engine {
 
     inline constexpr const U8 check_data_capacity = 16;
 
+    struct CompressedBoard {
+        enum class Piece {
+            Empty, Pawn, EnPassantPawn, Knight, Bishop, Rook, Queen, King
+        };
+        // each 4 bits is 1 cell. 3 LSB represent Piece, MSB represent colour (0 for white, 1 for black).
+        U8 cells[32];
+        // LSB is white_can_never_castle_short
+        // next LSB is white_can_never_castle_long
+        // next LSB is black_can_never_castle_short
+        // next LSB is black_can_never_castle_long
+        // next LSB is next_turn
+        U8 flags;
+    };
+
     struct Game {
         Game();
         ~Game();
@@ -134,6 +152,7 @@ namespace chess { namespace engine {
         U8 check_data_head;
         U8 check_data_index;
         CheckData check_data[check_data_capacity];
+        U64 zobrist_hash;
         bool can_en_passant : 1;
         bool next_turn : 1;
         bool white_can_never_castle_short : 1;
