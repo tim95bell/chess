@@ -69,7 +69,7 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour, Piece::Type piece_type>
-    static inline void remove_friendly_piece(Game* game, Bitboard::Index index, Bitboard index_bitboard) {
+    static inline void remove_friendly_piece(Game* game, Bitboard index_bitboard) {
         static_assert(piece_type != Piece::Type::Empty);
         if constexpr (piece_type == Piece::Type::Pawn) {
             *get_friendly_pawns<colour>(game) &= ~index_bitboard;
@@ -88,7 +88,7 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static inline Piece::Type remove_friendly_piece(Game* game, Bitboard::Index index, Bitboard index_bitboard) {
+    static inline Piece::Type remove_friendly_piece(Game* game, Bitboard index_bitboard) {
         if (has_friendly_pawn<colour>(game, index_bitboard)) {
             *get_friendly_pawns<colour>(game) &= ~index_bitboard;
             return Piece::Type::Pawn;
@@ -789,12 +789,12 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour, Piece::Type piece_type>
-    static inline void add_friendly_piece(Game* game, Bitboard::Index index, Bitboard index_bitboard) {
+    static inline void add_friendly_piece(Game* game, Bitboard index_bitboard) {
         *get_friendly_bitboard<colour, piece_type>(game) |= index_bitboard;
     }
 
     template <Colour colour>
-    static inline void add_friendly_piece(Game* game, Bitboard::Index index, Bitboard index_bitboard, Piece::Type piece_type) {
+    static inline void add_friendly_piece(Game* game, Bitboard index_bitboard, Piece::Type piece_type) {
         if (piece_type == Piece::Type::Pawn) {
             *get_friendly_pawns<colour>(game) |= index_bitboard;
         } else if (piece_type == Piece::Type::Knight) {
@@ -860,22 +860,24 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static Piece::Type perform_pawn_move(Game* game, Move move, Bitboard from_index_bitboard, Bitboard to_index_bitboard) {
+    static Piece::Type perform_pawn_move(Game* game, Move move) {
+        const Bitboard from_index_bitboard(move.from);
+        const Bitboard to_index_bitboard(move.to);
         Piece::Type result = Piece::Type::Empty;
 
         // remove pawn that is being moved from 'from' cell
-        remove_friendly_piece<colour, Piece::Type::Pawn>(game, move.from, from_index_bitboard);
+        remove_friendly_piece<colour, Piece::Type::Pawn>(game, from_index_bitboard);
 
         if (is_rank(from_index_bitboard, move_backward<colour>(front_rank<colour>()))) {
             // pawn promotion move
 
             // remove enemy piece that is being captured at 'to' cell
-            result = remove_friendly_piece<EnemyColour<colour>::colour>(game, move.to, to_index_bitboard);
+            result = remove_friendly_piece<EnemyColour<colour>::colour>(game, to_index_bitboard);
 
             // add promotion piece at 'to' cell
             const Piece::Type promotion_piece = get_promotion_piece_type(move.compressed_taken_and_promotion_piece_type);
             CHESS_ASSERT(promotion_piece == Piece::Type::Knight || promotion_piece == Piece::Type::Bishop || promotion_piece == Piece::Type::Rook ||promotion_piece == Piece::Type::Queen);
-            add_friendly_piece<colour>(game, move.to, to_index_bitboard, promotion_piece);
+            add_friendly_piece<colour>(game, to_index_bitboard, promotion_piece);
 
             // en passant not possible
             game->can_en_passant = false;
@@ -887,15 +889,15 @@ namespace chess { namespace engine {
 
             // remove taken piece, considering en passant
             if (game->can_en_passant && game->en_passant_square == move_backward<colour>(move.to)) {
-                remove_friendly_piece<EnemyColour<colour>::colour, Piece::Type::Pawn>(game, game->en_passant_square, Bitboard(game->en_passant_square));
+                remove_friendly_piece<EnemyColour<colour>::colour, Piece::Type::Pawn>(game, Bitboard(game->en_passant_square));
                 result = Piece::Type::Pawn;
             } else {
                 // remove enemy piece that is being captured at 'to' cell
-                result = remove_friendly_piece<EnemyColour<colour>::colour>(game, move.to, to_index_bitboard);
+                result = remove_friendly_piece<EnemyColour<colour>::colour>(game, to_index_bitboard);
             }
 
             // add piece at 'to' cell
-            add_friendly_piece<colour, Piece::Type::Pawn>(game, move.to, to_index_bitboard);
+            add_friendly_piece<colour, Piece::Type::Pawn>(game, to_index_bitboard);
 
             // update information about en passant
             if (to_index_bitboard == move_forward<colour>(move_forward<colour>(from_index_bitboard))) {
@@ -909,33 +911,35 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static Piece::Type perfrom_king_move(Game* game, Move move, Bitboard from_index_bitboard, Bitboard to_index_bitboard) {
+    static Piece::Type perfrom_king_move(Game* game, Move move) {
+        const Bitboard from_index_bitboard(move.from);
+        const Bitboard to_index_bitboard(move.to);
         CHESS_ASSERT(get_promotion_piece_type(move.compressed_taken_and_promotion_piece_type) == Piece::Type::Empty);
 
         // remove friendly king that is being moved from 'from' cell
-        remove_friendly_piece<colour, Piece::Type::King>(game, move.from, from_index_bitboard);
+        remove_friendly_piece<colour, Piece::Type::King>(game, from_index_bitboard);
 
         // remove enemy piece that is being captured at 'to' cell
-        const Piece::Type result = remove_friendly_piece<EnemyColour<colour>::colour>(game, move.to, to_index_bitboard);
+        const Piece::Type result = remove_friendly_piece<EnemyColour<colour>::colour>(game, to_index_bitboard);
 
         // add friendly king at 'to' cell
-        add_friendly_piece<colour, Piece::Type::King>(game, move.to, to_index_bitboard);
+        add_friendly_piece<colour, Piece::Type::King>(game, to_index_bitboard);
 
         if (from_index_bitboard & Bitboard(File::E, rear_rank<colour>())) {
             // moving from origin square
 
             if (to_index_bitboard & Bitboard(File::C, rear_rank<colour>())) {
                 // castling queenside
-                const Bitboard::Index rook_from_index(File::A, rear_rank<colour>());
-                const Bitboard::Index rook_to_index(File::D, rear_rank<colour>());
-                remove_friendly_piece<colour, Piece::Type::Rook>(game, rook_from_index, Bitboard(rook_from_index));
-                add_friendly_piece<colour, Piece::Type::Rook>(game, rook_to_index, Bitboard(rook_to_index));
+                const Bitboard rook_from_index_bitboard(File::A, rear_rank<colour>());
+                const Bitboard rook_to_index_bitboard(File::D, rear_rank<colour>());
+                remove_friendly_piece<colour, Piece::Type::Rook>(game, rook_from_index_bitboard);
+                add_friendly_piece<colour, Piece::Type::Rook>(game, rook_to_index_bitboard);
             } else if (to_index_bitboard & Bitboard(File::G, rear_rank<colour>())) {
                 // castling kingside
-                const Bitboard::Index rook_from_index(File::H, rear_rank<colour>());
-                const Bitboard::Index rook_to_index(File::F, rear_rank<colour>());
-                remove_friendly_piece<colour, Piece::Type::Rook>(game, rook_from_index, Bitboard(rook_from_index));
-                add_friendly_piece<colour, Piece::Type::Rook>(game, rook_to_index, Bitboard(rook_to_index));
+                const Bitboard rook_from_index_bitboard(File::H, rear_rank<colour>());
+                const Bitboard rook_to_index_bitboard(File::F, rear_rank<colour>());
+                remove_friendly_piece<colour, Piece::Type::Rook>(game, rook_from_index_bitboard);
+                add_friendly_piece<colour, Piece::Type::Rook>(game, rook_to_index_bitboard);
             }
         }
 
@@ -948,7 +952,9 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour, Piece::Type piece_type>
-    static Piece::Type perform_knight_or_bishop_or_rook_or_queen_move(Game* game, Move move, Bitboard from_index_bitboard, Bitboard to_index_bitboard) {
+    static Piece::Type perform_knight_or_bishop_or_rook_or_queen_move(Game* game, Move move) {
+        const Bitboard from_index_bitboard(move.from);
+        const Bitboard to_index_bitboard(move.to);
         static_assert(piece_type == Piece::Type::Knight || piece_type == Piece::Type::Bishop || piece_type == Piece::Type::Rook || piece_type == Piece::Type::Queen);
         CHESS_ASSERT(get_promotion_piece_type(move.compressed_taken_and_promotion_piece_type) == Piece::Type::Empty);
 
@@ -963,13 +969,13 @@ namespace chess { namespace engine {
         }
 
         // remove friendly piece that is being moved from 'from' cell
-        remove_friendly_piece<colour, piece_type>(game, move.from, from_index_bitboard);
+        remove_friendly_piece<colour, piece_type>(game, from_index_bitboard);
 
         // remove enemy piece that is being captured at 'to' cell
-        const Piece::Type result = remove_friendly_piece<EnemyColour<colour>::colour>(game, move.to, to_index_bitboard);
+        const Piece::Type result = remove_friendly_piece<EnemyColour<colour>::colour>(game, to_index_bitboard);
 
         // add friendly piece at 'to' cell
-        add_friendly_piece<colour, piece_type>(game, move.to, to_index_bitboard);
+        add_friendly_piece<colour, piece_type>(game, to_index_bitboard);
 
         set_can_not_en_passant(game);
 
@@ -983,18 +989,18 @@ namespace chess { namespace engine {
         Piece::Type result = Piece::Type::Empty;
 
         if (has_friendly_pawn<colour>(game, from_index_bitboard)) {
-            result = perform_pawn_move<colour>(game, move, from_index_bitboard, to_index_bitboard);
+            result = perform_pawn_move<colour>(game, move);
         } else if (has_friendly_knight<colour>(game, from_index_bitboard)) {
-            result = perform_knight_or_bishop_or_rook_or_queen_move<colour, Piece::Type::Knight>(game, move, from_index_bitboard, to_index_bitboard);
+            result = perform_knight_or_bishop_or_rook_or_queen_move<colour, Piece::Type::Knight>(game, move);
         } else if (has_friendly_bishop<colour>(game, from_index_bitboard)) {
-            result = perform_knight_or_bishop_or_rook_or_queen_move<colour, Piece::Type::Bishop>(game, move, from_index_bitboard, to_index_bitboard);
+            result = perform_knight_or_bishop_or_rook_or_queen_move<colour, Piece::Type::Bishop>(game, move);
         } else if (has_friendly_rook<colour>(game, from_index_bitboard)) {
-            result = perform_knight_or_bishop_or_rook_or_queen_move<colour, Piece::Type::Rook>(game, move, from_index_bitboard, to_index_bitboard);
+            result = perform_knight_or_bishop_or_rook_or_queen_move<colour, Piece::Type::Rook>(game, move);
         } else if (has_friendly_queen<colour>(game, from_index_bitboard)) {
-            result = perform_knight_or_bishop_or_rook_or_queen_move<colour, Piece::Type::Queen>(game, move, from_index_bitboard, to_index_bitboard);
+            result = perform_knight_or_bishop_or_rook_or_queen_move<colour, Piece::Type::Queen>(game, move);
         } else {
             CHESS_ASSERT(has_friendly_king<colour>(game, from_index_bitboard));
-            result = perfrom_king_move<colour>(game, move, from_index_bitboard, to_index_bitboard);
+            result = perfrom_king_move<colour>(game, move);
         }
 
         if (result == Piece::Type::Rook) {
@@ -1055,96 +1061,96 @@ namespace chess { namespace engine {
 
         if (has_friendly_pawn<colour>(game, to_index_bitboard)) {
             // remove pawn from where it was moved to
-            remove_friendly_piece<colour, Piece::Type::Pawn>(game, move.to, to_index_bitboard);
+            remove_friendly_piece<colour, Piece::Type::Pawn>(game, to_index_bitboard);
             // add pawn to where it was moved from (can not be a promotion move, so don't need to consider that)
-            add_friendly_piece<colour, Piece::Type::Pawn>(game, move.from, Bitboard(move.from));
+            add_friendly_piece<colour, Piece::Type::Pawn>(game, Bitboard(move.from));
 
             // add taken piece back to where it was taken from, considering en passant, where the piece is taken from a different cell than is moved to by the taking piece
             if (taken_piece != Piece::Type::Empty) {
                 if (taken_piece == Piece::Type::Pawn) {
                     if (game->can_en_passant && move.to == move_forward<colour>(game->en_passant_square)) {
                         // en passant
-                        const Bitboard::Index index = move_forward<EnemyColour<colour>::colour>(move.to);
-                        add_friendly_piece<EnemyColour<colour>::colour, Piece::Type::Pawn>(game, index, Bitboard(index));
+                        const Bitboard index_bitboard(move_forward<EnemyColour<colour>::colour>(move.to));
+                        add_friendly_piece<EnemyColour<colour>::colour, Piece::Type::Pawn>(game, index_bitboard);
                     } else {
-                        add_friendly_piece<EnemyColour<colour>::colour, Piece::Type::Pawn>(game, move.to, to_index_bitboard);
+                        add_friendly_piece<EnemyColour<colour>::colour, Piece::Type::Pawn>(game, to_index_bitboard);
                     }
                 } else if (taken_piece == Piece::Type::Knight) {
-                    add_friendly_piece<EnemyColour<colour>::colour, Piece::Type::Knight>(game, move.to, to_index_bitboard);
+                    add_friendly_piece<EnemyColour<colour>::colour, Piece::Type::Knight>(game, to_index_bitboard);
                 } else if (taken_piece == Piece::Type::Bishop) {
-                    add_friendly_piece<EnemyColour<colour>::colour, Piece::Type::Bishop>(game, move.to, to_index_bitboard);
+                    add_friendly_piece<EnemyColour<colour>::colour, Piece::Type::Bishop>(game, to_index_bitboard);
                 } else if (taken_piece == Piece::Type::Rook) {
-                    add_friendly_piece<EnemyColour<colour>::colour, Piece::Type::Rook>(game, move.to, to_index_bitboard);
+                    add_friendly_piece<EnemyColour<colour>::colour, Piece::Type::Rook>(game, to_index_bitboard);
                 } else {
                     // king cannot be taken
                     CHESS_ASSERT(taken_piece == Piece::Type::Queen);
-                    add_friendly_piece<EnemyColour<colour>::colour, Piece::Type::Queen>(game, move.to, to_index_bitboard);
+                    add_friendly_piece<EnemyColour<colour>::colour, Piece::Type::Queen>(game, to_index_bitboard);
                 }
             }
         } else {
             if (has_friendly_knight<colour>(game, to_index_bitboard)) {
                 // remove the knight from where it was moved to
-                remove_friendly_piece<colour, Piece::Type::Knight>(game, move.to, to_index_bitboard);
+                remove_friendly_piece<colour, Piece::Type::Knight>(game, to_index_bitboard);
                 // add piece to where it was moved from, considering promotion
                 if (get_promotion_piece_type(move.compressed_taken_and_promotion_piece_type) == Piece::Type::Empty) {
-                    add_friendly_piece<colour, Piece::Type::Knight>(game, move.from, Bitboard(move.from));
+                    add_friendly_piece<colour, Piece::Type::Knight>(game, Bitboard(move.from));
                 } else {
-                    add_friendly_piece<colour, Piece::Type::Pawn>(game, move.from, Bitboard(move.from));
+                    add_friendly_piece<colour, Piece::Type::Pawn>(game, Bitboard(move.from));
                 }
             } else if (has_friendly_bishop<colour>(game, to_index_bitboard)) {
                 // remove the bishop from where it was moved to
-                remove_friendly_piece<colour, Piece::Type::Bishop>(game, move.to, to_index_bitboard);
+                remove_friendly_piece<colour, Piece::Type::Bishop>(game, to_index_bitboard);
                 // add piece to where it was moved from, considering promotion
                 if (get_promotion_piece_type(move.compressed_taken_and_promotion_piece_type) == Piece::Type::Empty) {
-                    add_friendly_piece<colour, Piece::Type::Bishop>(game, move.from, Bitboard(move.from));
+                    add_friendly_piece<colour, Piece::Type::Bishop>(game, Bitboard(move.from));
                 } else {
-                    add_friendly_piece<colour, Piece::Type::Pawn>(game, move.from, Bitboard(move.from));
+                    add_friendly_piece<colour, Piece::Type::Pawn>(game, Bitboard(move.from));
                 }
             } else if (has_friendly_rook<colour>(game, to_index_bitboard)) {
                 // remove the rook from where it was moved to
-                remove_friendly_piece<colour, Piece::Type::Rook>(game, move.to, to_index_bitboard);
+                remove_friendly_piece<colour, Piece::Type::Rook>(game, to_index_bitboard);
                 // add piece to where it was moved from, considering promotion
                 if (get_promotion_piece_type(move.compressed_taken_and_promotion_piece_type) == Piece::Type::Empty) {
-                    add_friendly_piece<colour, Piece::Type::Rook>(game, move.from, Bitboard(move.from));
+                    add_friendly_piece<colour, Piece::Type::Rook>(game, Bitboard(move.from));
                 } else {
-                    add_friendly_piece<colour, Piece::Type::Pawn>(game, move.from, Bitboard(move.from));
+                    add_friendly_piece<colour, Piece::Type::Pawn>(game, Bitboard(move.from));
                 }
             } else if (has_friendly_queen<colour>(game, to_index_bitboard)) {
                 // remove the queen from where it was moved to
-                remove_friendly_piece<colour, Piece::Type::Queen>(game, move.to, to_index_bitboard);
+                remove_friendly_piece<colour, Piece::Type::Queen>(game, to_index_bitboard);
                 // add piece to where it was moved from, considering promotion
                 if (get_promotion_piece_type(move.compressed_taken_and_promotion_piece_type) == Piece::Type::Empty) {
-                    add_friendly_piece<colour, Piece::Type::Queen>(game, move.from, Bitboard(move.from));
+                    add_friendly_piece<colour, Piece::Type::Queen>(game, Bitboard(move.from));
                 } else {
-                    add_friendly_piece<colour, Piece::Type::Pawn>(game, move.from, Bitboard(move.from));
+                    add_friendly_piece<colour, Piece::Type::Pawn>(game, Bitboard(move.from));
                 }
             } else {
                 // remove the king from where it was moved to
-                remove_friendly_piece<colour, Piece::Type::King>(game, move.to, to_index_bitboard);
+                remove_friendly_piece<colour, Piece::Type::King>(game, to_index_bitboard);
                 // add king to where it was moved from (can not be a promotion move, so don't need to consider that)
-                add_friendly_piece<colour, Piece::Type::King>(game, move.from, Bitboard(move.from));
+                add_friendly_piece<colour, Piece::Type::King>(game, Bitboard(move.from));
 
                 // if it was a castle move, remove the rook from where it was moved to, and add it where it was moved from
                 if (move.from == Bitboard::Index(File::E, rear_rank<colour>())) {
                     if (move.to == Bitboard::Index(File::C, rear_rank<colour>())) {
                         CHESS_ASSERT(*get_friendly_rooks<colour>(game) & Bitboard(File::D, rear_rank<colour>()));
-                        const Bitboard::Index rook_from(File::D, rear_rank<colour>());
-                        const Bitboard::Index rook_to(File::A, rear_rank<colour>());
-                        remove_friendly_piece<colour, Piece::Type::Rook>(game, rook_from, Bitboard(rook_from));
-                        add_friendly_piece<colour, Piece::Type::Rook>(game, rook_to, Bitboard(rook_to));
+                        const Bitboard rook_from_bitboard(File::D, rear_rank<colour>());
+                        const Bitboard rook_to_bitboard(File::A, rear_rank<colour>());
+                        remove_friendly_piece<colour, Piece::Type::Rook>(game, rook_from_bitboard);
+                        add_friendly_piece<colour, Piece::Type::Rook>(game, rook_to_bitboard);
                     } else if (move.to == Bitboard::Index(File::G, rear_rank<colour>())) {
                         CHESS_ASSERT(*get_friendly_rooks<colour>(game) & Bitboard(File::F, rear_rank<colour>()));
-                        const Bitboard::Index rook_from(File::F, rear_rank<colour>());
-                        const Bitboard::Index rook_to(File::H, rear_rank<colour>());
-                        remove_friendly_piece<colour, Piece::Type::Rook>(game, rook_from, Bitboard(rook_from));
-                        add_friendly_piece<colour, Piece::Type::Rook>(game, rook_to, Bitboard(rook_to));
+                        const Bitboard rook_from_bitboard(File::F, rear_rank<colour>());
+                        const Bitboard rook_to_bitboard(File::H, rear_rank<colour>());
+                        remove_friendly_piece<colour, Piece::Type::Rook>(game, rook_from_bitboard);
+                        add_friendly_piece<colour, Piece::Type::Rook>(game, rook_to_bitboard);
                     }
                 }
             }
 
             // for all pieces except pawn (because pawns need to consider en passant), add the taken piece back to where it was taken from
             if (taken_piece != Piece::Type::Empty) {
-                add_friendly_piece<EnemyColour<colour>::colour>(game, move.to, to_index_bitboard, taken_piece);
+                add_friendly_piece<EnemyColour<colour>::colour>(game, to_index_bitboard, taken_piece);
             }
         }
 
