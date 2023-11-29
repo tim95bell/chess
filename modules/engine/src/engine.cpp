@@ -5,7 +5,6 @@
 #include <utility>
 #include <cstdio>
 #include <future>
-#include <unordered_map>
 // TODO(TB): remove this
 #include <iostream>
 
@@ -180,18 +179,6 @@ namespace chess { namespace engine {
         x->flags |= game->black_can_never_castle_short << 2;
         x->flags |= game->black_can_never_castle_long << 3;
         x->flags |= game->next_turn << 4;
-    }
-
-    static std::unordered_map<U64, U64> board_history{};
-    static U64 board_history_repeat_count = 0;
-
-    static inline void manage_board_history(Game* game){
-        auto iter = board_history.find(game->zobrist_hash);
-        if (iter == board_history.end()) {
-            board_history.insert({game->zobrist_hash, 1});
-        } else {
-            ++board_history_repeat_count;
-        }
     }
 
     static void add_move(Game* game, Move move) {
@@ -536,7 +523,6 @@ namespace chess { namespace engine {
     template <Colour colour>
     static bool test_for_check_after_pseudo_legal_move(Game* game, Move the_move) {
         // NOTE(TB): check data is not being updated here, so cannot use it to test for check
-        // TODO(TB): don't need to update and unupdate zobrist hash here, have a bool template argument for that?
         set_taken_piece_type(&the_move.compressed_taken_and_promotion_piece_type, perform_move<colour>(game, the_move));
         const bool result = get_attack_cells<EnemyColour<colour>::colour>(game) & *get_friendly_kings<colour>(game);
         unperform_move<colour>(game, the_move);
@@ -546,7 +532,6 @@ namespace chess { namespace engine {
     template <Colour colour>
     static bool test_for_check_after_move(Game* game, Move the_move) {
         // NOTE(TB): check data is not being updated here, so cannot use it to test for check
-        // TODO(TB): don't need to update and unupdate zobrist hash here, have a bool template argument for that?
         set_taken_piece_type(&the_move.compressed_taken_and_promotion_piece_type, perform_move<colour>(game, the_move));
         const bool result = get_attack_cells_excluding_king<EnemyColour<colour>::colour>(game) & *get_friendly_kings<colour>(game);
         unperform_move<colour>(game, the_move);
@@ -1188,7 +1173,6 @@ namespace chess { namespace engine {
         add_move(game, move);
         next_check_data(game);
         calculate_check_data<EnemyColour<colour>::colour>(game);
-        manage_board_history(game);
     }
 
     template <Colour colour>
@@ -2193,14 +2177,10 @@ namespace chess { namespace engine {
         }
 
         if (game->next_turn) {
-            U64 result = fast_perft<Colour::Black, divided>(game, depth);
-            printf("unique board states: %llu\nrepeat board states: %llu\n", board_history.size(), board_history_repeat_count);
-            return result;
+            return fast_perft<Colour::Black, divided>(game, depth);
         }
 
-        U64 result = fast_perft<Colour::White, divided>(game, depth);
-        printf("unique board states: %llu\nrepeat board states: %llu\n", board_history.size(), board_history_repeat_count);
-        return result;
+        return fast_perft<Colour::White, divided>(game, depth);
     }
 
     template U64 fast_perft<false>(Game* game, U8 depth);
