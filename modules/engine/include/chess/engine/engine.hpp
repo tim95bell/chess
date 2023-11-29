@@ -152,7 +152,6 @@ namespace chess { namespace engine {
         U8 check_data_head;
         U8 check_data_index;
         CheckData check_data[check_data_capacity];
-        U64 zobrist_hash;
         bool can_en_passant : 1;
         bool next_turn : 1;
         bool white_can_never_castle_short : 1;
