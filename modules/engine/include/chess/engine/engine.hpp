@@ -50,7 +50,9 @@ namespace chess { namespace engine {
         Bitboard west_skewer;
         Bitboard north_west_skewer;
         Bitboard check_resolution_bitboard;
-        U8 check_count;
+        bool single_check : 1;
+        bool double_check : 1;
+        bool has_moves : 1;
     };
 
     enum class CastleDirection {

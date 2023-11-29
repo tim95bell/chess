@@ -406,7 +406,7 @@ namespace chess { namespace engine {
     static void calculate_check_data(Game* game) {
         const Bitboard kings = *get_friendly_kings<colour>(game);
         const Bitboard enemy_pieces_complement = ~get_friendly_pieces<EnemyColour<colour>::colour>(game);
-        const Bitboard friendly_pieces = get_friendly_pieces<colour>(game);
+        Bitboard friendly_pieces = get_friendly_pieces<colour>(game);
         const Bitboard file_a_complement = ~bitboard_file[U8(File::A)];
         const Bitboard file_h_complement = ~bitboard_file[U8(File::H)];
         const Bitboard enemy_rooks_and_queens = (*get_friendly_rooks<EnemyColour<colour>::colour>(game) | *get_friendly_queens<EnemyColour<colour>::colour>(game));
@@ -543,105 +543,131 @@ namespace chess { namespace engine {
         check_data->north_west_skewer = result;
 
         // check resolution bitboard
-        check_data->check_count = 0;
+        check_data->single_check = false;
+        check_data->double_check = false;
 
         if (check_data->north_skewer && !(check_data->north_skewer & friendly_pieces)) {
-            ++check_data->check_count;
+            check_data->single_check = true;
             check_data->check_resolution_bitboard = check_data->north_skewer;
         }
 
         if (check_data->north_east_skewer && !(check_data->north_east_skewer & friendly_pieces)) {
-            ++check_data->check_count;
-            if (check_data->check_count == 1) {
-                check_data->check_resolution_bitboard = check_data->north_east_skewer;
-            } else {
+            if (check_data->single_check) {
+                check_data->double_check = true;
                 check_data->check_resolution_bitboard = Bitboard();
                 return;
+            } else {
+                check_data->single_check = true;
+                check_data->check_resolution_bitboard = check_data->north_east_skewer;
             }
         }
 
         if (check_data->east_skewer && !(check_data->east_skewer & friendly_pieces)) {
-            ++check_data->check_count;
-            if (check_data->check_count == 1) {
-                check_data->check_resolution_bitboard = check_data->east_skewer;
-            } else {
+            if (check_data->single_check) {
+                check_data->double_check = true;
                 check_data->check_resolution_bitboard = Bitboard();
                 return;
+            } else {
+                check_data->single_check = true;
+                check_data->check_resolution_bitboard = check_data->east_skewer;
             }
         }
 
         if (check_data->south_east_skewer && !(check_data->south_east_skewer & friendly_pieces)) {
-            ++check_data->check_count;
-            if (check_data->check_count == 1) {
-                check_data->check_resolution_bitboard = check_data->south_east_skewer;
-            } else {
+            if (check_data->single_check) {
+                check_data->double_check = true;
                 check_data->check_resolution_bitboard = Bitboard();
                 return;
+            } else {
+                check_data->single_check = true;
+                check_data->check_resolution_bitboard = check_data->south_east_skewer;
             }
         }
 
         if (check_data->south_skewer && !(check_data->south_skewer & friendly_pieces)) {
-            ++check_data->check_count;
-            if (check_data->check_count == 1) {
-                check_data->check_resolution_bitboard = check_data->south_skewer;
-            } else {
+            if (check_data->single_check) {
+                check_data->double_check = true;
                 check_data->check_resolution_bitboard = Bitboard();
                 return;
+            } else {
+                check_data->single_check = true;
+                check_data->check_resolution_bitboard = check_data->south_skewer;
             }
         }
 
         if (check_data->south_west_skewer && !(check_data->south_west_skewer & friendly_pieces)) {
-            ++check_data->check_count;
-            if (check_data->check_count == 1) {
-                check_data->check_resolution_bitboard = check_data->south_west_skewer;
-            } else {
+            if (check_data->single_check) {
+                check_data->double_check = true;
                 check_data->check_resolution_bitboard = Bitboard();
                 return;
+            } else {
+                check_data->single_check = true;
+                check_data->check_resolution_bitboard = check_data->south_west_skewer;
             }
         }
 
         if (check_data->west_skewer && !(check_data->west_skewer & friendly_pieces)) {
-            ++check_data->check_count;
-            if (check_data->check_count == 1) {
-                check_data->check_resolution_bitboard = check_data->west_skewer;
-            } else {
+            if (check_data->single_check) {
+                check_data->double_check = true;
                 check_data->check_resolution_bitboard = Bitboard();
                 return;
+            } else {
+                check_data->single_check = true;
+                check_data->check_resolution_bitboard = check_data->west_skewer;
             }
         }
 
         if (check_data->north_west_skewer && !(check_data->north_west_skewer & friendly_pieces)) {
-            ++check_data->check_count;
-            if (check_data->check_count == 1) {
-                check_data->check_resolution_bitboard = check_data->north_west_skewer;
-            } else {
+            if (check_data->single_check) {
+                check_data->double_check = true;
                 check_data->check_resolution_bitboard = Bitboard();
                 return;
+            } else {
+                check_data->single_check = true;
+                check_data->check_resolution_bitboard = check_data->north_west_skewer;
             }
         }
 
         if (Bitboard checking_knight = get_knight_attack_cells<colour>(game, kings) & *get_friendly_knights<EnemyColour<colour>::colour>(game)) {
-            ++check_data->check_count;
-            if (check_data->check_count == 1) {
-                check_data->check_resolution_bitboard = checking_knight;
-            } else {
+            if (check_data->single_check) {
+                check_data->double_check = true;
                 check_data->check_resolution_bitboard = Bitboard();
                 return;
+            } else {
+                check_data->single_check = true;
+                check_data->check_resolution_bitboard = checking_knight;
             }
         }
 
         if (Bitboard checking_pawn = get_pawn_attack_cells<colour>(game, kings) & *get_friendly_pawns<EnemyColour<colour>::colour>(game)) {
-            ++check_data->check_count;
-            if (check_data->check_count == 1) {
-                check_data->check_resolution_bitboard = checking_pawn;
-            } else {
+            if (check_data->single_check) {
+                check_data->double_check = true;
                 check_data->check_resolution_bitboard = Bitboard();
                 return;
+            } else {
+                check_data->single_check = true;
+                check_data->check_resolution_bitboard = checking_pawn;
             }
         }
 
-        if (check_data->check_count == 0) {
+        if (!check_data->single_check) {
             check_data->check_resolution_bitboard = ~Bitboard();
+        }
+
+        // stalemate or checkmate
+        Bitboard moves;
+        check_data->has_moves = false;
+        for (U8 from_index_plus_one = __builtin_ffsll(friendly_pieces.data); from_index_plus_one; from_index_plus_one = __builtin_ffsll(friendly_pieces.data)) {
+            const Bitboard::Index from_index(from_index_plus_one - 1);
+            const Bitboard from_index_bitboard(from_index);
+            moves = get_moves<colour>(game, from_index);
+            game->cache.possible_moves[from_index.data] = moves;
+            game->cache.possible_moves_calculated |= from_index_bitboard;
+            if (moves) {
+                check_data->has_moves = true;
+                break;
+            }
+            friendly_pieces &= ~from_index_bitboard;
         }
     }
 
@@ -857,6 +883,19 @@ namespace chess { namespace engine {
         }
 
         return Bitboard();
+    }
+
+    template <Colour colour>
+    static Bitboard get_moves_checking_cache(Game* game, Bitboard::Index index) {
+        if (game->cache.possible_moves_calculated & Bitboard(index)) {
+            return game->cache.possible_moves[U8(index)];
+        }
+
+        const Bitboard result = get_moves<colour>(game, index);
+        game->cache.possible_moves[U8(index)] = result;
+        game->cache.possible_moves_calculated |= result;
+
+        return result;
     }
 
     template <Colour colour>
@@ -1440,8 +1479,7 @@ namespace chess { namespace engine {
     }
 
     Bitboard get_moves(Game* game, Bitboard::Index index) {
-        const Bitboard bitboard = Bitboard(index);
-        if (game->cache.possible_moves_calculated & bitboard) {
+        if (game->cache.possible_moves_calculated & Bitboard(index)) {
             return game->cache.possible_moves[U8(index)];
         }
 
@@ -1571,12 +1609,13 @@ namespace chess { namespace engine {
     }
 
     static bool last_move_was_check(const Game* game) {
-        return get_check_data(game)->check_count != 0;
+        return get_check_data(game)->single_check;
     }
 
     template <Colour colour>
     static bool test_for_check_mate(Game* game) {
-        return get_check_data(game)->check_count && !has_a_legal_move<colour>(game);
+        const CheckData* check_data = get_check_data(game);
+        return check_data->single_check && !check_data->has_moves;
     }
 
     template <Colour colour>
@@ -1586,7 +1625,7 @@ namespace chess { namespace engine {
             return false;
         }
 
-        return get_check_data(game)->check_count == 2;
+        return get_check_data(game)->double_check;
     }
 
     template <Colour colour>
@@ -1616,22 +1655,6 @@ namespace chess { namespace engine {
                 || (check_data->south_west_skewer && !(check_data->south_west_skewer & enemy_pieces) && !(check_data->south_west_skewer & moved_to_bitboard) && (check_data->south_west_skewer & moved_from_bitboard))
                 || (check_data->west_skewer && !(check_data->west_skewer & enemy_pieces) && !(check_data->west_skewer & moved_to_bitboard) && (check_data->west_skewer & moved_from_bitboard))
                 || (check_data->north_west_skewer && !(check_data->north_west_skewer & enemy_pieces) && !(check_data->north_west_skewer & moved_to_bitboard) && (check_data->north_west_skewer & moved_from_bitboard)));
-        }
-        return false;
-    }
-
-    template <Colour colour>
-    static bool has_a_legal_move(Game* game) {
-        Bitboard friendly_pieces_to_process = get_friendly_pieces<colour>(game);
-        Bitboard moves_to_process;
-        for (U8 from_index_plus_one = __builtin_ffsll(friendly_pieces_to_process.data); from_index_plus_one; from_index_plus_one = __builtin_ffsll(friendly_pieces_to_process.data)) {
-            const Bitboard::Index from_index(from_index_plus_one - 1);
-            moves_to_process = get_moves<colour>(game, from_index);
-            const Bitboard from_index_bitboard(from_index);
-            friendly_pieces_to_process &= ~from_index_bitboard;
-            if (moves_to_process) {
-                return true;
-            }
         }
         return false;
     }
@@ -1833,7 +1856,7 @@ namespace chess { namespace engine {
         Bitboard moves_to_process;
         for (U8 from_index_plus_one = __builtin_ffsll(friendly_pieces_to_process.data); from_index_plus_one; from_index_plus_one = __builtin_ffsll(friendly_pieces_to_process.data)) {
             const Bitboard::Index from_index(from_index_plus_one - 1);
-            moves_to_process = get_moves<colour>(game, from_index);
+            moves_to_process = get_moves_checking_cache<colour>(game, from_index);
             const Bitboard from_index_bitboard(from_index);
             friendly_pieces_to_process &= ~from_index_bitboard;
             if (moves_to_process) {
