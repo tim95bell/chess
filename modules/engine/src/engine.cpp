@@ -12,7 +12,7 @@ namespace chess { namespace engine {
     // #region internal
     static U8 get_cell_compressed_value(const Game* game, Bitboard::Index i) {
         const Bitboard i_bitboard(i);
-        if (game->can_en_passant && i == game->en_passant_square) {
+        if (game->can_en_passant && i == game->en_passant_cell) {
             return static_cast<U8>(CompressedBoard::Piece::EnPassantPawn) | ((!game->next_turn) << 3);
         } else if (has_friendly_pawn<Colour::White>(game, i_bitboard)) {
             return static_cast<U8>(CompressedBoard::Piece::Pawn);
@@ -654,18 +654,18 @@ namespace chess { namespace engine {
     static Bitboard get_pawn_legal_moves(Game* game, Bitboard::Index index) {
         const Bitboard index_bitboard(index);
         if (game->can_en_passant) {
-            const Bitboard en_passant_move_square(move_forward<colour>(game->en_passant_square));
+            const Bitboard en_passant_move_cell(move_forward<colour>(game->en_passant_cell));
             const Bitboard attack_cells = get_pawn_attack_cells<colour>(game, index_bitboard);
-            if (en_passant_move_square & attack_cells) {
+            if (en_passant_move_cell & attack_cells) {
                 Bitboard moves = apply_check_evasion_and_prevention<colour>(
                     game,
                     index_bitboard,
                     (attack_cells & get_friendly_pieces<EnemyColour<colour>::colour>(game)) | get_pawn_non_attack_moves_excluding_en_passant<colour>(game, index_bitboard));
 
-                if (test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_forward<colour>(game->en_passant_square)))) {
-                    moves &= ~en_passant_move_square;
+                if (test_for_check_after_pseudo_legal_move<colour>(game, Move(game, index, move_forward<colour>(game->en_passant_cell)))) {
+                    moves &= ~en_passant_move_cell;
                 } else {
-                    moves |= en_passant_move_square;
+                    moves |= en_passant_move_cell;
                 }
                 return moves;
             }
@@ -817,7 +817,7 @@ namespace chess { namespace engine {
 
     static inline void set_en_passant_cell(Game* game, Bitboard::Index index) {
         game->can_en_passant = true;
-        game->en_passant_square = index;
+        game->en_passant_cell = index;
     }
 
     template <Colour colour>
@@ -888,8 +888,8 @@ namespace chess { namespace engine {
             CHESS_ASSERT(get_promotion_piece_type(move.compressed_taken_and_promotion_piece_type) == Piece::Type::Empty);
 
             // remove taken piece, considering en passant
-            if (game->can_en_passant && game->en_passant_square == move_backward<colour>(move.to)) {
-                remove_friendly_piece<EnemyColour<colour>::colour, Piece::Type::Pawn>(game, Bitboard(game->en_passant_square));
+            if (game->can_en_passant && game->en_passant_cell == move_backward<colour>(move.to)) {
+                remove_friendly_piece<EnemyColour<colour>::colour, Piece::Type::Pawn>(game, Bitboard(game->en_passant_cell));
                 result = Piece::Type::Pawn;
             } else {
                 // remove enemy piece that is being captured at 'to' cell
@@ -911,7 +911,7 @@ namespace chess { namespace engine {
     }
 
     template <Colour colour>
-    static Piece::Type perfrom_king_move(Game* game, Move move) {
+    static Piece::Type perform_king_move(Game* game, Move move) {
         const Bitboard from_index_bitboard(move.from);
         const Bitboard to_index_bitboard(move.to);
         CHESS_ASSERT(get_promotion_piece_type(move.compressed_taken_and_promotion_piece_type) == Piece::Type::Empty);
@@ -926,7 +926,7 @@ namespace chess { namespace engine {
         add_friendly_piece<colour, Piece::Type::King>(game, to_index_bitboard);
 
         if (from_index_bitboard & Bitboard(File::E, rear_rank<colour>())) {
-            // moving from origin square
+            // moving from origin cell
 
             if (to_index_bitboard & Bitboard(File::C, rear_rank<colour>())) {
                 // castling queenside
@@ -1000,7 +1000,7 @@ namespace chess { namespace engine {
             result = perform_knight_or_bishop_or_rook_or_queen_move<colour, Piece::Type::Queen>(game, move);
         } else {
             CHESS_ASSERT(has_friendly_king<colour>(game, from_index_bitboard));
-            result = perfrom_king_move<colour>(game, move);
+            result = perform_king_move<colour>(game, move);
         }
 
         if (result == Piece::Type::Rook) {
@@ -1068,7 +1068,7 @@ namespace chess { namespace engine {
             // add taken piece back to where it was taken from, considering en passant, where the piece is taken from a different cell than is moved to by the taking piece
             if (taken_piece != Piece::Type::Empty) {
                 if (taken_piece == Piece::Type::Pawn) {
-                    if (game->can_en_passant && move.to == move_forward<colour>(game->en_passant_square)) {
+                    if (game->can_en_passant && move.to == move_forward<colour>(game->en_passant_cell)) {
                         // en passant
                         const Bitboard index_bitboard(move_forward<EnemyColour<colour>::colour>(move.to));
                         add_friendly_piece<EnemyColour<colour>::colour, Piece::Type::Pawn>(game, index_bitboard);
@@ -1229,7 +1229,7 @@ namespace chess { namespace engine {
         , black_rooks(nth_bit(Bitboard::Index(File::A, Rank::Eight), Bitboard::Index(File::H, Rank::Eight)))
         , black_queens(Bitboard(File::D, Rank::Eight))
         , black_kings(Bitboard(File::E, Rank::Eight))
-        , en_passant_square(0)
+        , en_passant_cell(0)
         , moves_allocated(256)
         , moves_count(0)
         , moves_index(0)
@@ -1541,8 +1541,8 @@ namespace chess { namespace engine {
             const Bitboard to_index_bitboard = Bitboard(move.to);
             if (move.can_en_passant) {
                 CHESS_ASSERT(game->moves_index > 1);
-                Bitboard::Index en_passant_square = game->moves[game->moves_index - 2].to;
-                if (has_friendly_pawn<colour>(game, to_index_bitboard) && move.to == move_forward<colour>(en_passant_square)) {
+                Bitboard::Index en_passant_cell = game->moves[game->moves_index - 2].to;
+                if (has_friendly_pawn<colour>(game, to_index_bitboard) && move.to == move_forward<colour>(en_passant_cell)) {
                     return true;
                 }
             }
@@ -1792,7 +1792,7 @@ namespace chess { namespace engine {
                         const File file = File(U8(File::A) + (c - 'a'));
                         const Rank rank = Rank(U8(Rank::One) + (r - '1'));
                         game->can_en_passant = true;
-                        game->en_passant_square = Bitboard::Index(file, rank);
+                        game->en_passant_cell = Bitboard::Index(file, rank);
 
                         ++index;
                         if (fen[index] == ' ') {

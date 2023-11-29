@@ -144,7 +144,7 @@ namespace chess { namespace engine {
         Bitboard black_queens;
         Bitboard black_kings;
         mutable Cache cache;
-        Bitboard::Index en_passant_square;
+        Bitboard::Index en_passant_cell;
         U64 moves_allocated;
         U64 moves_count;
         U64 moves_index;

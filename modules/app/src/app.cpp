@@ -145,28 +145,28 @@ namespace chess { namespace app {
             for (U8 y = 0; y < engine::chess_board_edge_size; ++y) {
                 for (U8 x = 0; x < engine::chess_board_edge_size; ++x) {
                     const engine::Bitboard::Index i = engine::coordinate_with_flipped_rank(engine::File(x), engine::Rank(y));
-                    const bool light_square = engine::is_light_cell(engine::File(x), engine::Rank(y));
+                    const bool light_cell = engine::is_light_cell(engine::File(x), engine::Rank(y));
                     const Rectangle cell{static_cast<float>(board_x + x * cell_size), static_cast<float>(board_y + y * cell_size), static_cast<float>(cell_size), static_cast<float>(cell_size)};
                     Color cell_colour;
                     if (app->cell_is_selected) {
                         if (app->selected_cell == i) {
-                            cell_colour = light_square ? light_selected_colour : dark_selected_colour;
+                            cell_colour = light_cell ? light_selected_colour : dark_selected_colour;
                             CHESS_ASSERT((app->possible_moves & engine::Bitboard(i)) == 0);
                         } else if (app->possible_moves & engine::Bitboard(i)) {
-                            cell_colour = light_square ? light_possible_move_colour : dark_possible_move_colour;
+                            cell_colour = light_cell ? light_possible_move_colour : dark_possible_move_colour;
                         } else if (engine::get_cells_moved_from(&app->game) & engine::Bitboard(i)) {
-                            cell_colour = light_square ? light_moved_from_colour : dark_moved_from_colour;
+                            cell_colour = light_cell ? light_moved_from_colour : dark_moved_from_colour;
                         } else if (engine::get_cells_moved_to(&app->game) & engine::Bitboard(i)) {
-                            cell_colour = light_square ? light_moved_to_colour : dark_moved_to_colour;
+                            cell_colour = light_cell ? light_moved_to_colour : dark_moved_to_colour;
                         } else {
-                            cell_colour = light_square ? light_colour : dark_colour;
+                            cell_colour = light_cell ? light_colour : dark_colour;
                         }
                     } else if (engine::get_cells_moved_from(&app->game) & engine::Bitboard(i)) {
-                        cell_colour = light_square ? light_moved_from_colour : dark_moved_from_colour;
+                        cell_colour = light_cell ? light_moved_from_colour : dark_moved_from_colour;
                     } else if (engine::get_cells_moved_to(&app->game) & engine::Bitboard(i)) {
-                        cell_colour = light_square ? light_moved_to_colour : dark_moved_to_colour;
+                        cell_colour = light_cell ? light_moved_to_colour : dark_moved_to_colour;
                     } else {
-                        cell_colour = light_square ? light_colour : dark_colour;
+                        cell_colour = light_cell ? light_colour : dark_colour;
                     }
                     DrawRectangle(cell.x, cell.y, cell.width, cell.height, cell_colour);
                     const engine::Piece piece = engine::get_piece(&app->game, engine::Bitboard(i));
