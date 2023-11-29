@@ -27,6 +27,7 @@ namespace chess {
             engine::Game game;
             Timer timer;
             result = engine::fast_perft<false>(&game, depth);
+            //result = engine::fast_perft_multi_threaded<false>(&game, depth);
         }
         if (result == expected) {
             std::cout << "SUCCESS: " << result << std::endl;
@@ -48,6 +49,7 @@ static bool is_white_space(const char* str) {
 }
 
 int main(int argc, char* argv[]) {
+#if 0
     // depth fen moves
     if (argc < 2) {
         return 1;
@@ -70,13 +72,14 @@ int main(int argc, char* argv[]) {
     }
 
     chess::U64 result = chess::engine::fast_perft<true>(&game, static_cast<chess::U8>(depth));
-    std::cout << "\ntotal nodes searched: " << result << std::endl;
-
-    return 0;
-
-    //chess::perft(4, 197281);
+    std::cout << "\n" << result << std::endl;
+#else
+    chess::perft(4, 197281);
     //chess::perft(5, 4865609);
     //chess::perft(6, 119060324);
     //chess::perft(7, 3195901860);
     //chess::perft(8, 84998978956);
+#endif
+    
+    return 0;
 }
