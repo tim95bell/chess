@@ -1,34 +1,91 @@
+# Chess
 
-## Chess engine in c++
+A chess engine and desktop UI app written in C++
 
-#### Setup:
-- clone this repo and recursively update submodules 
-`git clone --recurse-submodules git@github.com:tim95bell/chess.git`
-- download this file to ./resources/pieces.png
-https://upload.wikimedia.org/wikipedia/commons/e/e5/ChessPiecesArray.png
-- build raylib
-`./scripts/build_raylib.sh`
+Features:
 
-#### Generate Build:
-`cmake -GXcode -Bbuild/chess/{debug|release}`
+- a bitboard based engine with legal move generation, undo/redo, and perft support
+- a desktop app built with raylib
+- Catch2 tests for engine and perft
+- a debug hot-reload workflow for app code
 
-#### Build:
-`cmake --build build/chess/{debug|release}`
+This project is setup for local development on macOS with Xcode-generated builds.
 
-#### Test:
-`./build/chess/{debug|release}/modules/engine/test/{Debug|Release}/chess_engine_tests`
+## Repository Layout
 
-#### Run:
-`./build/chess/{debug|release}/modules/app/{Debug|Release}/chess`
+- `modules/engine`: chess rules, move generation, perft, and tests
+- `modules/app`: desktop application UI
+- `modules/common`: shared types and utilities
+- `scripts`: helper scripts for generating builds, building raylib, and hot reload
 
-#### Hot Reload
-- start the app
-`./build/chess/{debug|release}/modules/app/{Debug|Release}/chess`
-- run hot reload script when you want to hot reload
-`./scripts/hot_reload_{debug|release}.sh`
+## Setup
 
-#### Run PERFT Test
-- build
-`cmake --build build/chess/{debug|release}`
-- run perft test
-`./build/chess/{debug|release}/modules/engine/perft/{Debug|Release}/chess_engine_perft`
+1. Clone the repository with submodules:
+
+```bash
+git clone --recurse-submodules git@github.com:tim95bell/chess.git
+cd chess
+```
+
+2. Download the piece spritesheet to `./resources/pieces.png`:
+
+`https://upload.wikimedia.org/wikipedia/commons/e/e5/ChessPiecesArray.png`
+
+3. Build and install raylib into `./libs`:
+
+```bash
+./scripts/build_raylib.sh
+```
+
+## Build
+
+Debug build:
+
+```bash
+./scripts/generate_build_debug.sh
+cmake --build build/chess/debug
+```
+
+Release build:
+
+```bash
+./scripts/generate_build_release.sh
+cmake --build build/chess/release
+```
+
+## Run
+
+Debug:
+
+```bash
+./build/chess/debug/modules/app/Debug/chess
+```
+
+Release:
+
+```bash
+./build/chess/release/modules/app/Release/chess
+```
+
+## Tests
+
+Engine tests:
+
+```bash
+./build/chess/debug/modules/engine/test/Debug/chess_engine_tests
+```
+
+Perft executable:
+
+```bash
+./build/chess/debug/modules/engine/perft/Debug/chess_engine_perft
+```
+
+## Hot Reload
+
+Run the debug app, then rebuild the hot-reload target when you want to swap in updated app code:
+
+```bash
+./build/chess/debug/modules/app/Debug/chess
+./scripts/hot_reload_debug.sh
+```
