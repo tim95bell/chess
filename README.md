@@ -27,11 +27,7 @@ git clone --recurse-submodules git@github.com:tim95bell/chess.git
 cd chess
 ```
 
-2. Download the piece spritesheet to `./resources/pieces.png`:
-
-`https://upload.wikimedia.org/wikipedia/commons/e/e5/ChessPiecesArray.png`
-
-3. Build and install raylib into `./libs`:
+2. Build and install raylib into `./libs`:
 
 ```bash
 ./scripts/build_raylib.sh
@@ -89,3 +85,7 @@ Run the debug app, then rebuild the hot-reload target when you want to swap in u
 ./build/chess/debug/modules/app/Debug/chess
 ./scripts/hot_reload_debug.sh
 ```
+
+## Third-Party Assets
+
+Third-party asset attributions and licenses are listed in [THIRD_PARTY.md](THIRD_PARTY.md).
