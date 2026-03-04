@@ -893,7 +893,7 @@ namespace chess { namespace engine {
 
         const Bitboard result = get_moves<colour>(game, index);
         game->cache.possible_moves[U8(index)] = result;
-        game->cache.possible_moves_calculated |= result;
+        game->cache.possible_moves_calculated |= Bitboard(index);
 
         return result;
     }
@@ -1485,7 +1485,7 @@ namespace chess { namespace engine {
 
         const Bitboard result = game->next_turn ? get_moves<Colour::Black>(game, index) : get_moves<Colour::White>(game, index);
         game->cache.possible_moves[U8(index)] = result;
-        game->cache.possible_moves_calculated |= result;
+        game->cache.possible_moves_calculated |= Bitboard(index);
 
         return result;
     }
@@ -2077,7 +2077,7 @@ namespace chess { namespace engine {
         Bitboard moves_to_process;
         for (U8 from_index_plus_one = __builtin_ffsll(friendly_pieces_to_process.data); from_index_plus_one; from_index_plus_one = __builtin_ffsll(friendly_pieces_to_process.data)) {
             const Bitboard::Index from_index(from_index_plus_one - 1);
-            moves_to_process = get_moves<colour>(game, from_index);
+            moves_to_process = get_moves_checking_cache<colour>(game, from_index);
             const Bitboard from_index_bitboard(from_index);
             friendly_pieces_to_process &= ~from_index_bitboard;
             if (moves_to_process) {
