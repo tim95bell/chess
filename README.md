@@ -1,15 +1,15 @@
 # Chess
 
-A chess engine and desktop UI app written in C++
+A chess engine and desktop app written in C++
 
 Features:
 
-- a bitboard based engine with legal move generation, undo/redo, and perft support
+- a bitboard-based engine with legal move generation, undo/redo, and perft support
 - a desktop app built with raylib
 - Catch2 tests for engine and perft
 - a debug hot-reload workflow for app code
 
-This project is setup for local development on macOS with Xcode-generated builds.
+This project is set up for local development on macOS with Xcode-generated builds.
 
 ## Repository Layout
 
@@ -89,3 +89,6 @@ Run the debug app, then rebuild the hot-reload target when you want to swap in u
 ## Third-Party Assets
 
 Third-party asset attributions and licenses are listed in [THIRD_PARTY.md](THIRD_PARTY.md).
+
+## Screenshot
+![Screenshot of chess app](./docs/images/screenshot.png)
